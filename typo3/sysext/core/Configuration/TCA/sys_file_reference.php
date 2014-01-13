@@ -149,6 +149,7 @@ return array(
 				'eval' => 'null',
 				'size' => '20',
 				'placeholder' => '__row|uid_local|title',
+				'default' => NULL,
 			)
 		),
 		'link' => array(
@@ -182,6 +183,7 @@ return array(
 				'cols' => '20',
 				'rows' => '5',
 				'placeholder' => '__row|uid_local|description',
+				'default' => NULL,
 			)
 		),
 		'alternative' => array(
@@ -193,6 +195,7 @@ return array(
 				'eval' => 'null',
 				'size' => '20',
 				'placeholder' => '__row|uid_local|alternative',
+				'default' => NULL,
 			),
 		),
 	),
