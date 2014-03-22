@@ -178,5 +178,18 @@ TYPO3.Workspaces.Helpers = {
 				}
 			]
 		});
+	},
+
+	isDefined: function(propertyName) {
+		var result = true;
+		var pointer = window;
+		Ext.each(propertyName.split('.'), function(item) {
+			if (typeof pointer[item] === 'undefined') {
+				result = false;
+				return false;
+			}
+			pointer = pointer[item];
+		});
+		return result;
 	}
 };
