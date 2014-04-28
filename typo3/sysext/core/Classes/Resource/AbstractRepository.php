@@ -302,6 +302,13 @@ abstract class AbstractRepository implements \TYPO3\CMS\Extbase\Persistence\Repo
 		return TYPO3_MODE;
 	}
 
+	/**
+	 * @return \TYPO3\CMS\Core\Database\DatabaseConnection
+	 */
+	protected function getDatabaseConnection() {
+		return $GLOBALS['TYPO3_DB'];
+	}
+
 }
 
 

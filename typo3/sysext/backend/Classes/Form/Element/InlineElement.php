@@ -1571,9 +1571,12 @@ class InlineElement {
 	 */
 	public function getRecord($pid, $table, $uid, $cmd = '') {
 		// Fetch workspace version of a record (if any):
-		if ($cmd !== 'new' && $GLOBALS['BE_USER']->workspace !== 0) {
-			$workspaceVersion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $table, $uid, 'uid');
+		if ($cmd !== 'new' && $GLOBALS['BE_USER']->workspace !== 0 && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($table)) {
+			$workspaceVersion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($GLOBALS['BE_USER']->workspace, $table, $uid, 'uid,t3ver_state');
 			if ($workspaceVersion !== FALSE) {
+				if ((int)$workspaceVersion['t3ver_state'] === 2) {
+					return FALSE;
+				}
 				$uid = $workspaceVersion['uid'];
 			}
 		}
