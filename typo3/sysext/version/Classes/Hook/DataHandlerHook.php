@@ -70,7 +70,7 @@ class DataHandlerHook {
 		// Reset notification array
 		$this->notificationEmailInfo = array();
 		// Resolve dependencies of version/workspaces actions:
-		$tcemainObj->cmdmap = $this->getCommandMap($tcemainObj, $tcemainObj->cmdmap)->process()->get();
+		$tcemainObj->cmdmap = $this->getCommandMap($tcemainObj)->process()->get();
 	}
 
 	/**
@@ -259,31 +259,44 @@ class DataHandlerHook {
 	 * moving records that are *not* in the live workspace
 	 *
 	 * @param string $table the table of the record
-	 * @param integer $id the ID of the record
+	 * @param integer $uid the ID of the record
 	 * @param integer $destPid Position to move to: $destPid: >=0 then it points to
 	 * @param array $propArr Record properties, like header and pid (includes workspace overlay)
 	 * @param array $moveRec Record properties, like header and pid (without workspace overlay)
 	 * @param integer $resolvedPid The final page ID of the record
 	 * @param boolean $recordWasMoved can be set so that other hooks or
-	 * @param 	$table	the table
+	 * @param \TYPO3\CMS\Core\DataHandling\DataHandler $tcemainObj
+	 * @return void
 	 */
 	public function moveRecord($table, $uid, $destPid, array $propArr, array $moveRec, $resolvedPid, &$recordWasMoved, \TYPO3\CMS\Core\DataHandling\DataHandler $tcemainObj) {
 		// Only do something in Draft workspace
 		if ($tcemainObj->BE_USER->workspace !== 0) {
+			if ($destPid < 0) {
+				// Fetch move placeholder, since it might point to a new page in the current workspace
+				$movePlaceHolder = \TYPO3\CMS\Backend\Utility\BackendUtility::getMovePlaceholder($table, abs($destPid), 'uid,pid');
+				if ($movePlaceHolder !== FALSE) {
+					$resolvedPid = $movePlaceHolder['pid'];
+				}
+			}
 			$recordWasMoved = TRUE;
 			// Get workspace version of the source record, if any:
 			$WSversion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($tcemainObj->BE_USER->workspace, $table, $uid, 'uid,t3ver_oid');
 			// If no version exists and versioningWS is in version 2, a new placeholder is made automatically:
-			if (!$WSversion['uid'] && (int) $GLOBALS['TCA'][$table]['ctrl']['versioningWS'] >= 2 && (int) $moveRec['t3ver_state'] != 3) {
+			if (
+				!$WSversion['uid']
+				&& \TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($table)
+				&& (int)$moveRec['t3ver_state'] !== 3
+			) {
 				$tcemainObj->versionizeRecord($table, $uid, 'Placeholder version for moving record');
 				$WSversion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($tcemainObj->BE_USER->workspace, $table, $uid, 'uid,t3ver_oid');
+				$this->moveRecord_processFields($tcemainObj, $resolvedPid, $table, $uid);
 			}
 			// Check workspace permissions:
 			$workspaceAccessBlocked = array();
 			// Element was in "New/Deleted/Moved" so it can be moved...
 			$recIsNewVersion = (int) $moveRec['t3ver_state'] > 0;
 			$destRes = $tcemainObj->BE_USER->workspaceAllowLiveRecordsInPID($resolvedPid, $table);
-			$canMoveRecord = $recIsNewVersion || (int) $GLOBALS['TCA'][$table]['ctrl']['versioningWS'] >= 2;
+			$canMoveRecord = ($recIsNewVersion || \TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($table));
 			// Workspace source check:
 			if (!$recIsNewVersion) {
 				$errorCode = $tcemainObj->BE_USER->workspaceCannotEditRecord($table, $WSversion['uid'] ? $WSversion['uid'] : $uid);
@@ -306,7 +319,7 @@ class DataHandlerHook {
 			if (!count($workspaceAccessBlocked)) {
 				// If the move operation is done on a versioned record, which is
 				// NOT new/deleted placeholder and versioningWS is in version 2, then...
-				if ($WSversion['uid'] && !$recIsNewVersion && (int) $GLOBALS['TCA'][$table]['ctrl']['versioningWS'] >= 2) {
+				if ($WSversion['uid'] && !$recIsNewVersion && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($table)) {
 					$this->moveRecord_wsPlaceholders($table, $uid, $destPid, $WSversion['uid'], $tcemainObj);
 				} else {
 					// moving not needed, just behave like in live workspace
@@ -314,6 +327,74 @@ class DataHandlerHook {
 				}
 			} else {
 				$tcemainObj->newlog('Move attempt failed due to workspace restrictions: ' . implode(' // ', $workspaceAccessBlocked), 1);
+			}
+		}
+	}
+
+	/**
+	 * Processes fields of a moved record and follows references.
+	 *
+	 * @param \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler Calling DataHandler instance
+	 * @param int $resolvedPageId Resolved real destination page id
+	 * @param string $table Name of parent table
+	 * @param int $uid UID of the parent record
+	 * @return void
+	 */
+	protected function moveRecord_processFields(\TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler, $resolvedPageId, $table, $uid) {
+		$versionedRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($dataHandler->BE_USER->workspace, $table, $uid);
+		if (empty($versionedRecord)) {
+			return;
+		}
+		foreach ($versionedRecord as $field => $value) {
+			if (empty($GLOBALS['TCA'][$table]['columns'][$field]['config'])) {
+				continue;
+			}
+			$this->moveRecord_processFieldValue(
+				$dataHandler, $resolvedPageId,
+				$table, $uid, $field, $value,
+				$GLOBALS['TCA'][$table]['columns'][$field]['config']
+			);
+		}
+	}
+
+	/**
+	 * Processes a single field of a moved record and follows references.
+	 *
+	 * @param \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler Calling DataHandler instance
+	 * @param int $resolvedPageId Resolved real destination page id
+	 * @param string $table Name of parent table
+	 * @param int $uid UID of the parent record
+	 * @param string $field Name of the field of the parent record
+	 * @param string $value Value of the field of the parent record
+	 * @param array $configuration TCA field configuration of the parent record
+	 * @return void
+	 */
+	protected function moveRecord_processFieldValue(\TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler, $resolvedPageId, $table, $uid, $field, $value, array $configuration) {
+		$inlineFieldType = $dataHandler->getInlineFieldType($configuration);
+		$inlineProcessing = (
+			($inlineFieldType === 'list' || $inlineFieldType === 'field')
+			&& \TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($configuration['foreign_table'])
+			&& (!isset($configuration['behaviour']['disableMovingChildrenWithParent']) || !$configuration['behaviour']['disableMovingChildrenWithParent'])
+		);
+
+		if ($inlineProcessing) {
+			if ($table === 'pages') {
+				// If the inline elements are related to a page record,
+				// make sure they reside at that page and not at its parent
+				$destinationPageId = $uid;
+			}
+
+			$dbAnalysis = $this->createRelationHandlerInstance();
+			$dbAnalysis->start($value, $configuration['foreign_table'], '', $uid, $table, $configuration);
+
+			// Moving records to a positive destination will insert each
+			// record at the beginning, thus the order is reversed here:
+			foreach ($dbAnalysis->itemArray as $item) {
+				$versionedRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($dataHandler->BE_USER->workspace, $item['table'], $item['id'], 'uid,t3ver_state');
+				if (empty($versionedRecord) || (int)$versionedRecord['t3ver_state'] > 0) {
+					continue;
+				}
+				$this->moveRecord_wsPlaceholders($item['table'], $item['id'], $resolvedPageId, $versionedRecord['uid'], $dataHandler);
 			}
 		}
 	}
@@ -769,12 +850,6 @@ class DataHandlerHook {
 												}
 											}
 										}
-										// Take care of relations in each field (e.g. IRRE):
-										if (is_array($GLOBALS['TCA'][$table]['columns'])) {
-											foreach ($GLOBALS['TCA'][$table]['columns'] as $field => $fieldConf) {
-												$this->version_swap_procBasedOnFieldType($table, $field, $fieldConf['config'], $curVersion, $swapVersion, $tcemainObj);
-											}
-										}
 										unset($swapVersion['uid']);
 										// Modify online version to become offline:
 										unset($curVersion['uid']);
@@ -899,51 +974,6 @@ class DataHandlerHook {
 			}
 		} else {
 			$tcemainObj->newlog('Error: You cannot swap versions for a record you do not have access to edit!', 1);
-		}
-	}
-
-	/**
-	 * Update relations on version/workspace swapping.
-	 *
-	 * @param string $table: Record Table
-	 * @param string $field: Record field
-	 * @param array $conf: TCA configuration of current field
-	 * @param array $curVersion: Reference to the current (original) record
-	 * @param array $swapVersion: Reference to the record (workspace/versionized) to publish in or swap with
-	 * @param \TYPO3\CMS\Core\DataHandling\DataHandler $tcemainObj TCEmain object
-	 * @return void
-	 */
-	protected function version_swap_procBasedOnFieldType($table, $field, array $conf, array &$curVersion, array &$swapVersion, \TYPO3\CMS\Core\DataHandling\DataHandler $tcemainObj) {
-		$inlineType = $tcemainObj->getInlineFieldType($conf);
-		// Process pointer fields on normalized database:
-		if ($inlineType == 'field') {
-			// Read relations that point to the current record (e.g. live record):
-			/** @var $dbAnalysisCur \TYPO3\CMS\Core\Database\RelationHandler */
-			$dbAnalysisCur = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\RelationHandler');
-			$dbAnalysisCur->setUpdateReferenceIndex(FALSE);
-			$dbAnalysisCur->start('', $conf['foreign_table'], '', $curVersion['uid'], $table, $conf);
-			// Read relations that point to the record to be swapped with e.g. draft record):
-			/** @var $dbAnalysisSwap \TYPO3\CMS\Core\Database\RelationHandler */
-			$dbAnalysisSwap = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\RelationHandler');
-			$dbAnalysisSwap->setUpdateReferenceIndex(FALSE);
-			$dbAnalysisSwap->start('', $conf['foreign_table'], '', $swapVersion['uid'], $table, $conf);
-			// Update relations for both (workspace/versioning) sites:
-			if (count($dbAnalysisCur->itemArray)) {
-				$dbAnalysisCur->writeForeignField($conf, $curVersion['uid'], $swapVersion['uid']);
-				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisCur, $conf, $swapVersion['uid']));
-			}
-			if (count($dbAnalysisSwap->itemArray)) {
-				$dbAnalysisSwap->writeForeignField($conf, $swapVersion['uid'], $curVersion['uid']);
-				$tcemainObj->addRemapAction($table, $curVersion['uid'], array($this, 'writeRemappedForeignField'), array($dbAnalysisSwap, $conf, $curVersion['uid']));
-			}
-			$items = array_merge($dbAnalysisCur->itemArray, $dbAnalysisSwap->itemArray);
-			foreach ($items as $item) {
-				$tcemainObj->addRemapStackRefIndex($item['table'], $item['id']);
-			}
-		} elseif ($inlineType == 'list') {
-			$tempValue = $curVersion[$field];
-			$curVersion[$field] = $swapVersion[$field];
-			$swapVersion[$field] = $tempValue;
 		}
 	}
 
@@ -1283,11 +1313,16 @@ class DataHandlerHook {
 	 * Gets an instance of the command map helper.
 	 *
 	 * @param \TYPO3\CMS\Core\DataHandling\DataHandler $tceMain TCEmain object
-	 * @param array $commandMap The command map as submitted to \TYPO3\CMS\Core\DataHandling\DataHandler
 	 * @return \TYPO3\CMS\Version\DataHandler\CommandMap
 	 */
-	public function getCommandMap(\TYPO3\CMS\Core\DataHandling\DataHandler $tceMain, array $commandMap) {
-		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Version\\DataHandler\\CommandMap', $this, $tceMain, $commandMap);
+	public function getCommandMap(\TYPO3\CMS\Core\DataHandling\DataHandler $tceMain) {
+		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
+			'TYPO3\\CMS\\Version\\DataHandler\\CommandMap',
+			$this,
+			$tceMain,
+			$tceMain->cmdmap,
+			$tceMain->BE_USER->workspace
+		);
 	}
 
 	/**
@@ -1311,7 +1346,13 @@ class DataHandlerHook {
 		return $listArr;
 	}
 
-}
+	/**
+	 * @return \TYPO3\CMS\Core\Database\RelationHandler
+	 */
+	protected function createRelationHandlerInstance() {
+		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\RelationHandler');
+	}
 
+}
 
 ?>

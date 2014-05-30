@@ -173,6 +173,23 @@ class RelationHandler {
 	protected $updateReferenceIndex = TRUE;
 
 	/**
+	 * @var bool
+	 */
+	protected $useLiveParentIds = TRUE;
+
+	/**
+	 * @var bool
+	 */
+	protected $useLiveReferenceIds = TRUE;
+
+	/**
+	 * This array will be filled by getFromDB().
+	 *
+	 * @var array
+	 */
+	public $results = array();
+
+	/**
 	 * Initialization of the class.
 	 *
 	 * @param string $itemlist List of group/select items
@@ -185,6 +202,7 @@ class RelationHandler {
 	 * @todo Define visibility
 	 */
 	public function start($itemlist, $tablelist, $MMtable = '', $MMuid = 0, $currentTable = '', $conf = array()) {
+		$conf = (array)$conf;
 		// SECTION: MM reverse relations
 		$this->MM_is_foreign = $conf['MM_opposite_field'] ? 1 : 0;
 		$this->MM_oppositeField = $conf['MM_opposite_field'];
@@ -245,14 +263,14 @@ class RelationHandler {
 				$this->readMM($MMtable, $MMuid);
 			} else {
 				// Revert to readList() for new records in order to load possible default values from $itemlist
-				$this->readList($itemlist);
+				$this->readList($itemlist, $conf);
 			}
 		} elseif ($MMuid && $conf['foreign_field']) {
 			// If not MM but foreign_field, the read the records by the foreign_field
 			$this->readForeignField($MMuid, $conf);
 		} else {
 			// If not MM, then explode the itemlist by "," and traverse the list:
-			$this->readList($itemlist);
+			$this->readList($itemlist, $conf);
 			// Do automatic default_sortby, if any
 			if ($conf['foreign_default_sortby']) {
 				$this->sortList($conf['foreign_default_sortby']);
@@ -297,13 +315,28 @@ class RelationHandler {
 	}
 
 	/**
+	 * @param bool $useLiveParentIds
+	 */
+	public function setUseLiveParentIds($useLiveParentIds) {
+		$this->useLiveParentIds = (bool)$useLiveParentIds;
+	}
+
+	/**
+	 * @param bool $useLiveReferences
+	 */
+	public function setUseLiveReferenceIds($useLiveReferenceIds) {
+		$this->useLiveReferenceIds = (bool)$useLiveReferenceIds;
+	}
+
+	/**
 	 * Explodes the item list and stores the parts in the internal arrays itemArray and tableArray from MM records.
 	 *
 	 * @param string $itemlist Item list
+	 * @param array $configuration Parent field configuration
 	 * @return void
 	 * @todo Define visibility
 	 */
-	public function readList($itemlist) {
+	public function readList($itemlist, array $configuration) {
 		if ((string) trim($itemlist) != '') {
 			$tempItemArray = \TYPO3\CMS\Core\Utility\GeneralUtility::trimExplode(',', $itemlist);
 			// Changed to trimExplode 31/3 04; HMENU special type "list" didn't work if there were spaces in the list... I suppose this is better overall...
@@ -335,6 +368,34 @@ class RelationHandler {
 					$this->itemArray[$key]['id'] = $tempItemArray[$key];
 					$this->itemArray[$key]['table'] = '_NO_TABLE';
 					$this->nonTableArray[] = $tempItemArray[$key];
+				}
+			}
+
+			// Skip if not dealing with IRRE in a CSV list on a workspace
+			if ($configuration['type'] !== 'inline' || empty($configuration['foreign_table']) || !empty($configuration['foreign_field'])
+				|| !empty($configuration['MM']) || count($this->tableArray) !== 1 || empty($this->tableArray[$configuration['foreign_table']])
+				|| (int)$GLOBALS['BE_USER']->workspace === 0 || !\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($configuration['foreign_table'])) {
+				return;
+			}
+
+			// Fetch live record data
+			if ($this->useLiveReferenceIds) {
+				foreach ($this->itemArray as &$item) {
+					$item['id'] = $this->getLiveDefaultId($item['table'], $item['id']);
+				}
+			// Directly overlay workspace data
+			} else {
+				$rows = array();
+				$foreignTable = $configuration['foreign_table'];
+				foreach ($this->tableArray[$foreignTable] as $itemId) {
+					$rows[$itemId] = array('uid' => $itemId);
+				}
+				$this->itemArray = array();
+				foreach ($this->getRecordVersionsIds($foreignTable, $rows) as $row) {
+					$this->itemArray[] = array(
+						'id' => $row['uid'],
+						'table' => $foreignTable,
+					);
 				}
 			}
 		}
@@ -620,6 +681,10 @@ class RelationHandler {
 	 * @todo Define visibility
 	 */
 	public function readForeignField($uid, $conf) {
+		if ($this->useLiveParentIds) {
+			$uid = $this->getLiveDefaultId($this->currentTable, $uid);
+		}
+
 		$key = 0;
 		$uid = intval($uid);
 		$foreign_table = $conf['foreign_table'];
@@ -645,10 +710,10 @@ class RelationHandler {
 		foreach ($foreign_match_fields as $field => $value) {
 			$whereClause .= ' AND ' . $field . '=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($value, $foreign_table);
 		}
-		// Select children in the same workspace:
-		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($this->currentTable) && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
-			$currentRecord = \TYPO3\CMS\Backend\Utility\BackendUtility::getRecord($this->currentTable, $uid, 't3ver_wsid', '', $useDeleteClause);
-			$whereClause .= \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceWhereClause($foreign_table, $currentRecord['t3ver_wsid']);
+		// Select children from the live(!) workspace only
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table)) {
+			$workspaceList = '0,' . (int)$GLOBALS['BE_USER']->workspace;
+			$whereClause .= ' AND ' . $foreign_table . '.t3ver_wsid IN (' . $workspaceList . ') AND ' . $foreign_table . '.pid<>-1';
 		}
 		// Get the correct sorting field
 		// Specific manual sortby for data handled by this field
@@ -678,8 +743,11 @@ class RelationHandler {
 		// Strip a possible "ORDER BY" in front of the $sortby value
 		$sortby = $GLOBALS['TYPO3_DB']->stripOrderBy($sortby);
 		// Get the rows from storage
-		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid', $foreign_table, $whereClause, '', $sortby);
+		$rows = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid', $foreign_table, $whereClause, '', $sortby, '', 'uid');
 		if (count($rows)) {
+			if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table) && !$this->useLiveReferenceIds) {
+				$rows = $this->getRecordVersionsIds($foreign_table, $rows);
+			}
 			foreach ($rows as $row) {
 				$this->itemArray[$key]['id'] = $row['uid'];
 				$this->itemArray[$key]['table'] = $foreign_table;
@@ -700,6 +768,13 @@ class RelationHandler {
 	 * @todo Define visibility
 	 */
 	public function writeForeignField($conf, $parentUid, $updateToUid = 0, $skipSorting = FALSE) {
+		if ($this->useLiveParentIds) {
+			$parentUid = $this->getLiveDefaultId($this->currentTable, $parentUid);
+			if (!empty($updateToUid)) {
+				$updateToUid = $this->getLiveDefaultId($this->currentTable, $updateToUid);
+			}
+		}
+
 		$c = 0;
 		$foreign_table = $conf['foreign_table'];
 		$foreign_field = $conf['foreign_field'];
@@ -712,15 +787,15 @@ class RelationHandler {
 			if (!(\TYPO3\CMS\Core\Utility\MathUtility::canBeInterpretedAsInteger($updateToUid) && $updateToUid > 0)) {
 				$updateToUid = 0;
 			}
-			$considerWorkspaces = $GLOBALS['BE_USER']->workspace !== 0 && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table);
-			$fields = 'uid,' . $foreign_field;
+			$considerWorkspaces = ($GLOBALS['BE_USER']->workspace !== 0 && \TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($foreign_table));
+			$fields = 'uid,pid,' . $foreign_field;
 			// Consider the symmetric field if defined:
 			if ($symmetric_field) {
 				$fields .= ',' . $symmetric_field;
 			}
 			// Consider workspaces if defined and currently used:
 			if ($considerWorkspaces) {
-				$fields .= ',' . 't3ver_state,t3ver_oid';
+				$fields .= ',t3ver_wsid,t3ver_state,t3ver_oid';
 			}
 			// Update all items
 			foreach ($this->itemArray as $val) {
@@ -734,7 +809,6 @@ class RelationHandler {
 					$isOnSymmetricSide = self::isOnSymmetricSide($parentUid, $conf, $row);
 				}
 				$updateValues = $foreign_match_fields;
-				$workspaceValues = array();
 				// No update to the uid is requested, so this is the normal behaviour
 				// just update the fields and care about sorting
 				if (!$updateToUid) {
@@ -765,7 +839,7 @@ class RelationHandler {
 							$sortby = $GLOBALS['TYPO3_DB']->stripOrderBy($sortby);
 						}
 						if ($sortby) {
-							$updateValues[$sortby] = ($workspaceValues[$sortby] = ++$c);
+							$updateValues[$sortby] = ++$c;
 						}
 					}
 				} else {
@@ -781,9 +855,10 @@ class RelationHandler {
 					$this->updateRefIndex($table, $uid);
 				}
 				// Update accordant fields in the database for workspaces overlays/placeholders:
-				if (count($workspaceValues) && $considerWorkspaces) {
-					if (isset($row['t3ver_oid']) && $row['t3ver_oid'] && $row['t3ver_state'] == -1) {
-						$GLOBALS['TYPO3_DB']->exec_UPDATEquery($table, 'uid=' . intval($row['t3ver_oid']), $workspaceValues);
+				if ($considerWorkspaces) {
+					// It's the specific versioned record -> update placeholder (if any)
+					if (!empty($row['t3ver_oid']) && (int)$row['t3ver_state'] === -1) {
+						$GLOBALS['TYPO3_DB']->exec_UPDATEquery($table, 'uid=' . (int)$row['t3ver_oid'], $updateValues);
 					}
 				}
 			}
@@ -981,6 +1056,87 @@ class RelationHandler {
 		}
 
 		return $referenceValues;
+	}
+
+	/**
+	 * @param string $tableName
+	 * @param array $records
+	 * @return array
+	 */
+	protected function getRecordVersionsIds($tableName, array $records) {
+		$workspaceId = (int)$GLOBALS['BE_USER']->workspace;
+		$liveIds = array_map('intval', $this->extractValues($records, 'uid'));
+		$liveIdList = implode(',', $liveIds);
+
+		if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($tableName)) {
+			$versions = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+				'uid,t3ver_move_id',
+				$tableName,
+				't3ver_state=3 AND t3ver_wsid=' . $workspaceId . ' AND t3ver_move_id IN (' . $liveIdList . ')'
+			);
+
+			if (!empty($versions)) {
+				foreach ($versions as $version) {
+					$liveReferenceId = $version['t3ver_move_id'];
+					$movePlaceholderId = $version['uid'];
+					if (isset($records[$liveReferenceId]) && $records[$movePlaceholderId]) {
+						$records[$movePlaceholderId] = $records[$liveReferenceId];
+						unset($records[$liveReferenceId]);
+					}
+				}
+				$liveIds = array_map('intval', $this->extractValues($records, 'uid'));
+				$records = array_combine($liveIds, array_values($records));
+				$liveIdList = implode(',', $liveIds);
+			}
+		}
+
+		$versions = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows(
+			'uid,t3ver_oid,t3ver_state',
+			$tableName,
+			'pid=-1 AND t3ver_oid IN (' . $liveIdList . ') AND t3ver_wsid=' . $workspaceId,
+			'',
+			't3ver_state DESC'
+		);
+
+		if (!empty($versions)) {
+			foreach ($versions as $version) {
+				$liveId = $version['t3ver_oid'];
+				if (isset($records[$liveId])) {
+					$records[$liveId] = $version;
+				}
+			}
+		}
+
+		return $records;
+	}
+
+	/**
+	 * @param array $array
+	 * @param string $fieldName
+	 * @return array
+	 */
+	protected function extractValues(array $array, $fieldName) {
+		$values = array();
+		foreach ($array as $item) {
+			$values[] = $item[$fieldName];
+		}
+		return $values;
+	}
+
+	/**
+	 * Gets the record uid of the live default record. If already
+	 * pointing to the live record, the submitted record uid is returned.
+	 *
+	 * @param string $tableName
+	 * @param int $id
+	 * @return int
+	 */
+	protected function getLiveDefaultId($tableName, $id) {
+		$liveDefaultId = \TYPO3\CMS\Backend\Utility\BackendUtility::getLiveVersionIdOfRecord($tableName, $id);
+		if ($liveDefaultId === NULL) {
+			$liveDefaultId = $id;
+		}
+		return $liveDefaultId;
 	}
 
 }

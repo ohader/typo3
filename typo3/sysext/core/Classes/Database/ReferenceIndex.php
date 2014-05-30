@@ -599,8 +599,14 @@ class ReferenceIndex {
 	 * @todo Define visibility
 	 */
 	public function getRelations_procDB($value, $conf, $uid, $table = '', $field = '') {
+		// Get IRRE relations
+		if ($conf['type'] === 'inline' && !empty($conf['foreign_table']) && empty($conf['MM'])) {
+			$dbAnalysis = $this->getRelationHandler();
+			$dbAnalysis->setUseLiveReferenceIds(FALSE);
+			$dbAnalysis->start($value, $conf['foreign_table'], '', $uid, $table, $conf);
+			return $dbAnalysis->itemArray;
 		// DB record lists:
-		if ($this->isReferenceField($conf)) {
+		} elseif ($this->isReferenceField($conf)) {
 			$allowedTables = $conf['type'] == 'group' ? $conf['allowed'] : $conf['foreign_table'] . ',' . $conf['neg_foreign_table'];
 			if ($conf['MM_opposite_field']) {
 				return array();
@@ -609,6 +615,7 @@ class ReferenceIndex {
 			$dbAnalysis->start($value, $allowedTables, $conf['MM'], $uid, $table, $conf);
 			return $dbAnalysis->itemArray;
 		} elseif ($conf['type'] == 'inline' && $conf['foreign_table'] == 'sys_file_reference') {
+			// @todo It looks like this was never called before since isReferenceField also checks for type 'inline' and any 'foreign_table'
 			$files = (array)$GLOBALS['TYPO3_DB']->exec_SELECTgetRows('uid_local', 'sys_file_reference', ('tablenames=\'' . $table . '\' AND fieldname=\'' . $field . '\' AND uid_foreign=' . $uid . ' AND deleted=0'));
 			$fileArray = array();
 			foreach ($files as $fileUid) {
@@ -991,6 +998,13 @@ class ReferenceIndex {
 			$registry->set('core', 'sys_refindex_lastUpdate', $GLOBALS['EXEC_TIME']);
 		}
 		return array($headerContent, $bodyContent, count($errors));
+	}
+
+	/**
+	 * @return RelationHandler
+	 */
+	protected function getRelationHandler() {
+		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\RelationHandler');
 	}
 
 }
