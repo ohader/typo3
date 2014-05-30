@@ -1081,9 +1081,10 @@ class RelationHandler {
 		}
 
 		foreach ($this->tableArray as $itemTableName => $itemIds) {
-			if (!count($itemIds)) {
+			if (!count($itemIds) || !\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($itemTableName)) {
 				continue;
 			}
+
 			$purgedItemIds = call_user_func(array($this, $purgeCallback), $itemTableName, $itemIds);
 			$removedItemIds = array_diff($itemIds, $purgedItemIds);
 			foreach ($removedItemIds as $removedItemId) {
