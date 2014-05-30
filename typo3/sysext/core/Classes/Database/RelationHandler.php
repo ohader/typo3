@@ -930,11 +930,16 @@ class RelationHandler {
 	 * @todo Define visibility
 	 */
 	public function updateRefIndex($table, $id) {
+		$statisticsArray = array();
 		if ($this->updateReferenceIndex === TRUE) {
 			/** @var $refIndexObj \TYPO3\CMS\Core\Database\ReferenceIndex */
 			$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
-			return $refIndexObj->updateRefIndexTable($table, $id);
+			if (\TYPO3\CMS\Backend\Utility\BackendUtility::isTableWorkspaceEnabled($table)) {
+				$refIndexObj->setWorkspaceId($GLOBALS['BE_USER']->workspace);
+			}
+			$statisticsArray = $refIndexObj->updateRefIndexTable($table, $id);
 		}
+		return $statisticsArray;
 	}
 
 	/**

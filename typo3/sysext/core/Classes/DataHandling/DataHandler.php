@@ -5787,8 +5787,11 @@ class DataHandler {
 	 */
 	public function updateRefIndex($table, $id) {
 		/** @var $refIndexObj \TYPO3\CMS\Core\Database\ReferenceIndex */
-		$refIndexObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
-		$result = $refIndexObj->updateRefIndexTable($table, $id);
+		$refIndexObj = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Database\\ReferenceIndex');
+		if (BackendUtility::isTableWorkspaceEnabled($table)) {
+			$refIndexObj->setWorkspaceId($this->BE_USER->workspace);
+		}
+		$refIndexObj->updateRefIndexTable($table, $id);
 	}
 
 	/*********************************************
