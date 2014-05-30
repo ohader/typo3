@@ -281,15 +281,20 @@ class DataHandlerHook {
 			$recordWasMoved = TRUE;
 			// Get workspace version of the source record, if any:
 			$WSversion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($tcemainObj->BE_USER->workspace, $table, $uid, 'uid,t3ver_oid');
-			// If no version exists and versioningWS is in version 2, a new placeholder is made automatically:
+			// Handle move-placeholders if the current record is not one already
 			if (
-				!$WSversion['uid']
-				&& \TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($table)
+				\TYPO3\CMS\Backend\Utility\BackendUtility::isTableMovePlaceholderAware($table)
 				&& (int)$moveRec['t3ver_state'] !== 3
 			) {
-				$tcemainObj->versionizeRecord($table, $uid, 'Placeholder version for moving record');
-				$WSversion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($tcemainObj->BE_USER->workspace, $table, $uid, 'uid,t3ver_oid');
-				$this->moveRecord_processFields($tcemainObj, $resolvedPid, $table, $uid);
+				// Create version of record first, if it does not exist
+				if (empty($WSversion['uid'])) {
+					$tcemainObj->versionizeRecord($table, $uid, 'Placeholder version for moving record');
+					$WSversion = \TYPO3\CMS\Backend\Utility\BackendUtility::getWorkspaceVersionOfRecord($tcemainObj->BE_USER->workspace, $table, $uid, 'uid,t3ver_oid');
+					$this->moveRecord_processFields($tcemainObj, $resolvedPid, $table, $uid);
+				// If the record has been versioned before (e.g. cascaded parent-child structure), create only the move-placeholders
+				} elseif ($tcemainObj->isRecordCopied($table, $uid) && (int)$tcemainObj->copyMappingArray[$table][$uid] === (int)$WSversion['uid']) {
+					$this->moveRecord_processFields($tcemainObj, $resolvedPid, $table, $uid);
+				}
 			}
 			// Check workspace permissions:
 			$workspaceAccessBlocked = array();
@@ -381,7 +386,7 @@ class DataHandlerHook {
 			if ($table === 'pages') {
 				// If the inline elements are related to a page record,
 				// make sure they reside at that page and not at its parent
-				$destinationPageId = $uid;
+				$resolvedPageId = $uid;
 			}
 
 			$dbAnalysis = $this->createRelationHandlerInstance();
@@ -394,7 +399,7 @@ class DataHandlerHook {
 				if (empty($versionedRecord) || (int)$versionedRecord['t3ver_state'] > 0) {
 					continue;
 				}
-				$this->moveRecord_wsPlaceholders($item['table'], $item['id'], $resolvedPageId, $versionedRecord['uid'], $dataHandler);
+				$dataHandler->moveRecord($item['table'], $item['id'], $resolvedPageId);
 			}
 		}
 	}
