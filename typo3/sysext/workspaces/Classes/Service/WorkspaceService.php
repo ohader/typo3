@@ -536,40 +536,62 @@ class WorkspaceService implements SingletonInterface {
 		$viewUrl = '';
 
 		if ($table == 'pages') {
-			$viewUrl = BackendUtility::viewOnClick(BackendUtility::getLiveVersionIdOfRecord('pages', $uid));
-		} elseif ($table === 'pages_language_overlay' || $table === 'tt_content') {
-			if ($liveRecord === NULL) {
-				$liveRecord = BackendUtility::getLiveVersionOfRecord($table, $uid);
-			}
-			if ($versionRecord === NULL) {
-				$versionRecord = BackendUtility::getRecord($table, $uid);
-			}
-			if (VersionState::cast($versionRecord['t3ver_state'])->equals(VersionState::MOVE_POINTER)) {
-				$movePlaceholder = BackendUtility::getMovePlaceholder($table, $liveRecord['uid'], 'pid');
-			}
+			return BackendUtility::viewOnClick(BackendUtility::getLiveVersionIdOfRecord('pages', $uid));
+		}
 
-			$previewPageId = (empty($movePlaceholder['pid']) ? $liveRecord['pid'] : $movePlaceholder['pid']);
-			$additionalParameters = '&tx_workspaces_web_workspacesworkspaces[previewWS]=' . $versionRecord['t3ver_wsid'];
+		if ($liveRecord === NULL) {
+			$liveRecord = BackendUtility::getLiveVersionOfRecord($table, $uid);
+		}
+		if ($versionRecord === NULL) {
+			$versionRecord = BackendUtility::getRecord($table, $uid);
+		}
+		if (VersionState::cast($versionRecord['t3ver_state'])->equals(VersionState::MOVE_POINTER)) {
+			$movePlaceholder = BackendUtility::getMovePlaceholder($table, $liveRecord['uid'], 'pid');
+		}
 
+		// Directly use pid value and consider move placeholders
+		$previewPageId = (empty($movePlaceholder['pid']) ? $liveRecord['pid'] : $movePlaceholder['pid']);
+		$additionalParameters = '&tx_workspaces_web_workspacesworkspaces[previewWS]=' . $versionRecord['t3ver_wsid'];
+		// Add language parameter if record is a localization
+		if (BackendUtility::isTableLocalizable($table)) {
 			$languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
 			if ($versionRecord[$languageField] > 0) {
 				$additionalParameters .= '&L=' . $versionRecord[$languageField];
 			}
+		}
 
-			$viewUrl = BackendUtility::viewOnClick($previewPageId, '', '', '', '', $additionalParameters);
-		} else {
-			if (isset($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['viewSingleRecord'])) {
-				$_params = array(
-					'table' => $table,
-					'uid' => $uid,
-					'record' => $liveRecord,
-					'liveRecord' => $liveRecord,
-					'versionRecord' => $versionRecord,
-				);
-				$_funcRef = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['viewSingleRecord'];
-				$null = NULL;
-				$viewUrl = \TYPO3\CMS\Core\Utility\GeneralUtility::callUserFunction($_funcRef, $_params, $null);
+		$pageTsConfig = BackendUtility::getPagesTSconfig($previewPageId);
+
+		// Directly use determined direct page id
+		if ($table === 'pages_language_overlay' || $table === 'tt_content') {
+			return BackendUtility::viewOnClick($previewPageId, '', '', '', '', $additionalParameters);
+		// Analyze Page TSconfig options.workspaces.previewPageId
+		} elseif (!empty($pageTsConfig['options.']['workspaces.']['previewPageId.'][$table]) || !empty($pageTsConfig['options.']['workspaces.']['previewPageId'])) {
+			if (!empty($pageTsConfig['options.']['workspaces.']['previewPageId.'][$table])) {
+				$previewConfiguration = $pageTsConfig['options.']['workspaces.']['previewPageId.'][$table];
+			} else {
+				$previewConfiguration = $pageTsConfig['options.']['workspaces.']['previewPageId'];
 			}
+			// Extract possible settings (e.g. "field:pid")
+			list($previewKey, $previewValue) = explode(':', $previewConfiguration, 2);
+			if ($previewKey === 'field') {
+				$previewPageId = (int)$liveRecord[$previewValue];
+			} else {
+				$previewPageId = (int)$previewConfiguration;
+			}
+			return BackendUtility::viewOnClick($previewPageId, '', '', '', '', $additionalParameters);
+		// Call user function to render the single record view
+		} elseif (!empty($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['viewSingleRecord'])) {
+			$_params = array(
+				'table' => $table,
+				'uid' => $uid,
+				'record' => $liveRecord,
+				'liveRecord' => $liveRecord,
+				'versionRecord' => $versionRecord,
+			);
+			$_funcRef = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['viewSingleRecord'];
+			$null = NULL;
+			return \TYPO3\CMS\Core\Utility\GeneralUtility::callUserFunction($_funcRef, $_params, $null);
 		}
 
 		return $viewUrl;
