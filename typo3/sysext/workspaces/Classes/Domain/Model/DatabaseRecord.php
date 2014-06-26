@@ -105,7 +105,7 @@ class DatabaseRecord {
 	 * @return void
 	 */
 	public function setUid($uid) {
-		$this->uid = $uid;
+		$this->uid = (int)$uid;
 	}
 
 	/**
