@@ -54,6 +54,9 @@
 			<trans-unit id="sys_workspace.publish_allow_notificaton_settings" xml:space="preserve">
 				<source>Allow notification settings during stage change to ready to publish</source>
 			</trans-unit>
+			<trans-unit id="sys_workspace.execute_notification_defaults" xml:space="preserve">
+				<source>Publishing execute stage: default notification mail recipients</source>
+			</trans-unit>
 			<trans-unit id="tabs.general" xml:space="preserve">
 				<source>General</source>
 			</trans-unit>
@@ -65,6 +68,39 @@
 			</trans-unit>
 			<trans-unit id="sys_workspace_stage.allow_notificaton_settings" xml:space="preserve">
 				<source>Allow notification settings during stage change</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.palette.stage.edit" xml:space="preserve">
+				<source>Stage "editing":</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.palette.stage.publish" xml:space="preserve">
+				<source>Stage "ready to publish":</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.palette.stage.execute" xml:space="preserve">
+				<source>Stage "publishing execute":</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.settingsDialog" xml:space="preserve">
+				<source>Settings dialog</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.settingsDialog.showDialog" xml:space="preserve">
+				<source>show dialog</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.settingsDialog.changeablePreselection" xml:space="preserve">
+				<source>changeable preselection</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.preselection" xml:space="preserve">
+				<source>Preselection</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.preselection.owners" xml:space="preserve">
+				<source>owners</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.preselection.members" xml:space="preserve">
+				<source>members</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.preselection.editors" xml:space="preserve">
+				<source>editors</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.preselection.personsResponsible" xml:space="preserve">
+				<source>persons responsible</source>
 			</trans-unit>
 		</body>
 	</file>
