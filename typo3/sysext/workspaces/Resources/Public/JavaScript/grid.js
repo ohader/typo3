@@ -40,20 +40,7 @@ Ext.override(Ext.grid.GridView, {
 	}
 });
 
-/** override mousedown for grid to select checkbox respecting singleSelect */
-Ext.override(Ext.grid.CheckboxSelectionModel, {
-	handleMouseDown: function(g, rowIndex, e) {
-		e.stopEvent();
-		if (this.isSelected(rowIndex)) {
-			this.deselectRow(rowIndex);
-		} else {
-			this.selectRow(rowIndex, true);
-			this.grid.getView().focusRow(rowIndex);
-		}
-	}
-});
-
-TYPO3.Workspaces.SelectionModel = new Ext.grid.CheckboxSelectionModel({
+TYPO3.Workspaces.SelectionModel = new TYPO3.Workspaces.Component.CheckboxSelectionModel({
 	singleSelect: false,
 	hidden: true,
 	listeners: {
@@ -75,11 +62,28 @@ TYPO3.Workspaces.SelectionModel = new Ext.grid.CheckboxSelectionModel({
 				TYPO3.Workspaces.Toolbar.selectionActionCombo.setDisabled(true);
 				TYPO3.Workspaces.Toolbar.selectStateMassActionCombo.setDisabled(false);
 			}
+		},
+		holdclick: function(selection, rowIndex, record) {
+			var isSelected, workspacesCollection;
+			if (record.json.Workspaces_Collection > 0 && record.json.Workspaces_CollectionLevel === 0) {
+				isSelected = selection.isSelected(rowIndex);
+				workspacesCollection = record.json.Workspaces_Collection;
+				Ext.each(selection.grid.store.getRange(), function(storeRecord, storeIndex) {
+					if (rowIndex !== storeIndex && storeRecord.json.Workspaces_Collection === workspacesCollection) {
+						if (isSelected) {
+							TYPO3.Workspaces.RowExpander.expandCollection(workspacesCollection);
+							selection.selectRow(storeIndex, true);
+						} else {
+							selection.deselectRow(storeIndex);
+						}
+					}
+				});
+			}
 		}
 	}
 });
 
-TYPO3.Workspaces.WorkspaceGrid = new Ext.grid.GridPanel({
+TYPO3.Workspaces.WorkspaceGrid = new TYPO3.Workspaces.Component.GridPanel({
 	initColModel: function() {
 		if (TYPO3.settings.Workspaces.isLiveWorkspace) {
 			this.colModel = new Ext.grid.ColumnModel({
