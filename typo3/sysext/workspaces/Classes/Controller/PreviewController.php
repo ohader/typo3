@@ -62,8 +62,8 @@ class PreviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControl
 		$resourcePathJavaScript = \TYPO3\CMS\Core\Utility\ExtensionManagementUtility::extRelPath('workspaces') . 'Resources/Public/JavaScript/';
 		$jsFiles = array(
 			'Ext.ux.plugins.TabStripContainer.js',
-			'Store/mainstore.js',
 			'helpers.js',
+			'Store/mainstore.js',
 			'actions.js'
 		);
 		foreach ($jsFiles as $jsFile) {

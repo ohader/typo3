@@ -152,6 +152,35 @@ TYPO3.Workspaces.WorkspaceGrid = new TYPO3.Workspaces.Component.GridPanel({
   		enableNoGroups: false,
 		hideGroupedColumn: true
 	}),
+	listeners: {
+		// Shows the "Group by path" checkbox
+		// in the column header menu
+		afterrender: function(grid) {
+			var store = grid.getStore();
+			var cm = grid.getColumnModel();
+
+			this.view.hmenu.add({
+				itemId: 'sortSep',
+				xtype: 'menuseparator'
+			}, {
+				text: TYPO3.l10n.localize('checkbox.groupByPath'),
+				itemId: 'groupByPath',
+				checked: TYPO3.Workspaces.Helpers.getGroupByPathSetting(),
+				disabled: false,
+				hideOnClick: false,
+				xtype: 'menucheckitem',
+				checkHandler: function(menuItem, isChecked) {
+					TYPO3.Workspaces.ExtDirectActions.saveModuleState('groupByPath', isChecked);
+					if (!isChecked && store.getGroupState()) {
+						store.clearGrouping();
+						cm.setHidden(cm.getIndexById('path_Workspace'), true);
+					} else if (isChecked && !store.getGroupState()) {
+						store.groupBy('path_Workspace');
+					}
+				}
+			});
+		}
+	},
 	bbar : TYPO3.Workspaces.Toolbar.FullBottomBar,
 	tbar : TYPO3.Workspaces.Toolbar.FullTopToolbar
 });
