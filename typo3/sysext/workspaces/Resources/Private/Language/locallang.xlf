@@ -142,6 +142,9 @@
 			<trans-unit id="column.wsSwapColumn" xml:space="preserve">
 				<source>Swap workspace</source>
 			</trans-unit>
+			<trans-unit id="checkbox.groupByPath" xml:space="preserve">
+				<source>Group by path</source>
+			</trans-unit>
 			<trans-unit id="tooltip.viewElementAction" xml:space="preserve">
 				<source>Preview element</source>
 			</trans-unit>

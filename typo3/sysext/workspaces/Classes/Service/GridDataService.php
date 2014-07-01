@@ -384,8 +384,11 @@ class GridDataService {
 		if (!$this->isSortable($a, $b)) {
 			return 0;
 		}
-		// First sort by using the page-path in current workspace
-		$path_cmp = strcasecmp($a['path_Workspace'], $b['path_Workspace']);
+		$path_cmp = 0;
+		if ($this->getModuleState('groupByPath') !== FALSE) {
+			// First sort by using the page-path in current workspace
+			$path_cmp = strcasecmp($a['path_Workspace'], $b['path_Workspace']);
+		}
 		if ($path_cmp < 0) {
 			return $path_cmp;
 		} elseif ($path_cmp == 0) {
@@ -414,7 +417,11 @@ class GridDataService {
 		if (!$this->isSortable($a, $b)) {
 			return 0;
 		}
-		$path_cmp = strcasecmp($a['path_Workspace'], $b['path_Workspace']);
+		$path_cmp = 0;
+		if ($this->getModuleState('groupByPath') !== FALSE) {
+			// First sort by using the page-path in current workspace
+			$path_cmp = strcasecmp($a['path_Workspace'], $b['path_Workspace']);
+		}
 		if ($path_cmp < 0) {
 			return $path_cmp;
 		} elseif ($path_cmp == 0) {
@@ -533,6 +540,21 @@ class GridDataService {
 	}
 
 	/**
+	 * Gets a particular module state value
+	 *
+	 * @param string $stateName
+	 * @return NULL|mixed
+	 */
+	protected function getModuleState($stateName) {
+		$stateValue = NULL;
+		$backendUser = $this->getBackendUser();
+		if (isset($backendUser->uc['moduleData']['Workspaces'][$backendUser->workspace][$stateName])) {
+			$stateValue = $backendUser->uc['moduleData']['Workspaces'][$backendUser->workspace][$stateName];
+		}
+		return $stateValue;
+	}
+
+	/**
 	 * Gets the used language value (sys_language.uid) of
 	 * a given database record.
 	 *
@@ -633,6 +655,13 @@ class GridDataService {
 	 */
 	protected function getObjectManager() {
 		return \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Extbase\\Object\\ObjectManager');
+	}
+
+	/**
+	 * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+	 */
+	protected function getBackendUser() {
+		return $GLOBALS['BE_USER'];
 	}
 
 }

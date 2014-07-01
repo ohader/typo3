@@ -213,6 +213,24 @@ class ActionHandler extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 	}
 
 	/**
+	 * Saves generic states for the ExtJS components.
+	 *
+	 * @param string $stateName
+	 * @param string|bool|int|float|NULL $stateValue
+	 * @return void
+	 */
+	public function saveModuleState($stateName, $stateValue) {
+		if (is_string($stateName) && (is_bool($stateValue) || is_string($stateValue) || is_null($stateValue) || is_numeric($stateValue))) {
+			if ($stateValue === NULL && isset($GLOBALS['BE_USER']->uc['moduleData']['Workspaces'][$GLOBALS['BE_USER']->workspace][$stateName])) {
+				unset($GLOBALS['BE_USER']->uc['moduleData']['Workspaces'][$GLOBALS['BE_USER']->workspace][$stateName]);
+			} else {
+				$GLOBALS['BE_USER']->uc['moduleData']['Workspaces'][$GLOBALS['BE_USER']->workspace][$stateName] = $stateValue;
+			}
+			$GLOBALS['BE_USER']->writeUC();
+		}
+	}
+
+	/**
 	 * Gets the dialog window to be displayed before a record can be sent to the next stage.
 	 *
 	 * @param integer $uid

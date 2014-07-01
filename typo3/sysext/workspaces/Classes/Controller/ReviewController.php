@@ -148,6 +148,7 @@ class ReviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControll
 		$this->pageRenderer->enableExtJSQuickTips();
 		$states = $GLOBALS['BE_USER']->uc['moduleData']['Workspaces']['States'];
 		$this->pageRenderer->addInlineSetting('Workspaces', 'States', $states);
+		$this->pageRenderer->addInlineSetting('Workspaces', 'groupByPath', $this->getModuleState('groupByPath'));
 		// Load  JavaScript:
 		$this->pageRenderer->addExtDirectCode(array(
 			'TYPO3.Workspaces'
@@ -183,9 +184,9 @@ class ReviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControll
 			$resourcePath . 'Component/RowExpander.js',
 			$resourcePath . 'Component/TabPanel.js',
 			$resourcePath . 'Component/GridPanel.js',
+			$resourcePath . 'helpers.js',
 			$resourcePath . 'Store/mainstore.js',
 			$resourcePath . 'configuration.js',
-			$resourcePath . 'helpers.js',
 			$resourcePath . 'actions.js',
 			$resourcePath . 'component.js',
 			$resourcePath . 'toolbar.js',

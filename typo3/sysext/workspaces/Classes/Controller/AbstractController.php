@@ -130,6 +130,21 @@ class AbstractController extends \TYPO3\CMS\Extbase\Mvc\Controller\ActionControl
 	}
 
 	/**
+	 * Gets a particular module state value
+	 *
+	 * @param string $stateName
+	 * @return NULL|mixed
+	 */
+	protected function getModuleState($stateName) {
+		$stateValue = NULL;
+		$backendUser = $this->getBackendUser();
+		if (isset($backendUser->uc['moduleData']['Workspaces'][$backendUser->workspace][$stateName])) {
+			$stateValue = $backendUser->uc['moduleData']['Workspaces'][$backendUser->workspace][$stateName];
+		}
+		return $stateValue;
+	}
+
+	/**
 	 * @return \TYPO3\CMS\Workspaces\Service\AdditionalColumnService
 	 */
 	protected function getAdditionalColumnService() {

@@ -208,5 +208,9 @@ TYPO3.Workspaces.Helpers = {
 		if (TYPO3.Workspaces.Helpers.isDefined('top.TYPO3.Backend.NavigationContainer.PageTree')) {
 			top.TYPO3.Backend.NavigationContainer.PageTree.refreshTree();
 		}
+	},
+
+	getGroupByPathSetting: function() {
+		return (TYPO3.settings.Workspaces.groupByPath !== false);
 	}
 };
