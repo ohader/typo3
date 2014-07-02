@@ -178,6 +178,16 @@ div.diff-g {
 	color: black;
 }
 
+.diff-r img {
+	padding: 1px;
+	border: 2px solid red;
+}
+
+.diff-g img {
+	padding: 1px;
+	border: 2px solid green;
+}
+
 /** .uppercase is kept for backwards-compatibility, use .divider */
 .divider,
 .uppercase {

@@ -15,6 +15,7 @@ namespace TYPO3\CMS\Workspaces\ExtDirect;
  */
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * ExtDirect server
@@ -32,6 +33,11 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 	 * @var \TYPO3\CMS\Workspaces\Service\StagesService
 	 */
 	protected $stagesService;
+
+	/**
+	 * @var \TYPO3\CMS\Core\Utility\DiffUtility
+	 */
+	protected $differenceUtility;
 
 	/**
 	 * Checks integrity of elements before peforming actions on them.
@@ -109,8 +115,6 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 	public function getRowDetails($parameter) {
 		$diffReturnArray = array();
 		$liveReturnArray = array();
-		/** @var $t3lib_diff \TYPO3\CMS\Core\Utility\DiffUtility */
-		$t3lib_diff = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Utility\\DiffUtility');
 		/** @var $parseObj \TYPO3\CMS\Core\Html\RteHtmlParser */
 		$parseObj = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Html\\RteHtmlParser');
 		$liveRecord = BackendUtility::getRecord($parameter->table, $parameter->t3ver_oid);
@@ -126,10 +130,47 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 			}
 		}
 		foreach ($fieldsOfRecords as $fieldName) {
+			if (empty($GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config'])) {
+				continue;
+			}
+			// Get the field's label. If not available, use the field name
+			$fieldTitle = $GLOBALS['LANG']->sL(BackendUtility::getItemLabel($parameter->table, $fieldName));
+			if (empty($fieldTitle)) {
+				$fieldTitle = $fieldName;
+			}
+			// Gets the TCA configuration for the current field
+			$configuration = $GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config'];
 			// check for exclude fields
 			if ($GLOBALS['BE_USER']->isAdmin() || $GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['exclude'] == 0 || \TYPO3\CMS\Core\Utility\GeneralUtility::inList($GLOBALS['BE_USER']->groupData['non_exclude_fields'], $parameter->table . ':' . $fieldName)) {
 				// call diff class only if there is a difference
-				if ((string)$liveRecord[$fieldName] !== (string)$versionRecord[$fieldName]) {
+				if ($configuration['type'] === 'inline' && $configuration['foreign_table'] === 'sys_file_reference') {
+					$useThumbnails = FALSE;
+					if (!empty($configuration['foreign_selector_fieldTcaOverride']['config']['appearance']['elementBrowserAllowed']) && !empty($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'])) {
+						$fileExtensions = GeneralUtility::trimExplode(',', $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'], TRUE);
+						$allowedExtensions = GeneralUtility::trimExplode(',', $configuration['foreign_selector_fieldTcaOverride']['config']['appearance']['elementBrowserAllowed'], TRUE);
+						$differentExtensions = array_diff($allowedExtensions, $fileExtensions);
+						$useThumbnails = empty($differentExtensions);
+					}
+					$fileReferenceDifferences = $this->prepareFileReferenceDifferences(
+						$parameter->table, $fieldName, $liveRecord, $versionRecord, $useThumbnails
+					);
+
+					if ($fileReferenceDifferences === NULL) {
+						continue;
+					}
+
+					$diffReturnArray[] = array(
+						'field' => $fieldName,
+						'label' => $fieldTitle,
+						'content' => $fileReferenceDifferences['differences']
+					);
+					$liveReturnArray[] = array(
+						'field' => $fieldName,
+						'label' => $fieldTitle,
+						'content' => $fileReferenceDifferences['live']
+					);
+
+				} elseif ((string)$liveRecord[$fieldName] !== (string)$versionRecord[$fieldName]) {
 					// Select the human readable values before diff
 					$liveRecord[$fieldName] = BackendUtility::getProcessedValue(
 						$parameter->table,
@@ -149,12 +190,8 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 						FALSE,
 						$versionRecord['uid']
 					);
-					// Get the field's label. If not available, use the field name
-					$fieldTitle = $GLOBALS['LANG']->sL(BackendUtility::getItemLabel($parameter->table, $fieldName));
-					if (empty($fieldTitle)) {
-						$fieldTitle = $fieldName;
-					}
-					if ($GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config']['type'] == 'group' && $GLOBALS['TCA'][$parameter->table]['columns'][$fieldName]['config']['internal_type'] == 'file') {
+
+					if ($configuration['type'] == 'group' && $configuration['internal_type'] == 'file') {
 						$versionThumb = BackendUtility::thumbCode($versionRecord, $parameter->table, $fieldName, '');
 						$liveThumb = BackendUtility::thumbCode($liveRecord, $parameter->table, $fieldName, '');
 						$diffReturnArray[] = array(
@@ -171,7 +208,7 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 						$diffReturnArray[] = array(
 							'field' => $fieldName,
 							'label' => $fieldTitle,
-							'content' => $t3lib_diff->makeDiffDisplay($liveRecord[$fieldName], $versionRecord[$fieldName])
+							'content' => $this->getDifferenceUtility()->makeDiffDisplay($liveRecord[$fieldName], $versionRecord[$fieldName])
 						);
 						$liveReturnArray[] = array(
 							'field' => $fieldName,
@@ -186,8 +223,10 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 		// (this may be used by custom or dynamically-defined fields)
 		if (is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['modifyDifferenceArray'])) {
 			foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['workspaces']['modifyDifferenceArray'] as $className) {
-				$hookObject =& \TYPO3\CMS\Core\Utility\GeneralUtility::getUserObj($className);
-				$hookObject->modifyDifferenceArray($parameter, $diffReturnArray, $liveReturnArray, $t3lib_diff);
+				$hookObject = GeneralUtility::getUserObj($className);
+				if (method_exists($hookObject, 'modifyDifferenceArray')) {
+					$hookObject->modifyDifferenceArray($parameter, $diffReturnArray, $liveReturnArray, $this->getDifferenceUtility());
+				}
 			}
 		}
 		$commentsForRecord = $this->getCommentsForRecord($parameter->uid, $parameter->table);
@@ -206,6 +245,60 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 					'icon_Workspace' => $icon_Workspace
 				)
 			)
+		);
+	}
+
+	protected function prepareFileReferenceDifferences($tableName, $fieldName, array $liveRecord, array $versionRecord, $useThumbnails = FALSE) {
+		$liveFileReferences = BackendUtility::resolveFileReferences($tableName, $fieldName, $liveRecord, 0);
+		$versionFileReferences = BackendUtility::resolveFileReferences($tableName, $fieldName, $versionRecord, $this->getCurrentWorkspace());
+		$randomValue = uniqid('file');
+
+		$thumbnailFiles = array();
+		$liveFileNames = array();
+		foreach ($liveFileReferences as $identifier => $liveFileReference) {
+			$fileNameWithRandomValue = $randomValue . '__' . $liveFileReference->getPublicUrl() . '__' . $randomValue;
+			$liveFileNames[$identifier] = $fileNameWithRandomValue;
+			if ($useThumbnails && !isset($thumbnailFiles[$fileNameWithRandomValue])) {
+				$thumbnailFile = $liveFileReference->getOriginalFile()->process(
+					\TYPO3\CMS\Core\Resource\ProcessedFile::CONTEXT_IMAGEPREVIEW,
+					array('width' => 40, 'height' => 40)
+				);
+				$thumbnailMarkup = '<img src="' . $thumbnailFile->getPublicUrl(TRUE) . '" />';
+				$thumbnailFiles[$fileNameWithRandomValue] = $thumbnailMarkup;
+			}
+		}
+		$versionFileNames = array();
+		foreach ($versionFileReferences as $identifier => $versionFileReference) {
+			$fileNameWithRandomValue = $randomValue . '__' . $versionFileReference->getPublicUrl() . '__' . $randomValue;
+			$versionFileNames[$identifier] = $randomValue . '__' . $versionFileReference->getPublicUrl() . '__' . $randomValue;
+			if ($useThumbnails && !isset($thumbnailFiles[$fileNameWithRandomValue])) {
+				$thumbnailFile = $versionFileReference->getOriginalFile()->process(
+					\TYPO3\CMS\Core\Resource\ProcessedFile::CONTEXT_IMAGEPREVIEW,
+					array('width' => 40, 'height' => 40)
+				);
+				$thumbnailMarkup = '<img src="' . $thumbnailFile->getPublicUrl(TRUE) . '" />';
+				$thumbnailFiles[$fileNameWithRandomValue] = $thumbnailMarkup;
+			}
+		}
+
+		$liveInformation = implode(' ', $liveFileNames);
+		$versionInformation = implode(' ', $versionFileNames);
+
+		if ($liveInformation === $versionInformation) {
+			return NULL;
+		}
+
+		$differences = $this->getDifferenceUtility()->makeDiffDisplay($liveInformation, $versionInformation);
+		if ($useThumbnails) {
+			$liveInformation = str_replace(array_keys($thumbnailFiles), array_values($thumbnailFiles), $liveInformation);
+			$differences = str_replace(array_keys($thumbnailFiles), array_values($thumbnailFiles), $differences);
+		}
+		$liveInformation = str_replace(array($randomValue . '__', '__' . $randomValue), '', $liveInformation);
+		$differences = str_replace(array($randomValue . '__', '__' . $randomValue), '', $differences);
+
+		return array(
+			'live' => $liveInformation,
+			'differences' => $differences
 		);
 	}
 
@@ -287,6 +380,16 @@ class ExtDirectServer extends \TYPO3\CMS\Workspaces\ExtDirect\AbstractHandler {
 			$this->stagesService = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance('TYPO3\\CMS\\Workspaces\\Service\\StagesService');
 		}
 		return $this->stagesService;
+	}
+
+	/**
+	 * @return \TYPO3\CMS\Core\Utility\DiffUtility
+	 */
+	protected function getDifferenceUtility() {
+		if (!isset($this->differenceUtility)) {
+			$this->differenceUtility = GeneralUtility::makeInstance('TYPO3\\CMS\\Core\\Utility\\DiffUtility');
+		}
+		return $this->differenceUtility;
 	}
 
 	/**
