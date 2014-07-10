@@ -119,7 +119,7 @@ class ReferenceIndex {
 			'addedNodes' => 0
 		);
 		// Get current index from Database:
-		$currentRels = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('*', 'sys_refindex', 'tablename=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($table, 'sys_refindex') . ' AND recuid=' . intval($uid), '', '', '', 'hash');
+		$currentRels = $GLOBALS['TYPO3_DB']->exec_SELECTgetRows('*', 'sys_refindex', 'tablename=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($table, 'sys_refindex') . ' AND recuid=' . (int)$uid . ' AND workspace=' . (int)$this->getWorkspaceId(), '', '', '', 'hash');
 		// First, test to see if the record exists (including deleted-flagged)
 		if (\TYPO3\CMS\Backend\Utility\BackendUtility::getRecordRaw($table, 'uid=' . intval($uid), 'uid')) {
 			// Then, get relations:
