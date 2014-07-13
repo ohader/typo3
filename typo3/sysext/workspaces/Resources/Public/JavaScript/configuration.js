@@ -111,13 +111,13 @@ TYPO3.Workspaces.Configuration.WsTitleWithIcon = {
 			valud = "<span class=\"" + record.json.icon_Workspace + "\">&nbsp;</span>&nbsp;" + value;
 		}
 		// Prepend nested collection level
-		var levelStyle = 'margin-left: ' + record.json.Workspaces_CollectionLevel * this.levelWidth + 'px;';
+		var levelClass = 'typo3-workspaces-collection-level-cnt' + record.json.Workspaces_CollectionLevel;
 		if (record.json.Workspaces_CollectionChildren > 0) {
-			value = '<div class="typo3-workspaces-collection-level-node" style="' + levelStyle + '">&#160;</div>' + value;
+			value = '<div class="typo3-workspaces-collection-level-node ' + levelClass +'">&#160;</div>' + value;
 		} else if (record.json.Workspaces_CollectionLevel > 0) {
-			value = '<div class="typo3-workspaces-collection-level-leaf" style="' + levelStyle + '">&#160;</div>' + value;
+			value = '<div class="typo3-workspaces-collection-level-leaf ' + levelClass +'">&#160;</div>' + value;
 		} else {
-			value = '<div class="typo3-workspaces-collection-level-none" style="' + levelStyle + '">&#160;</div>' + value;
+			value = '<div class="typo3-workspaces-collection-level-none ' + levelClass +'">&#160;</div>' + value;
 		}
 		return value;
 	},
@@ -205,7 +205,7 @@ TYPO3.Workspaces.Configuration.SendToNextStageButton = {
 
 TYPO3.Workspaces.Configuration.Stage = {
 	id: 'label_Stage',
-	dataIndex : 'label_Stage',
+	dataIndex : 'stage',
 	width: 80,
 	sortable: true,
 	header : TYPO3.l10n.localize('column.stage'),

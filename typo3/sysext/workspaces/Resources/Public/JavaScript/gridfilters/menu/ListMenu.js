@@ -117,8 +117,10 @@ Ext.ux.menu.ListMenu = Ext.extend(Ext.menu.Menu, {
 			var item = new Ext.menu.CheckItem({
 				text:    records[i].get(this.labelField),
 				group:   gid,
+				record: records[i],
 				checked: this.selected.indexOf(records[i].id) > -1,
-				hideOnClick: false});
+				hideOnClick: false
+			});
 
 			item.itemId = records[i].id;
 			item.on('checkchange', this.checkChange, this);
