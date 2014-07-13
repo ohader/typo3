@@ -178,6 +178,21 @@ TYPO3.Workspaces.WorkspaceGrid = new TYPO3.Workspaces.Component.GridPanel({
 						store.groupBy('path_Workspace');
 					}
 				}
+			}, {
+				text: TYPO3.l10n.localize('checkbox.nestRecords'),
+				itemId: 'nestRecords',
+				checked: TYPO3.Workspaces.Helpers.getNestRecordsSetting(),
+				disabled: false,
+				hideOnClick: false,
+				xtype: 'menucheckitem',
+				checkHandler: function(menuItem, isChecked) {
+					TYPO3.Workspaces.ExtDirectActions.saveModuleState('nestRecords', isChecked);
+					if (!isChecked) {
+						grid.disableCollectionNesting();
+					} else if (isChecked) {
+						grid.enableCollectionNesting();
+					}
+				}
 			});
 		}
 	},

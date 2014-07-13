@@ -212,5 +212,9 @@ TYPO3.Workspaces.Helpers = {
 
 	getGroupByPathSetting: function() {
 		return (TYPO3.settings.Workspaces.groupByPath !== false);
+	},
+
+	getNestRecordsSetting: function() {
+		return (TYPO3.settings.Workspaces.nestRecords !== false);
 	}
 };
