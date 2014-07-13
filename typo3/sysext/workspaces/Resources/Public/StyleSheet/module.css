@@ -222,6 +222,13 @@ table.t3-workspaces-foldout-contentDiff td.content {
 	width: 18px;
 }
 
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt0 { margin-left: 0; }
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt1 { margin-left: 18px; }
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt2 { margin-left: 36px; }
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt3 { margin-left: 54px; }
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt4 { margin-left: 72px; }
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-cnt5 { margin-left: 90px; }
+
 .x-grid3-row-expander {
 	background-position: left top;
 	float: left;
@@ -235,15 +242,15 @@ table.t3-workspaces-foldout-contentDiff td.content {
 	background-image: url('../Images/zoom_out.png');
 }
 
-.typo3-workspaces-collection-child-collapsed {
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-child-collapsed {
 	display: none;
 }
 
-.typo3-workspaces-collection-child-expanded {
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-child-expanded {
 	display: block;
 }
 
-.typo3-workspaces-collection-level-node {
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-level-node {
 	width: 18px;
 	height: 18px;
 	background-position: 4px 2px;
@@ -251,10 +258,10 @@ table.t3-workspaces-foldout-contentDiff td.content {
 	background-repeat: no-repeat;
 	background-image: url('../../../../t3skin/extjs/images/grid/row-expand-sprite.png');
 }
-.typo3-workspaces-collection-parent-collapsed .typo3-workspaces-collection-level-node {
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-parent-collapsed .typo3-workspaces-collection-level-node {
 	background-position: 4px 2px;
 }
-.typo3-workspaces-collection-parent-expanded .typo3-workspaces-collection-level-node {
+.typo3-workspaces-collection-nesting .typo3-workspaces-collection-parent-expanded .typo3-workspaces-collection-level-node {
 	background-position: -21px 2px;
 }
 
