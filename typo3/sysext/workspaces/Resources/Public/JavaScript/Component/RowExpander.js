@@ -1,8 +1,20 @@
 Ext.ns('TYPO3.Workspaces.Component');
 
+/**
+ * Example collection record.data
+ * Workspaces_Collection: 2
+ * Workspaces_CollectionChildren: 2
+ * Workspaces_CollectionCurrent: "50f72b72028e791c2d625db579db34de"
+ * Workspaces_CollectionLevel: 0
+ * Workspaces_CollectionParent: ""
+ *
+ * @type Ext.grid.RowExpander
+ */
 TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 	menuDisabled: true,
 	hideable: false,
+	collapsedChildCls: 'typo3-workspaces-collection-child-collapsed',
+	expandedChildCls: 'typo3-workspaces-collection-child-expanded',
 
 	rowDetailTemplate: [
 		'<div class="t3-workspaces-foldoutWrapper">',
@@ -129,7 +141,7 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 			beforeExpandCollectionChild: true,
 			beforeCollapseCollection: true,
 			beforeCollapseCollectionChild: true
-		})
+		});
 	},
 
 	getRowClass : function(record, rowIndex, p, ds) {
@@ -143,7 +155,7 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		}
 		if (record.json.Workspaces_CollectionParent) {
 			// @todo Extend by new nodeState check
-			cls.push('typo3-workspaces-collection-child-collapsed');
+			cls.push(this.collapsedChildCls);
 		}
 		if (!record.json.allowedAction_nextStage && !record.json.allowedAction_prevStage && !record.json.allowedAction_swap) {
 			cls.push('typo3-workspaces-row-disabled');
@@ -248,7 +260,7 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		}
 	},
 	expandCollection : function(row) {
-		var record, body, child, i;
+		var record, body, collectionRecords;
 
 		if (typeof row === 'number') {
 			row = this.grid.view.getRow(row);
@@ -257,12 +269,10 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		record = this.grid.store.getAt(row.rowIndex);
 		body = Ext.DomQuery.selectNode('tr:nth(2) div.x-grid3-row-body', row);
 		if (this.fireEvent('beforeExpandCollection', this, record, body, row.rowIndex) !== false) {
-			for(i = 0; i < this.grid.store.getCount(); i++) {
-				child = this.grid.store.getAt(i);
-				if (child.json.Workspaces_CollectionParent === record.json.Workspaces_CollectionCurrent) {
-					this.expandCollectionChild(i);
-				}
-			}
+			collectionRecords = this.findCollectionRecords('Workspaces_CollectionParent', record.data.Workspaces_CollectionCurrent);
+			Ext.each(collectionRecords, function(collectionRecord) {
+				this.expandCollectionChild(collectionRecord.index);
+			}, this);
 			Ext.fly(row).replaceClass('typo3-workspaces-collection-parent-collapsed', 'typo3-workspaces-collection-parent-expanded');
 		}
 	},
@@ -276,11 +286,11 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		record = this.grid.store.getAt(row.rowIndex);
 		body = Ext.DomQuery.selectNode('tr:nth(2) div.x-grid3-row-body', row);
 		if (this.fireEvent('beforeCollapseCollectionChild', this, record, body, row.rowIndex) !== false) {
-			Ext.fly(row).replaceClass('typo3-workspaces-collection-child-collapsed', 'typo3-workspaces-collection-child-expanded');
+			Ext.fly(row).replaceClass(this.collapsedChildCls, this.expandedChildCls);
 		}
 	},
 	collapseCollection : function(row) {
-		var record, body, child, i;
+		var record, body, collectionRecords;
 
 		if (typeof row === 'number') {
 			row = this.grid.view.getRow(row);
@@ -289,16 +299,13 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		record = this.grid.store.getAt(row.rowIndex);
 		body = Ext.fly(row).child('tr:nth(1) div.x-grid3-row-body', true);
 		if (this.fireEvent('beforeCollapseCollectionChild', this, record, body, row.rowIndex) !== false) {
-			for(i = 0; i < this.grid.store.getCount(); i++) {
-				child = this.grid.store.getAt(i);
-				if (child.json.Workspaces_CollectionParent === record.json.Workspaces_CollectionCurrent) {
-					// Delegate collapsing to child if it has children as well
-					if (child.json.Workspaces_CollectionChildren > 0) {
-						this.collapseCollection(i);
-					}
-					this.collapseCollectionChild(i);
+			collectionRecords = this.findCollectionRecords('Workspaces_CollectionParent', record.data.Workspaces_CollectionCurrent);
+			Ext.each(collectionRecords, function(collectionRecord) {
+				if (collectionRecord.record.data.Workspaces_CollectionChildren > 0) {
+					this.collapseCollection(collectionRecord.index);
 				}
-			}
+				this.collapseCollectionChild(collectionRecord.index);
+			}, this);
 			Ext.fly(row).replaceClass('typo3-workspaces-collection-parent-expanded', 'typo3-workspaces-collection-parent-collapsed');
 		}
 	},
@@ -312,7 +319,19 @@ TYPO3.Workspaces.Component.RowExpander = Ext.extend(Ext.grid.RowExpander, {
 		record = this.grid.store.getAt(row.rowIndex);
 		body = Ext.fly(row).child('tr:nth(1) div.x-grid3-row-body', true);
 		if (this.fireEvent('beforeCollapseCollection', this, record, body, row.rowIndex) !== false) {
-			Ext.fly(row).replaceClass('typo3-workspaces-collection-child-expanded', 'typo3-workspaces-collection-child-collapsed');
+			Ext.fly(row).replaceClass(this.expandedChildCls, this.collapsedChildCls);
 		}
+	},
+	findCollectionRecords: function(dataIndex, dataValue) {
+		var collectionRecords = [];
+		Ext.each(this.grid.store.getRange(), function(record, index) {
+			if (record.data[dataIndex] === dataValue) {
+				collectionRecords.push({
+					record: record,
+					index: index
+				});
+			}
+		});
+		return collectionRecords;
 	}
 });
