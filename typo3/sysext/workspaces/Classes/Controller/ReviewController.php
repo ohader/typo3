@@ -176,6 +176,7 @@ class ReviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControll
 			$resourcePath . 'Component/RowDetailTemplate.js',
 			$resourcePath . 'Component/RowExpander.js',
 			$resourcePath . 'Component/TabPanel.js',
+			$resourcePath . 'Component/GroupingView.js',
 			$resourcePath . 'Component/GridPanel.js',
 			$resourcePath . 'helpers.js',
 			$resourcePath . 'Store/mainstore.js',

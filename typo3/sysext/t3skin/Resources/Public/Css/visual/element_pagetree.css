@@ -256,6 +256,7 @@ Pagetree
 #typo3-pagetree .x-tree-node-over.ver-element,
 #typo3-pagetree .x-tree-node-over.ver-versions,
 #typo3-pagetree .x-tree-node-over.ver-page,
+#typo3-pagetree .x-tree-node-highlight,
 #typo3-pagetree .x-tree-selected.ver-element,
 #typo3-pagetree .x-tree-selected.ver-versions,
 #typo3-pagetree .x-tree-selected.ver-page {
