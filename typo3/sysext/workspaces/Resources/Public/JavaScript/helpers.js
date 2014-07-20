@@ -218,6 +218,10 @@ TYPO3.Workspaces.Helpers = {
 		return (TYPO3.settings.Workspaces.nestRecords !== false);
 	},
 
+	getStageFilterSetting: function() {
+		return TYPO3.settings.Workspaces.stageFilter || [];
+	},
+
 	highlightPageTreeNode: function(pagePath) {
 		this.expandPath(pagePath);
 		var steps = pagePath.split('/');

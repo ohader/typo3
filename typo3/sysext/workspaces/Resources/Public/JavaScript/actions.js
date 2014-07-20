@@ -227,6 +227,9 @@ TYPO3.Workspaces.Actions = {
 			top.TYPO3.Dialog.ErrorDialog({ title: 'Error' + code, msg: error.message });
 		}
 	},
+	updateStageFilter: function(filter) {
+		TYPO3.Workspaces.ExtDirectActions.saveModuleState('stageFilter', filter.getValue());
+	},
 
 	/**
 	 * Process "send to next stage" action.
