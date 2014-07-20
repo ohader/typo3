@@ -216,5 +216,19 @@ TYPO3.Workspaces.Helpers = {
 
 	getNestRecordsSetting: function() {
 		return (TYPO3.settings.Workspaces.nestRecords !== false);
+	},
+
+	highlightPageTreeNode: function(pagePath) {
+		this.expandPath(pagePath);
+		var steps = pagePath.split('/');
+		var node = this.getNodeById(steps[steps.length - 1]);
+		node.ui.addClass('x-tree-node-highlight');
+		node.ui.focus();
+	},
+
+	normalizePageTreeNode: function(pagePath) {
+		var steps = pagePath.split('/');
+		var node = this.getNodeById(steps[steps.length - 1]);
+		node.ui.removeClass('x-tree-node-highlight');
 	}
 };

@@ -145,12 +145,38 @@ TYPO3.Workspaces.WorkspaceGrid = new TYPO3.Workspaces.Component.GridPanel({
 		TYPO3.Workspaces.Configuration.GridFilters,
 		new Ext.ux.plugins.FitToParent()
 	],
-	view : new Ext.grid.GroupingView({
+	view : new TYPO3.Workspaces.Component.GroupingView({
 		forceFit: true,
 		groupTextTpl : '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "' + TYPO3.l10n.localize('items') + '" : "' + TYPO3.l10n.localize('item') + '"]})',
 		enableGroupingMenu: false,
   		enableNoGroups: false,
-		hideGroupedColumn: true
+		hideGroupedColumn: true,
+		listeners: {
+			rowover: function(view, rowIndex) {
+				var record = view.grid.store.getAt(rowIndex);
+				if (record && TYPO3.Workspaces.Helpers.isDefined('top.TYPO3.Backend.NavigationContainer.PageTree')) {
+					top.TYPO3.Backend.NavigationContainer.PageTree.invokePageId(
+						record.data.livepid,
+						Ext.createDelegate(
+							TYPO3.Workspaces.Helpers.highlightPageTreeNode,
+							top.TYPO3.Backend.NavigationContainer.PageTree.mainTree
+						)
+					);
+				}
+			},
+			rowout: function(view, rowIndex) {
+				var record = view.grid.store.getAt(rowIndex);
+				if (record && TYPO3.Workspaces.Helpers.isDefined('top.TYPO3.Backend.NavigationContainer.PageTree')) {
+					top.TYPO3.Backend.NavigationContainer.PageTree.invokePageId(
+						record.data.livepid,
+						Ext.createDelegate(
+							TYPO3.Workspaces.Helpers.normalizePageTreeNode,
+							top.TYPO3.Backend.NavigationContainer.PageTree.mainTree
+						)
+					);
+				}
+			}
+		}
 	}),
 	listeners: {
 		// Shows the "Group by path" checkbox
