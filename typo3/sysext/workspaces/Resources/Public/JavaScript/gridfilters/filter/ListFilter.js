@@ -159,9 +159,8 @@ filter : [{"type":"list","value":"small,medium","field":"size"}]
 
 	/** @private */
 	onCheckChange : function(){
-		this.dt.delay(this.updateBuffer);
+		this.dt.delay(this.updateBuffer, null, null, arguments);
 	},
-
 
 	/**
 	 * Template method that is to validate the provided Ext.data.Record
