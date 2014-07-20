@@ -372,4 +372,54 @@ class ExtdirectTreeCommands {
 		return (array) $state->stateHash;
 	}
 
+	/**
+	 * Gets the path steps for a given page.
+	 * This methods considers multiple mount points,
+	 * thus the returned array is multidimensional, e.g.
+	 *
+	 * array(
+	 *		array('p0', 'p1', 'p13', 'p44'),
+	 * 		array('p0', 'p13-1', 'p44-1'),
+	 * )
+	 *
+	 * @param int $pageId
+	 * @return array
+	 */
+	static public function getNodePaths($pageId) {
+		$pagePaths = array();
+		$mountPoints = array_map('intval', $GLOBALS['BE_USER']->returnWebmounts());
+		if (empty($mountPoints)) {
+			$mountPoints = array(0);
+		}
+		$mountPoints[] = (int)$GLOBALS['BE_USER']->uc['pageTree_temporaryMountPoint'];
+		$mountPoints = array_unique($mountPoints);
+		$rootLine = BackendUtility::BEgetRootLine($pageId, '', $GLOBALS['BE_USER']->workspace != 0);
+		$rootLineIds = array();
+		foreach ($rootLine as $rootLineLevel) {
+			$rootLineIds[] = (int)$rootLineLevel['uid'];
+		}
+		foreach ($mountPoints as $mountPoint) {
+			$pagePath = array();
+			if (!in_array($mountPoint, $rootLineIds, TRUE)) {
+				continue;
+			}
+			foreach ($rootLine as $rootLineLevel) {
+				$node = Commands::getNewNode($rootLineLevel, $mountPoint);
+				array_unshift($pagePath, $node->calculateNodeId());
+				// Break if mount-point has been reached
+				if ($mountPoint === (int)$rootLineLevel['uid']) {
+					break;
+				}
+			}
+			// Attach valid partial root-lines
+			if (!empty($pagePath)) {
+				if ($mountPoint !== 0){
+					array_unshift($pagePath, Commands::getNewNode(array('uid' => 0))->calculateNodeId());
+				}
+				$pagePaths[] = $pagePath;
+			}
+		}
+		return $pagePaths;
+	}
+
 }
