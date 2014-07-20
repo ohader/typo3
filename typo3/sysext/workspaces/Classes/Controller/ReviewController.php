@@ -150,6 +150,7 @@ class ReviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControll
 		$this->pageRenderer->addInlineSetting('Workspaces', 'States', $states);
 		$this->pageRenderer->addInlineSetting('Workspaces', 'groupByPath', $this->getModuleState('groupByPath'));
 		$this->pageRenderer->addInlineSetting('Workspaces', 'nestRecords', $this->getModuleState('nestRecords'));
+		$this->pageRenderer->addInlineSetting('Workspaces', 'stageFilter', $this->getModuleState('stageFilter'));
 		// Load  JavaScript:
 		$this->pageRenderer->addExtDirectCode(array(
 			'TYPO3.Workspaces'

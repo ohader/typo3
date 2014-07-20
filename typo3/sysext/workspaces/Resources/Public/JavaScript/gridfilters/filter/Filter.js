@@ -161,11 +161,14 @@ Ext.ux.grid.filter.Filter = Ext.extend(Ext.util.Observable, {
 	},
 
 	/** @private */
-	fireUpdate : function(){
+	fireUpdate : function(trigger) {
+		var suppressEvents = (typeof trigger === 'undefined');
+
 		if (this.active) {
 			this.fireEvent('update', this);
 		}
-		this.setActive(this.isActivatable());
+
+		this.setActive(this.isActivatable(), suppressEvents);
 	},
 
 	/**

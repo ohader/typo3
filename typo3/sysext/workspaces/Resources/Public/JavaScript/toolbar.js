@@ -28,8 +28,9 @@ TYPO3.Workspaces.Toolbar.selectActionStore = new Ext.data.DirectStore({
 	totalProperty : 'total',
 	idProperty : 'uid',
 	fields : [
-		{name : 'uid'},
-		{name : 'title'}
+		{ name : 'uid' },
+		{ name : 'label' },
+		{ name : 'title' }
 	],
 	listeners : {
 		load : function(store, records) {
@@ -39,6 +40,41 @@ TYPO3.Workspaces.Toolbar.selectActionStore = new Ext.data.DirectStore({
 				TYPO3.Workspaces.Toolbar.selectStateActionCombo.show();
 				TYPO3.Workspaces.WorkspaceGrid.colModel.setHidden(0, false);
 			}
+		}
+	}
+});
+
+TYPO3.Workspaces.Configuration.GridFilters.addFilter({
+	type: 'list',
+	dataIndex: 'stage',
+	store: TYPO3.Workspaces.Toolbar.selectActionStore,
+	labelField: 'label',
+	listeners: {
+		// Skip "publish (execute) to live" filter (stage -20)
+		beforeadd: function(menu, component, index) {
+			return !(
+				menu instanceof Ext.ux.menu.ListMenu
+				&& menu.loadingText !== component.text
+				&& menu.dataIndex === 'stage'
+				&& component.record && component.record.data.uid === -20
+			);
+		},
+		load: function(listMenu, items) {
+			listMenu.setSelected(TYPO3.Workspaces.Helpers.getStageFilterSetting());
+			listMenu.fireEvent('checkchange');
+		},
+		activate: function(filter) {
+			TYPO3.Workspaces.Actions.updateStageFilter(filter);
+		},
+		deactivate: function(filter) {
+			if (filter.menu.getSelected().length === 0) {
+				return;
+			}
+			filter.menu.setSelected([]);
+			TYPO3.Workspaces.Actions.updateStageFilter(filter);
+		},
+		update: function(filter) {
+			TYPO3.Workspaces.Actions.updateStageFilter(filter);
 		}
 	}
 });
