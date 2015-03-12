@@ -194,6 +194,9 @@ class ReviewController extends \TYPO3\CMS\Workspaces\Controller\AbstractControll
 		foreach ($javaScriptFiles as $javaScriptFile) {
 			$this->pageRenderer->addJsFile($javaScriptFile);
 		}
+		foreach ($this->getAdditionalResourceService()->getLocalizationResources() as $localizationResource) {
+			$this->pageRenderer->addInlineLanguageLabelFile($localizationResource);
+		}
 		$this->pageRenderer->addInlineSetting('RecordHistory', 'moduleUrl', \TYPO3\CMS\Backend\Utility\BackendUtility::getModuleUrl('record_history'));
 	}
 
