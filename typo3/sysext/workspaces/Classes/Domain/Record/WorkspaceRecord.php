@@ -47,7 +47,8 @@ class WorkspaceRecord extends AbstractRecord{
 	protected $internalStageFieldNames = array(
 		'notification_defaults',
 		'notification_preselection',
-		'allow_notificaton_settings'
+		'allow_notificaton_settings',
+		'element_filter'
 	);
 
 	/**

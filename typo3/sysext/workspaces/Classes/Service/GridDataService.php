@@ -138,6 +138,11 @@ class GridDataService {
 					$origRecord = BackendUtility::getRecord($table, $record['t3ver_oid']);
 					$versionRecord = BackendUtility::getRecord($table, $record['uid']);
 					$combinedRecord = \TYPO3\CMS\Workspaces\Domain\Model\CombinedRecord::createFromArrays($table, $origRecord, $versionRecord);
+
+					if (!$stagesObj->isElementFilterMatching($combinedRecord)) {
+						continue;
+					}
+
 					$this->getIntegrityService()->checkElement($combinedRecord);
 
 					if ($hiddenField !== NULL) {
