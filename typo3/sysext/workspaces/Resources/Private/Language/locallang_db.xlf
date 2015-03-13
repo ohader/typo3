@@ -102,6 +102,21 @@
 			<trans-unit id="sys_workspace.preselection.personsResponsible" xml:space="preserve">
 				<source>persons responsible</source>
 			</trans-unit>
+			<trans-unit id="sys_workspace.element_filter" xml:space="preserve">
+				<source>Element Filter</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.element_filter.owners" xml:space="preserve">
+				<source>owners</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.element_filter.members" xml:space="preserve">
+				<source>members</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.element_filter.editors" xml:space="preserve">
+				<source>editors</source>
+			</trans-unit>
+			<trans-unit id="sys_workspace.element_filter.personsResponsible" xml:space="preserve">
+				<source>persons responsible</source>
+			</trans-unit>
 		</body>
 	</file>
 </xliff>

@@ -18,6 +18,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Workspaces\Domain\Record\WorkspaceRecord;
 use TYPO3\CMS\Workspaces\Domain\Record\StageRecord;
+use TYPO3\CMS\Workspaces\Domain\Model\CombinedRecord;
 
 /**
  * Stages service
@@ -538,6 +539,32 @@ class StagesService implements \TYPO3\CMS\Core\SingletonInterface {
 		} else {
 			return $stageRecord->getPreselectedRecipients();
 		}
+	}
+
+	/**
+	 * @param CombinedRecord $combinedRecord
+	 * @return bool
+	 */
+	public function isElementFilterMatching(CombinedRecord $combinedRecord) {
+		$tableName = $combinedRecord->getTable();
+		$backendUserId = (int)$this->getBackendUser()->user['uid'];
+		$versionRecordRow = $combinedRecord->getVersionRecord()->getRow();
+		$stageRecord = $this->getWorkspaceRecord()->getStage($versionRecordRow['t3ver_stage']);
+
+		if (in_array($backendUserId, $stageRecord->getElementFilterUsers())) {
+			return TRUE;
+		} elseif (!$stageRecord->hasEditorElementFilter()) {
+			return FALSE;
+		} elseif (empty($GLOBALS['TCA'][$tableName]['ctrl']['cruser_id'])) {
+			return FALSE;
+		}
+
+		$createUserIdFieldName = $GLOBALS['TCA'][$tableName]['ctrl']['cruser_id'];
+
+		return (
+			!empty($versionRecordRow[$createUserIdFieldName])
+			&& (int)$versionRecordRow[$createUserIdFieldName] === $backendUserId
+		);
 	}
 
 	/**
