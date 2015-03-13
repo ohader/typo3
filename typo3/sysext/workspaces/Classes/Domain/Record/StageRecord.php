@@ -54,6 +54,11 @@ class StageRecord extends AbstractRecord{
 	protected $allRecipients;
 
 	/**
+	 * @var array
+	 */
+	protected $elementFilterUsers;
+
+	/**
 	 * @param int $uid
 	 * @param array $record
 	 * @return StageRecord
@@ -258,6 +263,34 @@ class StageRecord extends AbstractRecord{
 	}
 
 	/**
+	 * @return bool
+	 */
+	public function hasOwnerElementFilter() {
+		return (((int)$this->record['element_filter'] & 1) > 0);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function hasMemberElementFilter() {
+		return (((int)$this->record['element_filter'] & 2) > 0);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function hasEditorElementFilter() {
+		return (((int)$this->record['element_filter'] & 4) > 0);
+	}
+
+	/**
+	 * @return bool
+	 */
+	public function hasPersonsResponsibleElementFilter() {
+		return (((int)$this->record['element_filter'] & 8) > 0);
+	}
+
+	/**
 	 * @return array
 	 */
 	public function getPersonsResponsible() {
@@ -326,6 +359,29 @@ class StageRecord extends AbstractRecord{
 		}
 
 		return $this->preselectedRecipients;
+	}
+
+	/**
+	 * @return array|int[]
+	 */
+	public function getElementFilterUsers() {
+		if (!isset($this->elementFilterUsers)) {
+			$elementFilterUsers = array();
+
+			if ($this->hasOwnerElementFilter()) {
+				$elementFilterUsers = array_merge($elementFilterUsers, $this->getWorkspace()->getOwners());
+			}
+			if ($this->hasMemberElementFilter()) {
+				$elementFilterUsers = array_merge($elementFilterUsers, $this->getWorkspace()->getMembers());
+			}
+			if ($this->hasPersonsResponsibleElementFilter()) {
+				$elementFilterUsers = array_merge($elementFilterUsers, $this->getPersonsResponsible());
+			}
+
+			$this->elementFilterUsers = array_unique($elementFilterUsers);
+		}
+
+		return $this->elementFilterUsers;
 	}
 
 	/**

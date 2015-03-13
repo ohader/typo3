@@ -246,6 +246,19 @@ return array(
 				'cols' => 3,
 			)
 		),
+		'edit_element_filter' => array(
+			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter',
+			'config' => array(
+				'type' => 'check',
+				'items' => array(
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.owners', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.members', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.editors', ''),
+				),
+				'default' => 2,
+				'cols' => 3,
+			)
+		),
 		// @deprecated not used anymore
 		'publish_notification_mode' => array(
 			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.publish_notification_mode',
@@ -302,6 +315,19 @@ return array(
 				'cols' => 3,
 			)
 		),
+		'publish_element_filter' => array(
+			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter',
+			'config' => array(
+				'type' => 'check',
+				'items' => array(
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.owners', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.members', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.editors', ''),
+				),
+				'default' => 2,
+				'cols' => 3,
+			)
+		),
 		'execute_notification_defaults' => array(
 			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace_stage.notification_defaults',
 			'displayCond' => 'FIELD:execute_allow_notificaton_settings:BIT:1',
@@ -345,20 +371,33 @@ return array(
 				'default' => 3,
 				'cols' => 3,
 			)
-		)
+		),
+		'execute_element_filter' => array(
+			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter',
+			'config' => array(
+				'type' => 'check',
+				'items' => array(
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.owners', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.members', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.editors', ''),
+				),
+				'default' => 2,
+				'cols' => 3,
+			)
+		),
 	),
 	'palettes' => array(
 		'stage.edit' => array(
 			'canNotCollapse' => TRUE,
-			'showitem' => 'edit_allow_notificaton_settings, edit_notification_preselection,',
+			'showitem' => 'edit_allow_notificaton_settings, edit_notification_preselection, edit_element_filter',
 		),
 		'stage.publish' => array(
 			'canNotCollapse' => TRUE,
-			'showitem' => 'publish_allow_notificaton_settings, publish_notification_preselection,',
+			'showitem' => 'publish_allow_notificaton_settings, publish_notification_preselection, publish_element_filter',
 		),
 		'stage.execute' => array(
 			'canNotCollapse' => TRUE,
-			'showitem' => 'execute_allow_notificaton_settings, execute_notification_preselection,',
+			'showitem' => 'execute_allow_notificaton_settings, execute_notification_preselection, execute_element_filter',
 		)
 	),
 	'types' => array(

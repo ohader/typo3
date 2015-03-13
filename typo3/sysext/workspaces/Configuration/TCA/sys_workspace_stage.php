@@ -121,7 +121,21 @@ return array(
 				'default' => 8,
 				'cols' => 4,
 			)
-		)
+		),
+		'element_filter' => array(
+			'label' => 'LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter',
+			'config' => array(
+				'type' => 'check',
+				'items' => array(
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.owners', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.members', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.editors', ''),
+					array('LLL:EXT:workspaces/Resources/Private/Language/locallang_db.xlf:sys_workspace.element_filter.personsResponsible', ''),
+				),
+				'default' => 8,
+				'cols' => 4,
+			)
+		),
 	),
 	'palettes' => array(
 		'stage' => array(
