@@ -5832,10 +5832,11 @@ class t3lib_TCEforms {
 							}
 						}
 						if (setOK) {
-							fObj.length++;
-							fObj.options[len].value = value;
-							fObj.options[len].text = unescape(label);
-							fObj.options[len].title = title;
+							newOption = document.createElement("option");
+							newOption.value = value;
+							newOption.text = unescape(label);
+							newOption.title = title;
+							fObj.add(newOption);
 
 								// Traversing list and set the hidden-field
 							setHiddenFromList(fObj,formObj[fName]);
@@ -5994,12 +5995,17 @@ class t3lib_TCEforms {
 					}
 
 						// Transfer items in temporary storage to list object:
-					fObjSel.length = c;
+					selectLength = fObjSel.length;
+					for (i = 0; i < selectLength; i++) {
+						fObjSel.remove(0);
+					}
 					for (a=0;a<c;a++)	{
-						fObjSel.options[a].value = localArray_V[a];
-						fObjSel.options[a].text = localArray_L[a];
-						fObjSel.options[a].selected = localArray_S[a];
-						fObjSel.options[a].title = localArray_T[a];
+						newOption = document.createElement("option");
+						newOption.value = localArray_V[a];
+						newOption.text = localArray_L[a];
+						newOption.selected = localArray_S[a];
+						newOption.title = localArray_T[a];
+						fObjSel.add(newOption);
 					}
 					setHiddenFromList(fObjSel,formObj[fName]);
 
