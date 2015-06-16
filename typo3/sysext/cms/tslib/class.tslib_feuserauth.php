@@ -423,6 +423,21 @@ class tslib_feUserAuth extends t3lib_userAuth {
 	}
 
 	/**
+	 * Regenerate the id, take seperate session data table into account
+	 * and set cookie again
+	 */
+	protected function regenerateSessionId() {
+		$oldSessionId = $this->id;
+		parent::regenerateSessionId();
+		// Update session data with new ID
+		$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+			'fe_session_data',
+			'hash=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($oldSessionId, 'fe_session_data'),
+			array('hash' => $this->id)
+		);
+	}
+
+	/**
 	 * Executes the garbage collection of session data and session.
 	 * The lifetime of session data is defined by $TYPO3_CONF_VARS['FE']['sessionDataLifetime'].
 	 *

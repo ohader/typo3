@@ -702,6 +702,10 @@ class t3lib_userAuth {
 				$this->loginSessionStarted = TRUE;
 			}
 
+			if ($activeLogin && !$this->newSessionID) {
+				$this->regenerateSessionId();
+			}
+
 				// User logged in - write that to the log!
 			if ($this->writeStdLog && $activeLogin) {
 				$this->writelog(255, 1, 0, 1,
@@ -761,6 +765,24 @@ class t3lib_userAuth {
 	 */
 	public function createSessionId() {
 		return t3lib_div::getRandomHexString($this->hash_length);
+	}
+
+	/**
+	 * Regenerate the session ID and transfer the session to new ID
+	 * Call this method whenever a user proceeds to a higher authorization level
+	 * e.g. when an anonymous session is now authenticated.
+	 */
+	protected function regenerateSessionId() {
+		$oldSessionId = $this->id;
+		$this->id = $this->createSessionId();
+		// Update session record with new ID
+		$GLOBALS['TYPO3_DB']->exec_UPDATEquery(
+			$this->session_table,
+			'ses_id = ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($oldSessionId, $this->session_table)
+				. ' AND ses_name = ' . $GLOBALS['TYPO3_DB']->fullQuoteStr($this->name, $this->session_table),
+			array('ses_id' => $this->id)
+		);
+		$this->newSessionID = TRUE;
 	}
 
 
