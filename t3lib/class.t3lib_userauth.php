@@ -754,6 +754,20 @@ class t3lib_userAuth {
 				t3lib_div::devLog('Call checkLogFailures: ' . t3lib_div::arrayToLogString(array('warningEmail' => $this->warningEmail, 'warningPeriod' => $this->warningPeriod, 'warningMax' => $this->warningMax,)), 't3lib_userAuth', -1);
 			}
 
+			// Hook to implement login failure tracking methods
+			if (
+				!empty($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_userauth.php']['postLoginFailureProcessing'])
+				&& is_array($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_userauth.php']['postLoginFailureProcessing'])
+			) {
+				$_params = array();
+				foreach ($GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_userauth.php']['postLoginFailureProcessing'] as $_funcRef) {
+					t3lib_div::callUserFunction($_funcRef, $_params, $this);
+				}
+			} elseif (TYPO3_MODE === 'BE') {
+				// If no hook is implemented, wait for 5 seconds
+				sleep(5);
+			}
+
 			$this->checkLogFailures($this->warningEmail, $this->warningPeriod, $this->warningMax);
 		}
 	}

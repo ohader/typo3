@@ -412,8 +412,6 @@ class SC_index {
 					}
 				');
 			}
-		} elseif (!$BE_USER->user['uid'] && $this->isLoginInProgress()) {
-			sleep(5);	// Wrong password, wait for 5 seconds
 		}
 	}
 
