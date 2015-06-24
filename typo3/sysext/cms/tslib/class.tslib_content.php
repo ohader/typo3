@@ -5594,7 +5594,7 @@ class tslib_cObj {
 						$target = $forceTarget;
 					}
 					if ($linktxt == '')
-						$linktxt = $link_param;
+						$linktxt = $this->parseFunc($link_param, array('makelinks' => 0), '< lib.parseFunc');;
 					if (!$pU['scheme']) {
 						$scheme = 'http://';
 					} else {
@@ -5617,7 +5617,7 @@ class tslib_cObj {
 					$splitLinkParam = explode('?', $link_param);
 					if (file_exists(rawurldecode($splitLinkParam[0])) || $isLocalFile) {
 						if ($linktxt == '')
-							$linktxt = rawurldecode($link_param);
+							$linktxt = $this->parseFunc(rawurldecode($link_param), array('makelinks' => 0), '< lib.parseFunc');
 						if ($GLOBALS['TSFE']->config['config']['jumpurl_enable'] || $conf['jumpurl']) {
 							$theFileEnc = str_replace('%2F', '/', rawurlencode(rawurldecode($link_param)));
 							$url = $GLOBALS['TSFE']->absRefPrefix . $GLOBALS['TSFE']->config['mainScript'] . $initP . '&jumpurl=' . rawurlencode($link_param);
@@ -5710,7 +5710,7 @@ class tslib_cObj {
 
 							// Setting title if blank value to link:
 						if ($linktxt == '')
-							$linktxt = $page['title'];
+							$linktxt = $this->parseFunc($page['title'], array('makelinks' => 0), '< lib.parseFunc');
 
 							// Query Params:
 						$addQueryParams = $conf['addQueryString'] ? $this->getQueryArguments($conf['addQueryString.']) : '';
