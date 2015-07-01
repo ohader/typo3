@@ -1,3 +1,11 @@
+2015-07-01  d36325e                  [RELEASE] Release of TYPO3 4.5.41 (TYPO3 Release Team)
+2015-07-01  86f9281  #59231          [SECURITY] Add hook to implement login protection methods (Nicole Cordes)
+2015-07-01  b5d56ce  #55774,#55775,  [TASK] Add IE 11 detection to ExtJS (Lorenz Ulrich)
+2015-07-01  1b10d9f  #59258          [SECURITY] Regenerate session id upon login if needed (Wouter Wolters)
+2015-07-01  b47c55c  #34107          [SECURITY] Encode link text properly in typolink (Nicole Cordes)
+2015-06-01  6c492f1  #T1             [BUGFIX] Fix Javascript for select box in IE 11 (Nicole Cordes)
+
+
 2015-02-19  1b8a673                  [RELEASE] Release of TYPO3 4.5.40 (TYPO3 Release Team)
 2015-02-19  3fbd91c  #65113          [SECURITY] Prevent login with semi-empty values (Nicole Cordes)
 2015-01-29  6cf78f6  #64597          [TASK] Update TYPO3 copyright in all branches (Benjamin Mack)
