@@ -255,7 +255,8 @@ class SC_t3lib_thumbs {
 				}
 					// The thumbnail is read and output to the browser
 				if($fd = @fopen($this->output,'rb'))	{
-					header('Content-type: image/'.$outext);
+					$mimeType = $outext === 'jpg' ? 'jpeg' : $outext;
+					header('Content-type: image/' . $mimeType);
 					fpassthru($fd);
 					fclose($fd);
 				} else {
