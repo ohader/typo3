@@ -4509,6 +4509,7 @@ final class t3lib_div {
 		$decodedUrl = rawurldecode($url);
 
 		if (!empty($url) && self::removeXSS($decodedUrl) === $decodedUrl) {
+			$parsedUrl = parse_url($decodedUrl);
 			$testAbsoluteUrl = self::resolveBackPath($decodedUrl);
 			$testRelativeUrl = self::resolveBackPath(
 				self::dirname(self::getIndpEnv('SCRIPT_NAME')) . '/' . $decodedUrl
@@ -4526,7 +4527,7 @@ final class t3lib_div {
 			} elseif (strpos($testAbsoluteUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0 && substr($decodedUrl, 0, 1) === '/') {
 				$sanitizedUrl = $url;
 				// Pass if URL is relative and below TYPO3 base directory:
-			} elseif (strpos($testRelativeUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0 && substr($decodedUrl, 0, 1) !== '/') {
+			} elseif (empty($parsedUrl['scheme']) && strpos($testRelativeUrl, self::getIndpEnv('TYPO3_SITE_PATH')) === 0 && $decodedUrl[0] !== '/') {
 				$sanitizedUrl = $url;
 			}
 		}
