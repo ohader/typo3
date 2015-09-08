@@ -1,3 +1,9 @@
+2015-09-08  48a773c                  [RELEASE] Release of TYPO3 4.5.42 (TYPO3 Release Team)
+2015-09-08  d637f1c  #T5             [BUGFIX] Send correct header for jpg images (Nicole Cordes)
+2015-09-08  79ef10e  #68825          [SECURITY] Fix GeneralUtility::sanitizeLocalUrl to detect foreign schemes (Anja Leichsenring)
+2015-09-07  ed00fec  #T4             [BUGFIX] Rebuild compressed ExtJS files (Steffen Müller)
+
+
 2015-07-01  d36325e                  [RELEASE] Release of TYPO3 4.5.41 (TYPO3 Release Team)
 2015-07-01  86f9281  #59231          [SECURITY] Add hook to implement login protection methods (Nicole Cordes)
 2015-07-01  b5d56ce  #55774,#55775,  [TASK] Add IE 11 detection to ExtJS (Lorenz Ulrich)
