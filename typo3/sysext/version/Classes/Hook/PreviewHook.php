@@ -15,6 +15,8 @@ namespace TYPO3\CMS\Version\Hook;
  */
 
 use TYPO3\CMS\Backend\FrontendBackendUserAuthentication;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -94,34 +96,76 @@ class PreviewHook implements \TYPO3\CMS\Core\SingletonInterface
      */
     public function initializePreviewUser(&$params, &$pObj)
     {
-        if ((is_null($params['BE_USER']) || $params['BE_USER'] === false)
-            && $this->previewConfiguration !== false
-            && $this->previewConfiguration['BEUSER_uid'] > 0
-        ) {
-            // New backend user object
-            $BE_USER = GeneralUtility::makeInstance(FrontendBackendUserAuthentication::class);
-            $BE_USER->userTS_dontGetCached = 1;
-            $BE_USER->setBeUserByUid($this->previewConfiguration['BEUSER_uid']);
-            $BE_USER->unpack_uc('');
-            if ($BE_USER->user['uid']) {
-                $BE_USER->fetchGroupData();
+        $workspaceUid = $this->previewConfiguration['fullWorkspace'];
+        $workspaceRecord = null;
+        if ((is_null($params['BE_USER']) || $params['BE_USER'] === false) && $this->previewConfiguration !== false && $this->previewConfiguration['BEUSER_uid'] > 0) {
+            // First initialize a temp user object and resolve usergroup information
+            /** @var FrontendBackendUserAuthentication $tempBackendUser */
+            $tempBackendUser = GeneralUtility::makeInstance(FrontendBackendUserAuthentication::class);
+            $tempBackendUser->userTS_dontGetCached = 1;
+            $tempBackendUser->setBeUserByUid($this->previewConfiguration['BEUSER_uid']);
+            $tempBackendUser->unpack_uc('');
+            $tempBackendUser->fetchGroupData();
+            if ($tempBackendUser->user['uid']) {
+                if ($tempBackendUser->isAdmin() && empty($tempBackendUser->user['usergroup']) && ExtensionManagementUtility::isLoaded('workspaces')) {
+                    $workspaceRecord = $this->getDatabaseConnection()->exec_SELECTgetSingleRow(
+                        'uid, adminusers, reviewers, members, db_mountpoints',
+                        'sys_workspace',
+                        'pid=0 AND uid=' . (int)$workspaceUid . BackendUtility::deleteClause('sys_workspace')
+                    );
+                    $groupToFetch = 0;
+                    if (!empty($workspaceRecord['members'])) {
+                        $groupsToCheck = GeneralUtility::trimExplode(',', $workspaceRecord['members'], true);
+                        foreach ($groupsToCheck as $group) {
+                            if (strpos($group, 'be_groups_') === 0) {
+                                $groupToFetch = (int)substr($group, 10);
+                                break;
+                            }
+                        }
+                        unset($group);
+                    }
+                    if ($groupToFetch === 0 && !empty($workspaceRecord['adminusers'])) {
+                        $groupsToCheck = GeneralUtility::trimExplode(',', $workspaceRecord['adminusers'], true);
+                        foreach ($groupsToCheck as $group) {
+                            if (strpos($group, 'be_groups_') === 0) {
+                                $groupToFetch = (int)substr($group, 10);
+                                break;
+                            }
+                        }
+                        unset($group);
+                    }
+                    if (!empty($groupToFetch)) {
+                        $tempBackendUser->fetchGroups($groupToFetch);
+                        $tempBackendUser->userGroupsUID = array_reverse(array_unique(array_reverse($tempBackendUser->includeGroupArray)));
+                        $tempBackendUser->groupData['webmounts'] = $workspaceRecord['db_mountpoints'] ?: $pObj->id;
+                    }
+                }
+                // Store only needed information in the real simulate backend
+                $BE_USER = GeneralUtility::makeInstance(FrontendBackendUserAuthentication::class);
+                $BE_USER->userTS_dontGetCached = 1;
+                $BE_USER->user = $tempBackendUser->user;
+                $BE_USER->user['admin'] = 0;
+                $BE_USER->groupData['webmounts'] = $tempBackendUser->groupData['webmounts'];
+                $BE_USER->groupList = $tempBackendUser->groupList;
+                $BE_USER->userGroups = $tempBackendUser->userGroups;
+                $BE_USER->userGroupsUID = $tempBackendUser->userGroupsUID;
                 $pObj->beUserLogin = true;
             } else {
                 $BE_USER = null;
                 $pObj->beUserLogin = false;
             }
+            unset($tempBackendUser);
             $params['BE_USER'] = $BE_USER;
         }
         // if there is a valid BE user, and the full workspace should be
         // previewed, the workspacePreview option shouldbe set
-        $workspaceUid = $this->previewConfiguration['fullWorkspace'];
         if ($pObj->beUserLogin
             && is_object($params['BE_USER'])
             && MathUtility::canBeInterpretedAsInteger($workspaceUid)
         ) {
             if ($workspaceUid == 0
                 || $workspaceUid >= -1
-                && $params['BE_USER']->checkWorkspace($workspaceUid)
+                && $params['BE_USER']->checkWorkspace($workspaceRecord ?: $workspaceUid)
                 && $params['BE_USER']->isInWebMount($pObj->id)
             ) {
                 // Check Access to workspace. Live (0) is OK to preview for all.
@@ -173,8 +217,8 @@ class PreviewHook implements \TYPO3\CMS\Core\SingletonInterface
                 die(sprintf($message, htmlspecialchars(preg_replace('/\\&?' . $this->previewKey . '=[[:alnum:]]+/', '', $returnUrl))));
             }
             // Look for keyword configuration record:
-            $where = 'keyword=' . $GLOBALS['TYPO3_DB']->fullQuoteStr($inputCode, 'sys_preview') . ' AND endtime>' . $GLOBALS['EXEC_TIME'];
-            $previewData = $GLOBALS['TYPO3_DB']->exec_SELECTgetSingleRow('*', 'sys_preview', $where);
+            $where = 'keyword=' . $this->getDatabaseConnection()->fullQuoteStr($inputCode, 'sys_preview') . ' AND endtime>' . $GLOBALS['EXEC_TIME'];
+            $previewData = $this->getDatabaseConnection()->exec_SELECTgetSingleRow('*', 'sys_preview', $where);
             // Get: Backend login status, Frontend login status
             // - Make sure to remove fe/be cookies (temporarily);
             // BE already done in ADMCMD_preview_postInit()
@@ -265,7 +309,7 @@ class PreviewHook implements \TYPO3\CMS\Core\SingletonInterface
                 'BEUSER_uid' => $backendUserUid
             ))
         );
-        $GLOBALS['TYPO3_DB']->exec_INSERTquery('sys_preview', $fieldData);
+        $this->getDatabaseConnection()->exec_INSERTquery('sys_preview', $fieldData);
         return $fieldData['keyword'];
     }
 
@@ -280,5 +324,13 @@ class PreviewHook implements \TYPO3\CMS\Core\SingletonInterface
     {
         $ttlHours = (int)$GLOBALS['BE_USER']->getTSConfigVal('options.workspaces.previewLinkTTLHours');
         return $ttlHours ? $ttlHours : 24 * 2;
+    }
+
+    /**
+     * @return \TYPO3\CMS\Core\Database\DatabaseConnection
+     */
+    protected function getDatabaseConnection()
+    {
+        return $GLOBALS['TYPO3_DB'];
     }
 }
