@@ -317,6 +317,43 @@ abstract class FunctionalTestCase extends BaseTestCase
     }
 
     /**
+     * Imports a data set represented as MySQL XML into the test database.
+     *
+     * @param string $path Absolute path to the MySQL XML file containing the data set to load
+     * @return void
+     * @throws \Exception
+     */
+    protected function importMySqlXmlDataSet($path)
+    {
+        if (!is_file($path)) {
+            throw new \Exception(
+                'Fixture file ' . $path . ' not found',
+                    1455658724
+            );
+        }
+
+        $database = $this->getDatabaseConnection();
+        $mysqlDataSet = new \PHPUnit_Extensions_Database_DataSet_MysqlXmlDataSet($path);
+
+        /**
+         * @var string $tableName
+         * @var \PHPUnit_Extensions_Database_DataSet_DefaultTable $table
+         */
+        foreach ($mysqlDataSet->getIterator() as $table) {
+            $rows = [];
+            $rowCount = $table->getRowCount();
+            $tableName = $table->getTableMetaData()->getTableName();
+            $columnNames = $table->getTableMetaData()->getColumns();
+
+            for ($i = 0; $i < $rowCount; $i++) {
+                $rows[] = $table->getRow($i);
+            }
+
+            $database->exec_INSERTmultipleRows($tableName, $columnNames, $rows);
+        }
+    }
+
+    /**
      * @param int $pageId
      * @param array $typoScriptFiles
      */
