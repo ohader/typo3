@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\Core\Tree;
+namespace TYPO3\CMS\Core\Tree\Reader;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -19,7 +19,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
 
-class TreeReader
+class AdjacencyListTreeReader
 {
 
     private $table = 'pages';
