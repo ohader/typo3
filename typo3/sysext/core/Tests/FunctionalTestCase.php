@@ -225,7 +225,7 @@ abstract class FunctionalTestCase extends BaseTestCase
     }
 
     /**
-     * Initialize backend user
+     * Initialize backend user from the defined XML data-set fixture.
      *
      * @param int $userUid uid of the user we want to initialize. This user must exist in the fixture file
      * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
@@ -234,6 +234,18 @@ abstract class FunctionalTestCase extends BaseTestCase
     protected function setUpBackendUserFromFixture($userUid)
     {
         $this->importDataSet(ORIGINAL_ROOT . $this->backendUserFixture);
+        return $this->setUpBackendUser($userUid);
+    }
+
+    /**
+     * Initialize backend user
+     *
+     * @param int $userUid uid of the user we want to initialize. This user must exist in the fixture file
+     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @throws Exception
+     */
+    protected function setUpBackendUser($userUid)
+    {
         $database = $this->getDatabaseConnection();
         $userRow = $database->exec_SELECTgetSingleRow('*', 'be_users', 'uid = ' . (int)$userUid);
 
