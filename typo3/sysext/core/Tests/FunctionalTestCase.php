@@ -225,7 +225,7 @@ abstract class FunctionalTestCase extends BaseTestCase
     }
 
     /**
-     * Initialize backend user
+     * Initialize backend user from the defined XML data-set fixture.
      *
      * @param int $userUid uid of the user we want to initialize. This user must exist in the fixture file
      * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
@@ -234,6 +234,18 @@ abstract class FunctionalTestCase extends BaseTestCase
     protected function setUpBackendUserFromFixture($userUid)
     {
         $this->importDataSet(ORIGINAL_ROOT . $this->backendUserFixture);
+        return $this->setUpBackendUser($userUid);
+    }
+
+    /**
+     * Initialize backend user
+     *
+     * @param int $userUid uid of the user we want to initialize. This user must exist in the fixture file
+     * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
+     * @throws Exception
+     */
+    protected function setUpBackendUser($userUid)
+    {
         $database = $this->getDatabaseConnection();
         $userRow = $database->exec_SELECTgetSingleRow('*', 'be_users', 'uid = ' . (int)$userUid);
 
@@ -257,6 +269,19 @@ abstract class FunctionalTestCase extends BaseTestCase
         $GLOBALS['BE_USER']->backendCheckLogin();
 
         return $backendUser;
+    }
+
+    /**
+     * Sets up the global language service.
+     *
+     * @param string $language
+     */
+    protected function setUpLanguageService($language = 'default')
+    {
+        /** @var \TYPO3\CMS\Lang\LanguageService $languageService */
+        $languageService = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Lang\LanguageService::class);
+        $languageService->init($language);
+        $GLOBALS['LANG'] = $languageService;
     }
 
     /**
@@ -313,6 +338,43 @@ abstract class FunctionalTestCase extends BaseTestCase
                 $elementId = (string)$table['id'];
                 $foreignKeys[$tableName][$elementId] = $database->sql_insert_id();
             }
+        }
+    }
+
+    /**
+     * Imports a data set represented as MySQL XML into the test database.
+     *
+     * @param string $path Absolute path to the MySQL XML file containing the data set to load
+     * @return void
+     * @throws \Exception
+     */
+    protected function importMySqlXmlDataSet($path)
+    {
+        if (!is_file($path)) {
+            throw new \Exception(
+                'Fixture file ' . $path . ' not found',
+                    1455658724
+            );
+        }
+
+        $database = $this->getDatabaseConnection();
+        $mysqlDataSet = new \PHPUnit_Extensions_Database_DataSet_MysqlXmlDataSet($path);
+
+        /**
+         * @var string $tableName
+         * @var \PHPUnit_Extensions_Database_DataSet_DefaultTable $table
+         */
+        foreach ($mysqlDataSet->getIterator() as $table) {
+            $rows = [];
+            $rowCount = $table->getRowCount();
+            $tableName = $table->getTableMetaData()->getTableName();
+            $columnNames = $table->getTableMetaData()->getColumns();
+
+            for ($i = 0; $i < $rowCount; $i++) {
+                $rows[] = $table->getRow($i);
+            }
+
+            $database->exec_INSERTmultipleRows($tableName, $columnNames, $rows);
         }
     }
 
