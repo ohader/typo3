@@ -124,7 +124,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
                 null,
                 [
                     [
-                        'identifier' => '', 'parent' => '', 'name' => '', 'depth' => '', 'visual' => [ 'icon' => '', 'class' => '' ]
+                        'identifier' => '', 'mountIndex' => '', 'parent' => '', 'depth' => '', 'label' => '', 'expanded' => '', 'hasChildren' => '', 'icon' => '',
                     ]
                 ]
             ],
