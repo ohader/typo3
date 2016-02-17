@@ -272,6 +272,19 @@ abstract class FunctionalTestCase extends BaseTestCase
     }
 
     /**
+     * Sets up the global language service.
+     *
+     * @param string $language
+     */
+    protected function setUpLanguageService($language = 'default')
+    {
+        /** @var \TYPO3\CMS\Lang\LanguageService $languageService */
+        $languageService = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Lang\LanguageService::class);
+        $languageService->init($language);
+        $GLOBALS['LANG'] = $languageService;
+    }
+
+    /**
      * Imports a data set represented as XML into the test database,
      *
      * @param string $path Absolute path to the XML file containing the data set to load
