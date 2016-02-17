@@ -267,6 +267,92 @@ class AdjacencyListTreeReader
     }
 
     /**
+     * @return array
+     */
+    public function getRootNodes()
+    {
+        $mountPoints = (int)$this->getBackendUser()->uc['pageTree_temporaryMountPoint'];
+
+        if (!$mountPoints) {
+            $mountPoints = array_map('intval', $this->getBackendUser()->returnWebmounts());
+            $mountPoints = array_unique($mountPoints);
+        } else {
+            $mountPoints = array($mountPoints);
+        }
+
+        if (empty($mountPoints)) {
+            return [];
+        }
+
+        $rootNodes = [];
+        foreach ($mountPoints as $mountPoint) {
+            if ($mountPoint === 0) {
+                $siteName = 'TYPO3';
+                if ($GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] !== '') {
+                    $siteName = $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'];
+                }
+
+                $record = array(
+                    'uid' => 0,
+                    'title' => $siteName
+                );
+                $rootNodes[] = $this->createRootNode($record);
+            } else {
+                $record = BackendUtility::getRecordWSOL($this->table, $mountPoint);
+
+                if (empty($record)) {
+                    continue;
+                }
+
+                $rootNodes[] = $this->createRootNode($record, count($rootNodes));
+            }
+        }
+
+        return $rootNodes;
+    }
+
+    /**
+     * @param string $parentIdentifier
+     * @return int
+     */
+    private function countChildNodes($parentIdentifier)
+    {
+        $db = $this->getDatabaseConnection();
+        $count = $db->exec_SELECTcountRows(
+            'uid',
+            $this->table,
+            $this->parentField . '=' . $db->fullQuoteStr($parentIdentifier, $this->table)
+        );
+        return (int)$count;
+    }
+
+    /**
+     * @param array $record
+     * @param int $mountIndex
+     * @return array
+     */
+    private function createRootNode(array $record, $mountIndex = 0)
+    {
+        $labelField = 'title';
+        if (!empty($GLOBALS['TCA'][$this->table]['ctrl']['label'])) {
+            $labelField = $GLOBALS['TCA'][$this->table]['ctrl']['label'];
+        }
+
+        $hasChildren = (bool)$this->countChildNodes($record['uid']);
+
+        return [
+            'identifier' => $record['uid'],
+            'mountIndex' => $mountIndex,
+            'parent' => null,
+            'depth' => 0,
+            'label' => $record[$labelField],
+            'expanded' => false, //@todo implement
+            'hasChildren' => $hasChildren,
+            'icon' => '' //@todo implement
+        ];
+    }
+
+    /**
      * @return BackendUserAuthentication
      */
     private function getBackendUser()

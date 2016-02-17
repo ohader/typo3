@@ -28,21 +28,5 @@ abstract class AbstractReader implements ReaderInterface
      * @param bool $checkPermissions Whether to apply access permission checks
      * @return array
      */
-    public function get($identifier, $depth = null, $checkPermissions = true)
-    {
-        if ($identifier === static::IDENTIFIER_Root) {
-            $nodes = [];
-            $rootNodes = $this->getRootNodes();
-            foreach ($rootNodes as $rootNode) {
-                $nodes = array_merge(
-                    $nodes,
-                    $this->getChildren($rootNode['identifier'], $depth, $checkPermissions)
-                );
-            }
-        } else {
-            $nodes = $this->getChildren($identifier, $depth, $checkPermissions);
-        }
-
-        return $nodes;
-    }
+    abstract public function get($identifier, $depth = null, $checkPermissions = true);
 }

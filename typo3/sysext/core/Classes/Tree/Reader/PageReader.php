@@ -14,25 +14,75 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  * The TYPO3 project - inspiring people to share!
  */
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+
 /**
  * Class PageReader
  * @package TYPO3\CMS\Core\Tree\Reader
  */
 class PageReader extends AbstractReader
 {
-    public function getRootNodes()
+    /**
+     * @var AdjacencyListTreeReader
+     */
+    protected $adjacencyListTreeReader;
+
+    /**
+     * PageReader constructor.
+     */
+    public function __construct()
     {
-        // TODO: Implement getRootNodes() method.
+        $this->adjacencyListTreeReader = GeneralUtility::makeInstance(AdjacencyListTreeReader::class);
     }
 
+    /**
+     * @param string $identifier
+     * @param null $depth
+     * @param bool $checkPermissions
+     * @return array
+     */
+    public function get($identifier, $depth = null, $checkPermissions = true)
+    {
+        if ($identifier === static::IDENTIFIER_Root) {
+            $nodes = [];
+            $rootNodes = $this->getRootNodes();
+            foreach ($rootNodes as $rootNode) {
+                $nodes = array_merge(
+                    $nodes,
+                    $rootNode,
+                    $this->getChildren($rootNode['identifier'], $depth, $checkPermissions)
+                );
+            }
+        } else {
+            $nodes = $this->getChildren($identifier, $depth, $checkPermissions);
+        }
+
+        return $nodes;
+    }
+
+
+    /**
+     * @return array
+     */
+    public function getRootNodes()
+    {
+        return $this->adjacencyListTreeReader->getRootNodes();
+    }
+
+    /**
+     * @param int $identifier
+     * @param null $depth
+     * @param bool $checkPermissions
+     * @return array
+     */
     public function getChildren($identifier, $depth = null, $checkPermissions = true)
     {
-        // TODO: Implement getChildren() method.
+        // @todo $depth and $checkPermissions are currently not supported
+        return $this->adjacencyListTreeReader->get($identifier, $depth, $checkPermissions);
     }
 
     public function getDepth($identifier)
     {
         // TODO: Implement getDepth() method.
     }
-
 }
