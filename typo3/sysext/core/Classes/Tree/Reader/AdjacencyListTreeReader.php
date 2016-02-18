@@ -14,45 +14,86 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  * The TYPO3 project - inspiring people to share!
  */
 
-
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
 
 class AdjacencyListTreeReader
 {
-
+    /**
+     * @var string
+     */
     private $table = 'pages';
 
+    /**
+     * @var string
+     */
     private $parentField = 'pid';
 
+    /**
+     * @var array
+     */
     private $fieldArray = [
         'uid',
         'pid',
         'title'
     ];
 
+    /**
+     * @var array
+     */
     private $tree = [];
 
+    /**
+     * @var array
+     */
     private $data = [];
+
+    /**
+     * @var array
+     */
     private $dataLookup = [];
 
+    /**
+     * @var array
+     * @todo Take from backend user's UC
+     */
     private $expandedNodes = [
         0 => [
             '2' => true,
             '1' => true,
         ]
     ];
+
     /**
      * @var int
      */
     private $mountIndex = 0;
+
+    /**
+     * @var string
+     */
     private $clause;
+
+    /**
+     * @var int
+     */
     private $subLevelID;
+
+    /**
+     * @var string
+     */
     private $orderByFields = '';
+
+    /**
+     * @var int
+     */
     private $expandAll = 1;
 
-
+    /**
+     * @param int $identifier
+     * @return array
+     */
     public function get($identifier = 0)
     {
         $this->getTree($identifier);

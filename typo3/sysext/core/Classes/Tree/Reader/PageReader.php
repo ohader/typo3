@@ -81,6 +81,10 @@ class PageReader extends AbstractReader
         return $this->adjacencyListTreeReader->get($identifier, $depth, $checkPermissions);
     }
 
+    /**
+     * @param int $identifier
+     * @return int
+     */
     public function getDepth($identifier)
     {
         // TODO: Implement getDepth() method.
