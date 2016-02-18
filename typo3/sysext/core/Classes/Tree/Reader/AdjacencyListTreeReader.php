@@ -96,6 +96,7 @@ class AdjacencyListTreeReader
      */
     public function get($identifier = 0)
     {
+        $this->tree = [];
         $this->getTree($identifier);
         return $this->tree;
     }

@@ -47,9 +47,9 @@ class PageReader extends AbstractReader
             $nodes = [];
             $rootNodes = $this->getRootNodes();
             foreach ($rootNodes as $rootNode) {
+                $nodes[] = $rootNode;
                 $nodes = array_merge(
                     $nodes,
-                    $rootNode,
                     $this->getChildren($rootNode['identifier'], $depth, $checkPermissions)
                 );
             }
