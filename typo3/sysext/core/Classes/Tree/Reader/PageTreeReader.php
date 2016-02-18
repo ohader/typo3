@@ -14,25 +14,28 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  * The TYPO3 project - inspiring people to share!
  */
 
+use TYPO3\CMS\Core\Tree\Driver\AdjacencyListDriver;
+use TYPO3\CMS\Core\Tree\Driver\TreeDriverInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Class PageReader
- * @package TYPO3\CMS\Core\Tree\Reader
+ * Class PageTreeReader
+ *
+ * @package TYPO3\CMS\Core\Tree\Driver
  */
-class PageReader extends AbstractReader
+class PageTreeReader
 {
     /**
-     * @var AdjacencyListTreeReader
+     * @var AdjacencyListDriver
      */
-    protected $adjacencyListTreeReader;
+    protected $driver;
 
     /**
      * PageReader constructor.
      */
     public function __construct()
     {
-        $this->adjacencyListTreeReader = GeneralUtility::makeInstance(AdjacencyListTreeReader::class);
+        $this->driver = GeneralUtility::makeInstance(AdjacencyListDriver::class);
     }
 
     /**
@@ -43,7 +46,7 @@ class PageReader extends AbstractReader
      */
     public function get($identifier, $depth = null, $checkPermissions = true)
     {
-        if ($identifier === static::IDENTIFIER_Root) {
+        if ($identifier === TreeDriverInterface::IDENTIFIER_ROOT) {
             $nodes = [];
             $rootNodes = $this->getRootNodes();
             foreach ($rootNodes as $rootNode) {
@@ -66,7 +69,7 @@ class PageReader extends AbstractReader
      */
     public function getRootNodes()
     {
-        return $this->adjacencyListTreeReader->getRootNodes();
+        return $this->driver->getRootNodes();
     }
 
     /**
@@ -78,7 +81,7 @@ class PageReader extends AbstractReader
     public function getChildren($identifier, $depth = null, $checkPermissions = true)
     {
         // @todo $depth and $checkPermissions are currently not supported
-        return $this->adjacencyListTreeReader->get($identifier, $depth, $checkPermissions);
+        return $this->driver->get($identifier, $depth, $checkPermissions);
     }
 
     /**

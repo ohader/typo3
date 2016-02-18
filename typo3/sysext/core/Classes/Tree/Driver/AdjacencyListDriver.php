@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\Core\Tree\Reader;
+namespace TYPO3\CMS\Core\Tree\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -18,7 +18,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
 
-class AdjacencyListTreeReader
+class AdjacencyListDriver implements TreeDriverInterface
 {
     /**
      * @var string
@@ -409,4 +409,25 @@ class AdjacencyListTreeReader
     {
         return $GLOBALS['TYPO3_DB'];
     }
-}
+
+    /**
+     * @param int      $identifier
+     * @param int|null $depth
+     * @param bool     $checkPermissions
+     *
+     * @return mixed
+     */
+    public function getChildren($identifier, $depth = null, $checkPermissions = true)
+    {
+        // TODO: Implement getChildren() method.
+    }
+
+    /**
+     * @param int $identifier
+     *
+     * @return int
+     */
+    public function getDepth($identifier)
+    {
+        // TODO: Implement getDepth() method.
+}}

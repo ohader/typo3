@@ -1,5 +1,5 @@
 <?php
-namespace TYPO3\CMS\Core\Tree\Reader;
+namespace TYPO3\CMS\Core\Tree\Driver;
 
 /*
  * This file is part of the TYPO3 CMS project.
@@ -18,9 +18,9 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  * Interface ReaderInterface
  * @package TYPO3\CMS\Core\Tree\Reader
  */
-interface ReaderInterface
+interface TreeDriverInterface
 {
-    const IDENTIFIER_Root = 'root';
+    const IDENTIFIER_ROOT = 'root';
 
     /**
      * @return array
