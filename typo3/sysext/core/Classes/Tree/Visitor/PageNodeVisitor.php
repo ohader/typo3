@@ -22,7 +22,7 @@ use TYPO3\CMS\Core\Tree\Model\Node;
  *
  * @package TYPO3\CMS\Core\Tree\Visitor
  */
-class PageNodeVisitor implements NodeVisitorInterface
+class PageNodeVisitor extends AbstractNodeVisitor implements NodeVisitorInterface
 {
     /**
      * @param Node[] $nodes

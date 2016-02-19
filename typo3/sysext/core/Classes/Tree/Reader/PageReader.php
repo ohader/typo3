@@ -45,6 +45,11 @@ class PageReader implements ReaderInterface
         $this->driver->setVisitor(GeneralUtility::makeInstance(PageNodeVisitor::class));
     }
 
+    public function setExpandAll($expandAll)
+    {
+        $this->driver->getVisitor()->setExpandAll($expandAll);
+    }
+
     /**
      * Gets flat array of tree node elements.
      *

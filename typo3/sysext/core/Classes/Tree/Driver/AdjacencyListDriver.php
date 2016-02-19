@@ -132,6 +132,14 @@ class AdjacencyListDriver implements DriverInterface
     }
 
     /**
+     * @return AbstractNodeVisitor|NodeVisitorInterface
+     */
+    public function getVisitor()
+    {
+        return $this->visitor;
+    }
+
+    /**
      * @param string $tableName
      */
     public function setTableName($tableName)
