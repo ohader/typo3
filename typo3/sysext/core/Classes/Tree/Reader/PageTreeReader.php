@@ -94,6 +94,6 @@ class PageTreeReader implements ReaderInterface
      */
     public function getDepth($identifier)
     {
-        // TODO: Implement getDepth() method.
+        return $this->driver->getDepth($identifier);
     }
 }

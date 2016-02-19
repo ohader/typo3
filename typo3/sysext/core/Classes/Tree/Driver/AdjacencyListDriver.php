@@ -97,6 +97,16 @@ class AdjacencyListDriver implements TreeDriverInterface
     private $expandAll = 1;
 
     /**
+     * @var array
+     */
+    protected $rootNodes;
+
+    /**
+     * @var int[]
+     */
+    protected $rootNodeIds = [];
+
+    /**
      * @param mixed $visitor
      */
     public function setVisitor($visitor)
@@ -113,7 +123,8 @@ class AdjacencyListDriver implements TreeDriverInterface
     public function get($identifier, $depth = null, $checkPermissions = true)
     {
         $this->tree = [];
-        $this->getTree($identifier);
+        $currentDepth = $this->getDepth($identifier);
+        $this->getTree($identifier, $depth, $currentDepth + 1);
         return $this->tree;
     }
 
@@ -128,6 +139,9 @@ class AdjacencyListDriver implements TreeDriverInterface
      */
     private function getTree($uid, $depth = 999, $depthData = 0)
     {
+        if ($depth === null) {
+            $depth = 999;
+        }
         // Init vars
         $depth = (int)$depth;
         $res = $this->getDataInit($uid);
@@ -332,6 +346,12 @@ class AdjacencyListDriver implements TreeDriverInterface
      */
     public function getRootNodes()
     {
+        if (isset($this->rootNodes)) {
+            return $this->rootNodes;
+        }
+
+        $this->rootNodes = [];
+
         $mountPoints = (int)$this->getBackendUser()->uc['pageTree_temporaryMountPoint'];
 
         if (!$mountPoints) {
@@ -342,10 +362,9 @@ class AdjacencyListDriver implements TreeDriverInterface
         }
 
         if (empty($mountPoints)) {
-            return [];
+            return $this->rootNodes;
         }
 
-        $rootNodes = [];
         foreach ($mountPoints as $mountPoint) {
             if ($mountPoint === 0) {
                 $siteName = 'TYPO3';
@@ -357,7 +376,8 @@ class AdjacencyListDriver implements TreeDriverInterface
                     'uid' => 0,
                     'title' => $siteName
                 );
-                $rootNodes[] = $this->createRootNode($record);
+                $this->rootNodeIds[] = $mountPoint;
+                $this->rootNodes[] = $this->createRootNode($record);
             } else {
                 $record = BackendUtility::getRecordWSOL($this->table, $mountPoint);
 
@@ -365,11 +385,12 @@ class AdjacencyListDriver implements TreeDriverInterface
                     continue;
                 }
 
-                $rootNodes[] = $this->createRootNode($record, count($rootNodes));
+                $this->rootNodeIds[] = $mountPoint;
+                $this->rootNodes[] = $this->createRootNode($record, count($this->rootNodes));
             }
         }
 
-        return $rootNodes;
+        return $this->rootNodes;
     }
 
     /**
@@ -448,5 +469,16 @@ class AdjacencyListDriver implements TreeDriverInterface
      */
     public function getDepth($identifier)
     {
-        // TODO: Implement getDepth() method.
-}}
+        $this->getRootNodes();
+        $rootLineIds = null;
+        $rootLine = array_reverse(BackendUtility::BEgetRootLine($identifier, '', true));
+        foreach ($rootLine as $page) {
+            if (in_array($page['uid'], $this->rootNodeIds)) {
+                $rootLineIds = [];
+            } elseif ($rootLineIds !== null) {
+                $rootLineIds[] = $page['uid'];
+            }
+        }
+        return count($rootLineIds);
+    }
+}
