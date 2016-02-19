@@ -368,6 +368,7 @@ class AdjacencyListDriver implements DriverInterface
      */
     public function expandNext($id)
     {
+        // @todo Move to visitor
         $check = $this->expandedNodes[$this->mountIndex][$id] || $this->expandAll ? 1 : 0;
 
         return $check;
@@ -421,8 +422,7 @@ class AdjacencyListDriver implements DriverInterface
         }
 
         $rootNodes = [];
-
-        // @todo Integrate visitor
+        $this->visitor->beforeTraverse($rootNodes);
 
         foreach ($mountPoints as $mountPoint) {
             if ($mountPoint === 0) {
@@ -435,19 +435,41 @@ class AdjacencyListDriver implements DriverInterface
                     'uid' => 0,
                     'title' => $siteName
                 );
-                $this->rootNodeIds[] = $mountPoint;
-                $rootNodes[] = $this->createRootNode($record, 0);
             } else {
-                $record = BackendUtility::getRecordWSOL($this->tableName, $mountPoint);
+                $record = BackendUtility::getRecordWSOL($this->tableName, $mountPoint, $this->computedFieldList);
 
                 if (empty($record)) {
                     continue;
                 }
-
-                $this->rootNodeIds[] = $mountPoint;
-                $rootNodes[] = $this->createRootNode($record, count($rootNodes));
             }
+
+            /** @var Node $node */
+            $rootNode = GeneralUtility::makeInstance(Node::class);
+            $rootNode->internalData = $record;
+            $rootNode->mountIndex = count($rootNodes);
+            $rootNode->identifier = $record['uid'];
+            $rootNode->depth = 0;
+
+            $result = $this->visitor->enterNode($rootNode);
+            if ($result === NodeVisitorInterface::COMMAND_SKIP) {
+                continue;
+            }
+
+            $rootNode->label = $record[$this->labelFieldName];
+            $rootNode->expanded = false; //@todo implement
+            $rootNode->icon = ''; //@todo implement
+            $rootNode->hasChildren = (bool)$this->countChildNodes($record['uid']);
+
+            $result = $this->visitor->leaveNode($rootNode);
+            if ($result === NodeVisitorInterface::COMMAND_SKIP) {
+                continue;
+            }
+
+            $this->rootNodeIds[] = $mountPoint;
+            $rootNodes[] = $rootNode;
         }
+
+        $this->visitor->afterTraverse($rootNodes);
 
         $this->rootNodes = array_map(array($this, 'nodeToArray'), $rootNodes);
         return $this->rootNodes;
@@ -466,33 +488,6 @@ class AdjacencyListDriver implements DriverInterface
             $this->parentFieldName . '=' . $db->fullQuoteStr($parentIdentifier, $this->tableName)
         );
         return (int)$count;
-    }
-
-    /**
-     * @param array $record
-     * @param int $mountIndex
-     * @return Node
-     */
-    protected function createRootNode(array $record, $mountIndex = 0)
-    {
-        $labelField = 'title';
-        if (!empty($GLOBALS['TCA'][$this->tableName]['ctrl']['label'])) {
-            $labelField = $GLOBALS['TCA'][$this->tableName]['ctrl']['label'];
-        }
-
-        $hasChildren = (bool)$this->countChildNodes($record['uid']);
-
-        /** @var Node $node */
-        $node = GeneralUtility::makeInstance(Node::class);
-        $node->mountIndex = $mountIndex;
-        $node->identifier = $record['uid'];
-        $node->depth = 0;
-        $node->label = $record[$this->labelFieldName];
-        $node->expanded = false; //@todo implement
-        $node->hasChildren = $hasChildren;
-        $node->icon = ''; //@todo implement
-
-        return $node;
     }
 
     /**
