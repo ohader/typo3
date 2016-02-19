@@ -24,7 +24,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
  *
  * @package TYPO3\CMS\Core\Tree\Driver
  */
-class PageTreeReader
+class PageTreeReader implements ReaderInterface
 {
     /**
      * @var AdjacencyListDriver
@@ -41,6 +41,8 @@ class PageTreeReader
     }
 
     /**
+     * Gets flat array of tree node elements.
+     *
      * @param string $identifier
      * @param null $depth
      * @param bool $checkPermissions

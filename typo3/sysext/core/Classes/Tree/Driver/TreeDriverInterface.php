@@ -23,6 +23,16 @@ interface TreeDriverInterface
     const IDENTIFIER_ROOT = 'root';
 
     /**
+     * Gets flat array of tree node elements.
+     *
+     * @param string $identifier Starting identifier
+     * @param int $depth Maximum nesting depth
+     * @param bool $checkPermissions Whether to apply access permission checks
+     * @return array
+     */
+    public function get($identifier, $depth = null, $checkPermissions = true);
+
+    /**
      * @return array
      */
     public function getRootNodes();

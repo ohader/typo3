@@ -18,8 +18,13 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  * Class FileReader
  * @package TYPO3\CMS\Core\Tree\Reader
  */
-class FileReader extends AbstractReader
+class FileReader implements ReaderInterface
 {
+    public function get($identifier, $depth = null, $checkPermissions = true)
+    {
+        // TODO: Implement get() method.
+    }
+
     public function getRootNodes()
     {
         // TODO: Implement getRootNodes() method.
@@ -34,5 +39,4 @@ class FileReader extends AbstractReader
     {
         // TODO: Implement getDepth() method.
     }
-
 }

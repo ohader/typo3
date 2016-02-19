@@ -15,11 +15,13 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  */
 
 /**
- * Class AbstractReader
+ * Interface ReaderInterface
  * @package TYPO3\CMS\Core\Tree\Reader
  */
-abstract class AbstractReader implements ReaderInterface
+interface ReaderInterface
 {
+    const IDENTIFIER_ROOT = 'root';
+
     /**
      * Gets flat array of tree node elements.
      *
@@ -28,5 +30,24 @@ abstract class AbstractReader implements ReaderInterface
      * @param bool $checkPermissions Whether to apply access permission checks
      * @return array
      */
-    abstract public function get($identifier, $depth = null, $checkPermissions = true);
+    public function get($identifier, $depth = null, $checkPermissions = true);
+
+    /**
+     * @return array
+     */
+    public function getRootNodes();
+
+    /**
+     * @param int $identifier
+     * @param int|null $depth
+     * @param bool $checkPermissions
+     * @return mixed
+     */
+    public function getChildren($identifier, $depth = null, $checkPermissions = true);
+
+    /**
+     * @param int $identifier
+     * @return int
+     */
+    public function getDepth($identifier);
 }

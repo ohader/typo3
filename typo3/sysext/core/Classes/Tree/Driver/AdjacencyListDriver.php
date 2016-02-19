@@ -105,10 +105,12 @@ class AdjacencyListDriver implements TreeDriverInterface
     }
 
     /**
-     * @param int $identifier
+     * @param string $identifier Starting identifier
+     * @param int $depth Maximum nesting depth
+     * @param bool $checkPermissions Whether to apply access permission checks
      * @return array
      */
-    public function get($identifier = 0)
+    public function get($identifier, $depth = null, $checkPermissions = true)
     {
         $this->tree = [];
         $this->getTree($identifier);
