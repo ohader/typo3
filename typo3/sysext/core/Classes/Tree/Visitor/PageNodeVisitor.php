@@ -41,7 +41,20 @@ class PageNodeVisitor extends AbstractNodeVisitor implements NodeVisitorInterfac
      */
     public function enterNode(Node $node)
     {
-        // Fiddle around
+        $identifierHex = dechex($node->identifier);
+
+        $node->expanded = (
+            empty($node->internalData['php_tree_stop'])
+            && ($this->expandAll
+                || !empty($this->getBackendUser()->uc['BackendComponents']['States']['Pagetree']->stateHash->{$identifierHex}))
+        );
+
+        // Perform other node adjustments
+
+        if (!$node->expanded) {
+            return static::COMMAND_SKIP_TRAVERSATION;
+        }
+
         return $node;
     }
 
@@ -52,11 +65,6 @@ class PageNodeVisitor extends AbstractNodeVisitor implements NodeVisitorInterfac
      */
     public function leaveNode(Node $node)
     {
-        $identifier = dechex($node->identifier);
-        if (!empty($this->getBackendUser()->uc['BackendComponents']['States']['Pagetree']->stateHash->{$identifier})) {
-            $node->expanded = true;
-        }
-
         // Unset internal data of node
         unset($node->internalData);
 

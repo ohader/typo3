@@ -19,6 +19,7 @@ use TYPO3\CMS\Core\Tree\Model\Node;
 interface NodeVisitorInterface
 {
     const COMMAND_SKIP = 'skipNode';
+    const COMMAND_SKIP_TRAVERSATION = 'skipTraversation';
 
     /**
      * The beforeTraverse() method is called once before the traversal begins and is passed the nodes the traverser was

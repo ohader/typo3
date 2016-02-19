@@ -18,6 +18,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
 use TYPO3\CMS\Core\Tree\Model\Node;
+use TYPO3\CMS\Core\Tree\Visitor\AbstractNodeVisitor;
 use TYPO3\CMS\Core\Tree\Visitor\NodeVisitorInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
@@ -39,7 +40,7 @@ class AdjacencyListDriver implements DriverInterface
     protected $labelFieldName;
 
     /**
-     * @var NodeVisitorInterface
+     * @var AbstractNodeVisitor|NodeVisitorInterface
      */
     protected $visitor;
 
@@ -60,17 +61,6 @@ class AdjacencyListDriver implements DriverInterface
     private $dataLookup = [];
 
     /**
-     * @var array
-     * @todo Take from backend user's UC
-     */
-    private $expandedNodes = [
-        0 => [
-            '2' => true,
-            '1' => true,
-        ]
-    ];
-
-    /**
      * @var int
      */
     private $mountIndex = 0;
@@ -89,11 +79,6 @@ class AdjacencyListDriver implements DriverInterface
      * @var string
      */
     private $orderByFields = '';
-
-    /**
-     * @var int
-     */
-    private $expandAll = 1;
 
 
     /**
@@ -211,8 +196,8 @@ class AdjacencyListDriver implements DriverInterface
             $node->depth = $depthData;
             $node->label = $row[$this->labelFieldName];
 
-            $node = $this->visitor->enterNode($node);
-            if ($node === NodeVisitorInterface::COMMAND_SKIP) {
+            $visitorResult = $this->visitor->enterNode($node);
+            if ($visitorResult === NodeVisitorInterface::COMMAND_SKIP) {
                 continue;
             }
 
@@ -237,20 +222,18 @@ class AdjacencyListDriver implements DriverInterface
             end($this->tree);
             // Get the key for this space
             $treeKey = key($this->tree);
-            // Make a recursive call to the next level
-            $hasSub = $this->expandNext($newID) && !$row['php_tree_stop'];
-            if ($depth > 1 && $hasSub) {
-                $nextCount = $this->getTree($newID, $depth - 1, $depthData + 1);
+
+            if ($visitorResult === NodeVisitorInterface::COMMAND_SKIP_TRAVERSATION || $depth < 1) {
+                $childrenCount = $this->getCount($newID);
             } else {
-                $nextCount = $this->getCount($newID);
+                $childrenCount = $this->getTree($newID, $depth - 1, $depthData + 1);
             }
 
-            $node->expanded = false;
-            $node->hasChildren = ($nextCount && $hasSub);
+            $node->hasChildren = ($childrenCount > 0);
             $node->icon = '';
 
-            $node = $this->visitor->leaveNode($node);
-            if ($node === NodeVisitorInterface::COMMAND_SKIP) {
+            $visitorResult = $this->visitor->leaveNode($node);
+            if ($visitorResult === NodeVisitorInterface::COMMAND_SKIP) {
                 continue;
             }
 
@@ -365,24 +348,6 @@ class AdjacencyListDriver implements DriverInterface
     }
 
     /**
-     * Returns TRUE/FALSE if the next level for $id should be expanded - based on
-     * data in $this->stored[][] and ->expandAll flag.
-     * Extending parent function
-     *
-     * @param int $id Record id/key
-     * @return bool
-     * @access private
-     * @see \TYPO3\CMS\Backend\Tree\View\PageTreeView::expandNext()
-     */
-    public function expandNext($id)
-    {
-        // @todo Move to visitor
-        $check = $this->expandedNodes[$this->mountIndex][$id] || $this->expandAll ? 1 : 0;
-
-        return $check;
-    }
-
-    /**
      * Returns the number of records having the parent id, $uid
      *
      * @param int $uid Id to count subitems for
@@ -458,18 +423,17 @@ class AdjacencyListDriver implements DriverInterface
             $rootNode->identifier = $record['uid'];
             $rootNode->depth = 0;
 
-            $result = $this->visitor->enterNode($rootNode);
-            if ($result === NodeVisitorInterface::COMMAND_SKIP) {
+            $visitorResult = $this->visitor->enterNode($rootNode);
+            if ($visitorResult === NodeVisitorInterface::COMMAND_SKIP) {
                 continue;
             }
 
             $rootNode->label = $record[$this->labelFieldName];
-            $rootNode->expanded = false; //@todo implement
             $rootNode->icon = ''; //@todo implement
             $rootNode->hasChildren = (bool)$this->countChildNodes($record['uid']);
 
-            $result = $this->visitor->leaveNode($rootNode);
-            if ($result === NodeVisitorInterface::COMMAND_SKIP) {
+            $visitorResult = $this->visitor->leaveNode($rootNode);
+            if ($visitorResult === NodeVisitorInterface::COMMAND_SKIP) {
                 continue;
             }
 
