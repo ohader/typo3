@@ -66,7 +66,8 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
      */
     public function getRootNodesReturnsValidNodes($backendUserId, $expected)
     {
-        $this->setUpBackendUser($backendUserId);
+        $backendUser = $this->setUpBackendUser($backendUserId);
+        unset($backendUser->uc['BackendComponents']['States']['Pagetree']);
 
         $result = $this->subject->getRootNodes();
         $this->assertEquals($expected, $result);
@@ -1015,7 +1016,8 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
      */
     public function getDepthReturnsValidValue($backendUserId, $identifier, $expected)
     {
-        $this->setUpBackendUser($backendUserId);
+        $backendUser = $this->setUpBackendUser($backendUserId);
+        unset($backendUser->uc['BackendComponents']['States']['Pagetree']);
 
         $result = $this->subject->getDepth($identifier);
         $this->assertEquals($expected, $result);
