@@ -36,7 +36,12 @@ class PageReader implements ReaderInterface
      */
     public function __construct()
     {
-        $this->driver = GeneralUtility::makeInstance(AdjacencyListDriver::class);
+        $this->driver = GeneralUtility::makeInstance(
+            AdjacencyListDriver::class,
+            'pages',
+            'pid',
+            'title'
+        );
         $this->driver->setVisitor(GeneralUtility::makeInstance(PageNodeVisitor::class));
     }
 

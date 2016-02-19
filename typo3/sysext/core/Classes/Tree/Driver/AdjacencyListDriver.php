@@ -24,26 +24,23 @@ class AdjacencyListDriver implements DriverInterface
     /**
      * @var string
      */
-    private $table = 'pages';
+    protected $tableName;
+
+    /**
+     * @var string
+     */
+    protected $parentFieldName;
+
+    /**
+     * @var string
+     */
+    protected $labelFieldName;
 
     /**
      * @var NodeVisitorInterface
      */
     protected $visitor;
 
-    /**
-     * @var string
-     */
-    private $parentField = 'pid';
-
-    /**
-     * @var array
-     */
-    private $fieldArray = [
-        'uid',
-        'pid',
-        'title'
-    ];
 
     /**
      * @var array
@@ -96,6 +93,7 @@ class AdjacencyListDriver implements DriverInterface
      */
     private $expandAll = 1;
 
+
     /**
      * @var array
      */
@@ -107,11 +105,54 @@ class AdjacencyListDriver implements DriverInterface
     protected $rootNodeIds = [];
 
     /**
+     * @var string
+     */
+    protected $computedFieldList;
+
+    /**
+     * @param string $tableName
+     * @param string $parentFieldName
+     * @param string $labelFieldName
+     */
+    public function __construct($tableName, $parentFieldName, $labelFieldName)
+    {
+        $this->setTableName($tableName);
+        $this->setParentFieldName($parentFieldName);
+        $this->setLabelFieldName($labelFieldName);
+    }
+
+    /**
      * @param mixed $visitor
      */
     public function setVisitor($visitor)
     {
         $this->visitor = $visitor;
+    }
+
+    /**
+     * @param string $tableName
+     */
+    public function setTableName($tableName)
+    {
+        $this->tableName = $tableName;
+    }
+
+    /**
+     * @param string $parentFieldName
+     */
+    public function setParentFieldName($parentFieldName)
+    {
+        $this->parentFieldName = $parentFieldName;
+        $this->computeFieldList();
+    }
+
+    /**
+     * @param string $labelFieldName
+     */
+    public function setLabelFieldName($labelFieldName)
+    {
+        $this->labelFieldName = $labelFieldName;
+        $this->computeFieldList();
     }
 
     /**
@@ -149,7 +190,7 @@ class AdjacencyListDriver implements DriverInterface
         $crazyRecursionLimiter = 999;
         // Traverse the records:
         while ($crazyRecursionLimiter > 0 && ($row = $this->getDataNext($res))) {
-            $pageUid = ($this->table === 'pages') ? $row['uid'] : $row['pid'];
+            $pageUid = ($this->tableName === 'pages') ? $row['uid'] : $row['pid'];
             if (!$this->getBackendUser()->isInWebMount($pageUid)) {
                 // Current record is not within web mount => skip it
                 continue;
@@ -160,7 +201,7 @@ class AdjacencyListDriver implements DriverInterface
             if ($newID == 0) {
                 throw new \RuntimeException(
                     'Endless recursion detected: TYPO3 has detected an error in the database. Please fix it manually
-                    (e.g. using phpMyAdmin) and change the UID of ' . $this->table . ':0 to a new value. See
+                    (e.g. using phpMyAdmin) and change the UID of ' . $this->tableName . ':0 to a new value. See
                     http://forge.typo3.org/issues/16150 to get more information about a possible cause.',
                     1294586383
                 );
@@ -222,13 +263,13 @@ class AdjacencyListDriver implements DriverInterface
             return $parentId;
         } else {
             $db = $this->getDatabaseConnection();
-            $where = $this->parentField . '=' . $db->fullQuoteStr($parentId, $this->table)
-                . BackendUtility::deleteClause($this->table)
-                . BackendUtility::versioningPlaceholderClause($this->table)
+            $where = $this->parentFieldName . '=' . $db->fullQuoteStr($parentId, $this->tableName)
+                . BackendUtility::deleteClause($this->tableName)
+                . BackendUtility::versioningPlaceholderClause($this->tableName)
                 . $this->clause;
             return $db->exec_SELECTquery(
-                implode(',', $this->fieldArray),
-                $this->table,
+                $this->computedFieldList,
+                $this->tableName,
                 $where,
                 '',
                 $this->orderByFields
@@ -274,7 +315,7 @@ class AdjacencyListDriver implements DriverInterface
         } else {
             while ($row = @$this->getDatabaseConnection()->sql_fetch_assoc($res)) {
                 BackendUtility::workspaceOL(
-                    $this->table,
+                    $this->tableName,
                     $row,
                     $this->getBackendUser()->workspace,
                     true
@@ -332,12 +373,12 @@ class AdjacencyListDriver implements DriverInterface
             return $this->getDataCount($res);
         } else {
             $db = $this->getDatabaseConnection();
-            $where = $this->parentField . '='
-                . $db->fullQuoteStr($uid, $this->table)
-                . BackendUtility::deleteClause($this->table)
-                . BackendUtility::versioningPlaceholderClause($this->table)
+            $where = $this->parentFieldName . '='
+                . $db->fullQuoteStr($uid, $this->tableName)
+                . BackendUtility::deleteClause($this->tableName)
+                . BackendUtility::versioningPlaceholderClause($this->tableName)
                 . $this->clause;
-            return $db->exec_SELECTcountRows('uid', $this->table, $where);
+            return $db->exec_SELECTcountRows('uid', $this->tableName, $where);
         }
     }
 
@@ -379,7 +420,7 @@ class AdjacencyListDriver implements DriverInterface
                 $this->rootNodeIds[] = $mountPoint;
                 $this->rootNodes[] = $this->createRootNode($record);
             } else {
-                $record = BackendUtility::getRecordWSOL($this->table, $mountPoint);
+                $record = BackendUtility::getRecordWSOL($this->tableName, $mountPoint);
 
                 if (empty($record)) {
                     continue;
@@ -402,8 +443,8 @@ class AdjacencyListDriver implements DriverInterface
         $db = $this->getDatabaseConnection();
         $count = $db->exec_SELECTcountRows(
             'uid',
-            $this->table,
-            $this->parentField . '=' . $db->fullQuoteStr($parentIdentifier, $this->table)
+            $this->tableName,
+            $this->parentFieldName . '=' . $db->fullQuoteStr($parentIdentifier, $this->tableName)
         );
         return (int)$count;
     }
@@ -416,8 +457,8 @@ class AdjacencyListDriver implements DriverInterface
     private function createRootNode(array $record, $mountIndex = 0)
     {
         $labelField = 'title';
-        if (!empty($GLOBALS['TCA'][$this->table]['ctrl']['label'])) {
-            $labelField = $GLOBALS['TCA'][$this->table]['ctrl']['label'];
+        if (!empty($GLOBALS['TCA'][$this->tableName]['ctrl']['label'])) {
+            $labelField = $GLOBALS['TCA'][$this->tableName]['ctrl']['label'];
         }
 
         $hasChildren = (bool)$this->countChildNodes($record['uid']);
@@ -480,5 +521,18 @@ class AdjacencyListDriver implements DriverInterface
             }
         }
         return count($rootLineIds);
+    }
+
+    /**
+     * @return void
+     */
+    protected function computeFieldList()
+    {
+        $fieldNames = array(
+            'uid',
+            $this->parentFieldName,
+            $this->labelFieldName,
+        );
+        $this->computedFieldList = implode(',', $fieldNames);
     }
 }
