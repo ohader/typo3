@@ -16,6 +16,7 @@ namespace TYPO3\CMS\Core\Tree\Reader;
 
 use TYPO3\CMS\Core\Tree\Driver\AdjacencyListDriver;
 use TYPO3\CMS\Core\Tree\Driver\TreeDriverInterface;
+use TYPO3\CMS\Core\Tree\Visitor\PageTreeNodeVisitor;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -36,6 +37,7 @@ class PageTreeReader
     public function __construct()
     {
         $this->driver = GeneralUtility::makeInstance(AdjacencyListDriver::class);
+        $this->driver->setVisitor(GeneralUtility::makeInstance(PageTreeNodeVisitor::class));
     }
 
     /**

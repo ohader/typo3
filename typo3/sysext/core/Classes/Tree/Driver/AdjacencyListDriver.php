@@ -17,6 +17,7 @@ namespace TYPO3\CMS\Core\Tree\Driver;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Tree\Visitor\TreeNodeVisitorInterface;
 
 class AdjacencyListDriver implements TreeDriverInterface
 {
@@ -24,6 +25,11 @@ class AdjacencyListDriver implements TreeDriverInterface
      * @var string
      */
     private $table = 'pages';
+
+    /**
+     * @var TreeNodeVisitorInterface
+     */
+    protected $visitor;
 
     /**
      * @var string
@@ -91,6 +97,14 @@ class AdjacencyListDriver implements TreeDriverInterface
     private $expandAll = 1;
 
     /**
+     * @param mixed $visitor
+     */
+    public function setVisitor($visitor)
+    {
+        $this->visitor = $visitor;
+    }
+
+    /**
      * @param int $identifier
      * @return array
      */
@@ -149,7 +163,8 @@ class AdjacencyListDriver implements TreeDriverInterface
             }
 
             // Finally, add the row/HTML content to the ->tree array in the reserved key.
-            $this->tree[$treeKey] = array(
+            $nodeData = array(
+                'row' => $row,
                 'identifier' => $row['uid'], //@todo make configurable
                 'mountIndex' => $this->mountIndex,
                 'parent' => $uid,
@@ -159,6 +174,8 @@ class AdjacencyListDriver implements TreeDriverInterface
                 'hasChildren' => $nextCount && $hasSub,
                 'icon' => '' //@todo implement
             );
+            $nodeData = $this->visitor->enterNode($nodeData);
+            $this->tree[$treeKey] = $nodeData;
         }
 
         $this->getDataFree($res);
