@@ -13,7 +13,9 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
  *
  * The TYPO3 project - inspiring people to share!
  */
+
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Tree\Model\Node;
 
 /**
  * Class PageNodeVisitor
@@ -23,7 +25,7 @@ use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 class PageNodeVisitor implements NodeVisitorInterface
 {
     /**
-     * @param array $nodes
+     * @param Node[] $nodes
      *
      * @return mixed
      */
@@ -33,35 +35,36 @@ class PageNodeVisitor implements NodeVisitorInterface
     }
 
     /**
-     * @param array $node
+     * @param Node $node
      *
      * @return mixed
      */
-    public function enterNode(array $node)
+    public function enterNode(Node $node)
     {
         // Fiddle around
         return $node;
     }
 
     /**
-     * @param array $node
+     * @param Node $node
      *
      * @return mixed
      */
-    public function leaveNode(array $node)
+    public function leaveNode(Node $node)
     {
-        $identifier = dechex($node['identifier']);
+        $identifier = dechex($node->identifier);
         if (!empty($this->getBackendUser()->uc['BackendComponents']['States']['Pagetree']->stateHash->{$identifier})) {
-            $node['expanded'] = true;
+            $node->expanded = true;
         }
 
-        // Purge database row from node data
-        unset($node['row']);
+        // Unset internal data of node
+        unset($node->internalData);
+
         return $node;
     }
 
     /**
-     * @param array $nodes
+     * @param Node[] $nodes
      *
      * @return mixed
      */
@@ -77,5 +80,4 @@ class PageNodeVisitor implements NodeVisitorInterface
     {
         return $GLOBALS['BE_USER'];
     }
-
 }

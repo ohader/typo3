@@ -17,7 +17,9 @@ namespace TYPO3\CMS\Core\Tree\Driver;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
+use TYPO3\CMS\Core\Tree\Model\Node;
 use TYPO3\CMS\Core\Tree\Visitor\NodeVisitorInterface;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class AdjacencyListDriver implements DriverInterface
 {
@@ -95,7 +97,7 @@ class AdjacencyListDriver implements DriverInterface
 
 
     /**
-     * @var array
+     * @var Node[]
      */
     protected $rootNodes;
 
@@ -183,6 +185,7 @@ class AdjacencyListDriver implements DriverInterface
         if ($depth === null) {
             $depth = 999;
         }
+
         // Init vars
         $depth = (int)$depth;
         $res = $this->getDataInit($uid);
@@ -190,9 +193,17 @@ class AdjacencyListDriver implements DriverInterface
         $crazyRecursionLimiter = 999;
         // Traverse the records:
         while ($crazyRecursionLimiter > 0 && ($row = $this->getDataNext($res))) {
-            // @todo Refactor to use basic object, containing the available information (identifier, parent...)
-            $node = $this->visitor->enterNode([]);
+            /** @var Node $node */
+            $node = GeneralUtility::makeInstance(Node::class);
 
+            $node->internalData = $row;
+            $node->mountIndex = $this->mountIndex;
+            $node->identifier = $row['uid'];
+            $node->parent = $row[$this->parentFieldName];
+            $node->depth = $depthData;
+            $node->label = $row[$this->labelFieldName];
+
+            $node = $this->visitor->enterNode($node);
             if ($node === NodeVisitorInterface::COMMAND_SKIP) {
                 continue;
             }
@@ -226,21 +237,16 @@ class AdjacencyListDriver implements DriverInterface
                 $nextCount = $this->getCount($newID);
             }
 
-            // Finally, add the row/HTML content to the ->tree array in the reserved key.
-            $nodeData = array(
-                'row' => $row,
-                'identifier' => $row['uid'], //@todo make configurable
-                'mountIndex' => $this->mountIndex,
-                'parent' => $uid,
-                'depth' => $depthData,
-                'label' => $row['title'], //@todo make configurable
-                'expanded' => false, //@todo implement
-                'hasChildren' => $nextCount && $hasSub,
-                'icon' => '' //@todo implement
-            );
+            $node->expanded = false;
+            $node->hasChildren = ($nextCount && $hasSub);
+            $node->icon = '';
 
-            $nodeData = $this->visitor->leaveNode($nodeData);
-            $this->tree[$treeKey] = $nodeData;
+            $node = $this->visitor->leaveNode($node);
+            if ($node === NodeVisitorInterface::COMMAND_SKIP) {
+                continue;
+            }
+
+            $this->tree[$treeKey] = $node->__toArray();
         }
 
         $this->getDataFree($res);
@@ -391,7 +397,7 @@ class AdjacencyListDriver implements DriverInterface
     }
 
     /**
-     * @return array
+     * @return Node[]
      */
     public function getRootNodes()
     {
@@ -414,6 +420,10 @@ class AdjacencyListDriver implements DriverInterface
             return $this->rootNodes;
         }
 
+        $rootNodes = [];
+
+        // @todo Integrate visitor
+
         foreach ($mountPoints as $mountPoint) {
             if ($mountPoint === 0) {
                 $siteName = 'TYPO3';
@@ -426,7 +436,7 @@ class AdjacencyListDriver implements DriverInterface
                     'title' => $siteName
                 );
                 $this->rootNodeIds[] = $mountPoint;
-                $this->rootNodes[] = $this->createRootNode($record);
+                $rootNodes[] = $this->createRootNode($record, 0);
             } else {
                 $record = BackendUtility::getRecordWSOL($this->tableName, $mountPoint);
 
@@ -435,10 +445,11 @@ class AdjacencyListDriver implements DriverInterface
                 }
 
                 $this->rootNodeIds[] = $mountPoint;
-                $this->rootNodes[] = $this->createRootNode($record, count($this->rootNodes));
+                $rootNodes[] = $this->createRootNode($record, count($rootNodes));
             }
         }
 
+        $this->rootNodes = array_map(array($this, 'nodeToArray'), $rootNodes);
         return $this->rootNodes;
     }
 
@@ -460,9 +471,9 @@ class AdjacencyListDriver implements DriverInterface
     /**
      * @param array $record
      * @param int $mountIndex
-     * @return array
+     * @return Node
      */
-    private function createRootNode(array $record, $mountIndex = 0)
+    protected function createRootNode(array $record, $mountIndex = 0)
     {
         $labelField = 'title';
         if (!empty($GLOBALS['TCA'][$this->tableName]['ctrl']['label'])) {
@@ -471,16 +482,17 @@ class AdjacencyListDriver implements DriverInterface
 
         $hasChildren = (bool)$this->countChildNodes($record['uid']);
 
-        return [
-            'identifier' => $record['uid'],
-            'mountIndex' => $mountIndex,
-            'parent' => null,
-            'depth' => 0,
-            'label' => $record[$labelField],
-            'expanded' => false, //@todo implement
-            'hasChildren' => $hasChildren,
-            'icon' => '' //@todo implement
-        ];
+        /** @var Node $node */
+        $node = GeneralUtility::makeInstance(Node::class);
+        $node->mountIndex = $mountIndex;
+        $node->identifier = $record['uid'];
+        $node->depth = 0;
+        $node->label = $record[$this->labelFieldName];
+        $node->expanded = false; //@todo implement
+        $node->hasChildren = $hasChildren;
+        $node->icon = ''; //@todo implement
+
+        return $node;
     }
 
     /**
@@ -542,5 +554,9 @@ class AdjacencyListDriver implements DriverInterface
             $this->labelFieldName,
         );
         $this->computedFieldList = implode(',', $fieldNames);
+    }
+
+    protected function nodeToArray(Node $node) {
+        return $node->__toArray();
     }
 }

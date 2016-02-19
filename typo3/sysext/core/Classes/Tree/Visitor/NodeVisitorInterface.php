@@ -14,6 +14,8 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
  * The TYPO3 project - inspiring people to share!
  */
 
+use TYPO3\CMS\Core\Tree\Model\Node;
+
 interface NodeVisitorInterface
 {
     const COMMAND_SKIP = 'skipNode';
@@ -23,7 +25,7 @@ interface NodeVisitorInterface
      * called with. This method can be used for resetting values before traversation or preparing the tree for
      * traversal.
      *
-     * @param array $nodes
+     * @param Node[] $nodes
      *
      * @return mixed
      */
@@ -33,24 +35,24 @@ interface NodeVisitorInterface
      * The enterNode() and leaveNode() methods are called on every node, the former when it is entered, i.e. before its
      * subnodes are traversed, the latter when it is left.
      *
-     * @param array $node
+     * @param Node $node
      *
      * @return mixed
      */
-    public function enterNode(array $node);
+    public function enterNode(Node $node);
 
     /**
-     * @param array $node
+     * @param Node $node
      *
      * @return mixed
      */
-    public function leaveNode(array $node);
+    public function leaveNode(Node $node);
 
     /**
      * The afterTraverse() method is similar to the beforeTraverse() method, with the only difference that it is called
      * once after the traversal.
      *
-     * @param array $nodes
+     * @param Node[] $nodes
      *
      * @return mixed
      */
