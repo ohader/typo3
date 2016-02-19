@@ -190,6 +190,13 @@ class AdjacencyListDriver implements DriverInterface
         $crazyRecursionLimiter = 999;
         // Traverse the records:
         while ($crazyRecursionLimiter > 0 && ($row = $this->getDataNext($res))) {
+            // @todo Refactor to use basic object, containing the available information (identifier, parent...)
+            $node = $this->visitor->enterNode([]);
+
+            if ($node === NodeVisitorInterface::COMMAND_SKIP) {
+                continue;
+            }
+
             $pageUid = ($this->tableName === 'pages') ? $row['uid'] : $row['pid'];
             if (!$this->getBackendUser()->isInWebMount($pageUid)) {
                 // Current record is not within web mount => skip it
@@ -231,7 +238,8 @@ class AdjacencyListDriver implements DriverInterface
                 'hasChildren' => $nextCount && $hasSub,
                 'icon' => '' //@todo implement
             );
-            $nodeData = $this->visitor->enterNode($nodeData);
+
+            $nodeData = $this->visitor->leaveNode($nodeData);
             $this->tree[$treeKey] = $nodeData;
         }
 

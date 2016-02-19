@@ -16,6 +16,8 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
 
 interface NodeVisitorInterface
 {
+    const COMMAND_SKIP = 'skipNode';
+
     /**
      * The beforeTraverse() method is called once before the traversal begins and is passed the nodes the traverser was
      * called with. This method can be used for resetting values before traversation or preparing the tree for

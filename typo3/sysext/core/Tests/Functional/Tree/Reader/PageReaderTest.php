@@ -157,7 +157,8 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
      */
     public function getReturnsValidNodes($backendUserId, $identifier, $depth, $expected)
     {
-        $this->setUpBackendUser($backendUserId);
+        $backendUser = $this->setUpBackendUser($backendUserId);
+        unset($backendUser->uc['BackendComponents']['States']['Pagetree']);
 
         $result = $this->subject->get($identifier, $depth);
         $this->assertEquals($expected, $result);

@@ -13,6 +13,7 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
  *
  * The TYPO3 project - inspiring people to share!
  */
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 /**
  * Class PageNodeVisitor
@@ -38,8 +39,7 @@ class PageNodeVisitor implements NodeVisitorInterface
      */
     public function enterNode(array $node)
     {
-        // Fiddle around and clear $row
-        unset($node['row']);
+        // Fiddle around
         return $node;
     }
 
@@ -50,7 +50,14 @@ class PageNodeVisitor implements NodeVisitorInterface
      */
     public function leaveNode(array $node)
     {
-        // TODO: Implement leaveNode() method.
+        $identifier = dechex($node['identifier']);
+        if (!empty($this->getBackendUser()->uc['BackendComponents']['States']['Pagetree']->stateHash->{$identifier})) {
+            $node['expanded'] = true;
+        }
+
+        // Purge database row from node data
+        unset($node['row']);
+        return $node;
     }
 
     /**
@@ -61,6 +68,14 @@ class PageNodeVisitor implements NodeVisitorInterface
     public function afterTraverse(array $nodes)
     {
         // TODO: Implement afterTraverse() method.
+    }
+
+    /**
+     * @return BackendUserAuthentication
+     */
+    protected function getBackendUser()
+    {
+        return $GLOBALS['BE_USER'];
     }
 
 }
