@@ -14,8 +14,8 @@ namespace TYPO3\CMS\Core\Tests\Functional\Tree\Reader;
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Core\Tree\Driver\TreeDriverInterface;
-use TYPO3\CMS\Core\Tree\Reader\PageTreeReader;
+use TYPO3\CMS\Core\Tree\Driver\DriverInterface;
+use TYPO3\CMS\Core\Tree\Reader\PageReader;
 
 /**
  * Class ExportTest
@@ -30,7 +30,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
     const TYPO3_SiteName = 'New TYPO3 FunctionalTest Site';
 
     /**
-     * @var PageTreeReader
+     * @var PageReader
      */
     protected $subject;
 
@@ -46,7 +46,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
 
         $GLOBALS['TYPO3_CONF_VARS']['SYS']['sitename'] = static::TYPO3_SiteName;
 
-        $this->subject = new PageTreeReader();
+        $this->subject = new PageReader();
     }
 
     /**
@@ -171,7 +171,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
         return [
             'admin user' => [
                 static::BackendUser_Admin,
-                TreeDriverInterface::IDENTIFIER_ROOT,
+                DriverInterface::IDENTIFIER_ROOT,
                 null,
                 [
                     [
@@ -848,7 +848,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
             ],
             'editor1' => [
                 static::BackendUser_EditorOne,
-                TreeDriverInterface::IDENTIFIER_ROOT,
+                DriverInterface::IDENTIFIER_ROOT,
                 null,
                 [
                     [
@@ -925,7 +925,7 @@ class PageReaderTest extends \TYPO3\CMS\Core\Tests\FunctionalTestCase
             ],
             'editor2' => [
                 static::BackendUser_EditorTwo,
-                TreeDriverInterface::IDENTIFIER_ROOT,
+                DriverInterface::IDENTIFIER_ROOT,
                 null,
                 [
                     [

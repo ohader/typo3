@@ -14,7 +14,7 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
  * The TYPO3 project - inspiring people to share!
  */
 
-interface TreeNodeVisitorInterface
+interface NodeVisitorInterface
 {
     /**
      * The beforeTraverse() method is called once before the traversal begins and is passed the nodes the traverser was

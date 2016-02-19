@@ -15,16 +15,16 @@ namespace TYPO3\CMS\Core\Tree\Reader;
  */
 
 use TYPO3\CMS\Core\Tree\Driver\AdjacencyListDriver;
-use TYPO3\CMS\Core\Tree\Driver\TreeDriverInterface;
-use TYPO3\CMS\Core\Tree\Visitor\PageTreeNodeVisitor;
+use TYPO3\CMS\Core\Tree\Driver\DriverInterface;
+use TYPO3\CMS\Core\Tree\Visitor\PageNodeVisitor;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
- * Class PageTreeReader
+ * Class PageReader
  *
  * @package TYPO3\CMS\Core\Tree\Driver
  */
-class PageTreeReader implements ReaderInterface
+class PageReader implements ReaderInterface
 {
     /**
      * @var AdjacencyListDriver
@@ -37,7 +37,7 @@ class PageTreeReader implements ReaderInterface
     public function __construct()
     {
         $this->driver = GeneralUtility::makeInstance(AdjacencyListDriver::class);
-        $this->driver->setVisitor(GeneralUtility::makeInstance(PageTreeNodeVisitor::class));
+        $this->driver->setVisitor(GeneralUtility::makeInstance(PageNodeVisitor::class));
     }
 
     /**
@@ -50,7 +50,7 @@ class PageTreeReader implements ReaderInterface
      */
     public function get($identifier, $depth = null, $checkPermissions = true)
     {
-        if ($identifier === TreeDriverInterface::IDENTIFIER_ROOT) {
+        if ($identifier === DriverInterface::IDENTIFIER_ROOT) {
             $nodes = [];
             $rootNodes = $this->getRootNodes();
             foreach ($rootNodes as $rootNode) {

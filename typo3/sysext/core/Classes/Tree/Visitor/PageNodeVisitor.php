@@ -15,11 +15,11 @@ namespace TYPO3\CMS\Core\Tree\Visitor;
  */
 
 /**
- * Class PageTreeNodeVisitor
+ * Class PageNodeVisitor
  *
  * @package TYPO3\CMS\Core\Tree\Visitor
  */
-class PageTreeNodeVisitor implements TreeNodeVisitorInterface
+class PageNodeVisitor implements NodeVisitorInterface
 {
     /**
      * @param array $nodes

@@ -18,7 +18,7 @@ namespace TYPO3\CMS\Core\Tree\Driver;
  * Interface ReaderInterface
  * @package TYPO3\CMS\Core\Tree\Reader
  */
-interface TreeDriverInterface
+interface DriverInterface
 {
     const IDENTIFIER_ROOT = 'root';
 

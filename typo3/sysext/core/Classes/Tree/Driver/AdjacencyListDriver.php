@@ -17,9 +17,9 @@ namespace TYPO3\CMS\Core\Tree\Driver;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Database\DatabaseConnection;
-use TYPO3\CMS\Core\Tree\Visitor\TreeNodeVisitorInterface;
+use TYPO3\CMS\Core\Tree\Visitor\NodeVisitorInterface;
 
-class AdjacencyListDriver implements TreeDriverInterface
+class AdjacencyListDriver implements DriverInterface
 {
     /**
      * @var string
@@ -27,7 +27,7 @@ class AdjacencyListDriver implements TreeDriverInterface
     private $table = 'pages';
 
     /**
-     * @var TreeNodeVisitorInterface
+     * @var NodeVisitorInterface
      */
     protected $visitor;
 
