@@ -58,12 +58,12 @@ class Node
     /**
      * @var bool
      */
-    public $expanded;
+    public $expanded = false;
 
     /**
      * @var bool
      */
-    public $hasChildren;
+    public $hasChildren = false;
 
     /**
      * @var array
