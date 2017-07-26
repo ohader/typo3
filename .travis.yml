@@ -10,17 +10,24 @@ matrix:
     - php: 7
       env: UNIT_TESTS=yes FUNCTIONAL_TESTS=yes PHP_LINT=yes XLF_CHECK=yes SUBMODULE_TEST=yes
 
-sudo: false
+sudo: required
+
+jdk:
+  - oraclejdk8
 
 addons:
   apt:
     packages:
       - parallel
       - language-pack-de
-
+  sonarcloud:
+    organization: "typo3"
+    token:
+      secure: "In7hF+IpXJ8pcKZTy2mu3SXnek/9cRmph47+wrNlXw3o7UoF7J2FQBSW7tk9CrmXmz4WmJ06ZG7XxM39oSKTlLvlrWd+tzg4r1M1KzooRTAgU0lqso/jglKbFpq8svgvT0p4cvrNzfhoKHzfoQ6/BtyVe/AJVGpGibYt8K2MLOQ="
 cache:
   directories:
     - $HOME/.composer/cache
+    - $HOME/.sonar/cache
 
 services:
   - memcached
@@ -56,6 +63,7 @@ before_script:
   - export typo3DatabasePassword=""
 
 script:
+  - sonar-scanner
   - >
     if [[ "$UNIT_TESTS" == "yes" ]]; then
       ./bin/phpunit -c vendor/typo3/testing-framework/Resources/Core/Build/UnitTests.xml
