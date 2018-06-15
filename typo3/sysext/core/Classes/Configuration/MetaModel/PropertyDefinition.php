@@ -19,6 +19,8 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class PropertyDefinition
 {
+    const NAME_IDENTITY = '__identity';
+
     /**
      * @var string
      */
@@ -142,6 +144,12 @@ class PropertyDefinition
         if ($relation instanceof ActiveEntityRelation) {
             $this->activeRelations[] = $relation;
         }
+        if ($relation instanceof ActivePropertyRelation) {
+            $this->activeRelations[] = $relation;
+        }
+        if ($relation instanceof PassiveEntityRelation) {
+            $this->passiveRelations[] = $relation;
+        }
         if ($relation instanceof PassivePropertyRelation) {
             $this->passiveRelations[] = $relation;
         }
@@ -183,6 +191,31 @@ class PropertyDefinition
         }
 
         return [];
+    }
+
+    public function getManyToManyTableName(): ?string
+    {
+        return $this->configuration['config']['MM'] ?? null;
+    }
+
+    public function getManyToManyOppositeFieldName(): ?string
+    {
+        return $this->configuration['config']['MM_opposite_field'] ?? null;
+    }
+
+    public function getManyToManyOppositeUsageMap(): ?array
+    {
+        $map = $this->configuration['config']['MM_oppositeUsage'] ?? null;
+        if (!empty($map) && is_array($map)) {
+            return $map;
+        }
+        return null;
+    }
+
+    public function isManyToManyRelationProperty(): bool
+    {
+        return $this->isRelationProperty()
+            && !empty($this->configuration['config']['MM']);
     }
 
     public function isInlineRelationProperty(): bool

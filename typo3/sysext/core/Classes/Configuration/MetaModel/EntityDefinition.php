@@ -74,7 +74,7 @@ class EntityDefinition
      * @param string $propertyName
      * @return null|PropertyDefinition
      */
-    public function getProperty(string $propertyName)
+    public function getPropertyDefinition(?string $propertyName)
     {
         return ($this->propertyDefinitions[$propertyName] ?? null);
     }

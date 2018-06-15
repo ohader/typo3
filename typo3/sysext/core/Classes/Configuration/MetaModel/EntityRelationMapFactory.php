@@ -19,10 +19,20 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 class EntityRelationMapFactory
 {
+    const INSTRUCTION_DEFAULT = 0;
+    const INSTRUCTION_IDENTITY = 1;
+    const INSTRUCTION_OPPOSITE = 2;
+    const INSTRUCTION_ALL = 1 + 2;
+
     /**
      * @var array
      */
     protected $configuration;
+
+    /**
+     * @var int
+     */
+    protected $instruction;
 
     /**
      * @var string[]
@@ -34,7 +44,7 @@ class EntityRelationMapFactory
      */
     protected $entityRelationMap;
 
-    public function __construct(array $configuration)
+    public function __construct(array $configuration, int $instruction = self::INSTRUCTION_DEFAULT)
     {
         $configuration = array_filter(
             $configuration,
@@ -51,6 +61,7 @@ class EntityRelationMapFactory
         }
 
         $this->configuration = $configuration;
+        $this->instruction = $instruction;
         $this->availableTableNames = array_keys($configuration);
     }
 
@@ -130,33 +141,100 @@ class EntityRelationMapFactory
                 continue;
             }
 
-            $propertyDefinition->addRelation(
-                GeneralUtility::makeInstance(
-                    ActiveEntityRelation::class,
-                    $propertyDefinition,
-                    $passiveEntityDefinition
-                )
+            $activeRelation = GeneralUtility::makeInstance(
+                ActiveEntityRelation::class,
+                $propertyDefinition,
+                $passiveEntityDefinition
             );
+
+            // all following processors are visited from active side
 
             // add passive property relation to inline pointer property
             if ($propertyDefinition->isInlineRelationProperty()
                 && !empty($configuration['config']['foreign_field'])
             ) {
+                $passivePropertyName = $configuration['config']['foreign_field'];
                 $this->buildPassivePropertyRelation(
                     $propertyDefinition,
                     $passiveEntityDefinition,
-                    $configuration['config']['foreign_field']
+                    $passivePropertyName
+                );
+
+                $activeRelation = GeneralUtility::makeInstance(
+                    ActivePropertyRelation::class,
+                    $propertyDefinition,
+                    $passiveEntityDefinition
+                        ->getPropertyDefinition($passivePropertyName)
+                );
+
+            } elseif ($this->instruction & static::INSTRUCTION_OPPOSITE
+                && $this->isUsedInManyToManyOppositeUsageMap(
+                    $propertyDefinition,
+                    $passiveEntityDefinition
+                )
+            ) {
+                $passivePropertyName = $propertyDefinition
+                    ->getManyToManyOppositeFieldName();
+                $this->buildPassivePropertyRelation(
+                    $propertyDefinition,
+                    $passiveEntityDefinition,
+                    $passivePropertyName
+                );
+
+                $activeRelation = GeneralUtility::makeInstance(
+                    ActivePropertyRelation::class,
+                    $propertyDefinition,
+                    $passiveEntityDefinition
+                        ->getPropertyDefinition($passivePropertyName)
+                );
+
+            } elseif ($this->instruction & static::INSTRUCTION_IDENTITY) {
+                $this->buildPassiveEntityRelation(
+                    $propertyDefinition,
+                    $passiveEntityDefinition
                 );
             }
+
+            $propertyDefinition->addRelation($activeRelation);
         }
+    }
+
+    protected function buildPassiveEntityRelation(
+        PropertyDefinition $propertyDefinition,
+        EntityDefinition $passiveEntityDefinition
+    )
+    {
+        $passiveProperty = $passiveEntityDefinition
+            ->getPropertyDefinition(PropertyDefinition::NAME_IDENTITY);
+
+        if ($passiveProperty === null) {
+            $passiveProperty = GeneralUtility::makeInstance(
+                IdentityPropertyDefinition::class,
+                PropertyDefinition::NAME_IDENTITY,
+                // no configuration, otherwise $passiveProperty would exist
+                // as it has been defined in $this->configuration
+                []
+            );
+            $passiveEntityDefinition->addPropertyDefinition($passiveProperty);
+        }
+
+        $passiveProperty->addRelation(
+            GeneralUtility::makeInstance(
+                PassiveEntityRelation::class,
+                $passiveProperty,
+                $propertyDefinition
+            )
+        );
     }
 
     protected function buildPassivePropertyRelation(
         PropertyDefinition $propertyDefinition,
         EntityDefinition $passiveEntityDefinition,
-        string $passivePropertyName)
+        string $passivePropertyName
+    )
     {
-        $passiveProperty = $passiveEntityDefinition->getProperty($passivePropertyName);
+        $passiveProperty = $passiveEntityDefinition
+            ->getPropertyDefinition($passivePropertyName);
 
         if ($passiveProperty === null) {
             $passiveProperty = GeneralUtility::makeInstance(
@@ -176,5 +254,51 @@ class EntityRelationMapFactory
                 $propertyDefinition
             )
         );
+    }
+
+    /**
+     * Determine whether some property in in opposite usage map
+     * points back to $propertyDefinition.
+     *
+     * @param PropertyDefinition $propertyDefinition
+     * @param EntityDefinition $passiveEntityDefinition
+     * @return bool
+     */
+    protected function isUsedInManyToManyOppositeUsageMap(
+        PropertyDefinition $propertyDefinition,
+        EntityDefinition $passiveEntityDefinition
+    ): bool
+    {
+        if (!$propertyDefinition->isManyToManyRelationProperty()) {
+            return false;
+        }
+
+        $manyToManyOppositeFieldName = $propertyDefinition
+            ->getManyToManyOppositeFieldName();
+        $manyToManyOppositePropertyDefinition = $passiveEntityDefinition
+            ->getPropertyDefinition($manyToManyOppositeFieldName);
+
+        if ($manyToManyOppositePropertyDefinition === null) {
+            return false;
+        }
+
+        $manyToManyOppositeUsageMap = $manyToManyOppositePropertyDefinition
+            ->getManyToManyOppositeUsageMap();
+        foreach ($manyToManyOppositeUsageMap ?? [] as $tableName => $columnNames) {
+            $oppositeEntityDefinition = $this->entityRelationMap
+                ->getEntityDefinition($tableName);
+            if ($oppositeEntityDefinition === null) {
+                continue;
+            }
+            foreach ($columnNames as $columnName) {
+                $oppositePropertyDefinition = $oppositeEntityDefinition
+                    ->getPropertyDefinition($columnName);
+                if ($oppositePropertyDefinition === $propertyDefinition) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
