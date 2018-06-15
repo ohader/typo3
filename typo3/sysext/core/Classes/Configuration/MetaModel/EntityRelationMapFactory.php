@@ -138,33 +138,43 @@ class EntityRelationMapFactory
                 )
             );
 
-            if (!$propertyDefinition->isInlineRelationProperty()
-                || empty($configuration['config']['foreign_field'])
+            // add passive property relation to inline pointer property
+            if ($propertyDefinition->isInlineRelationProperty()
+                && !empty($configuration['config']['foreign_field'])
             ) {
-                continue;
-            }
-
-            $foreignFieldName =  $configuration['config']['foreign_field'];
-            $passiveProperty = $passiveEntityDefinition->getProperty($foreignFieldName);
-
-            if ($passiveProperty === null) {
-                $passiveProperty = GeneralUtility::makeInstance(
-                    PropertyDefinition::class,
-                    $foreignFieldName,
-                    // no configuration, otherwise $passiveProperty would exist
-                    // as it has been defined in $this->configuration
-                    []
+                $this->buildPassivePropertyRelation(
+                    $propertyDefinition,
+                    $passiveEntityDefinition,
+                    $configuration['config']['foreign_field']
                 );
-                $passiveEntityDefinition->addPropertyDefinition($passiveProperty);
             }
-
-            $passiveProperty->addRelation(
-                GeneralUtility::makeInstance(
-                    PassivePropertyRelation::class,
-                    $passiveProperty,
-                    $propertyDefinition
-                )
-            );
         }
+    }
+
+    protected function buildPassivePropertyRelation(
+        PropertyDefinition $propertyDefinition,
+        EntityDefinition $passiveEntityDefinition,
+        string $passivePropertyName)
+    {
+        $passiveProperty = $passiveEntityDefinition->getProperty($passivePropertyName);
+
+        if ($passiveProperty === null) {
+            $passiveProperty = GeneralUtility::makeInstance(
+                PropertyDefinition::class,
+                $passivePropertyName,
+                // no configuration, otherwise $passiveProperty would exist
+                // as it has been defined in $this->configuration
+                []
+            );
+            $passiveEntityDefinition->addPropertyDefinition($passiveProperty);
+        }
+
+        $passiveProperty->addRelation(
+            GeneralUtility::makeInstance(
+                PassivePropertyRelation::class,
+                $passiveProperty,
+                $propertyDefinition
+            )
+        );
     }
 }
