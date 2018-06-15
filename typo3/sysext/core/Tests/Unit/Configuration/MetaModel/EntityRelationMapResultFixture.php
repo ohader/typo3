@@ -13,7 +13,7 @@ return [
     'content' => [
         'language' => [
             'active' => [
-                0 => 'content.language -> sys_language',
+                'content.language -> sys_language',
             ],
         ],
         'layout' => [
