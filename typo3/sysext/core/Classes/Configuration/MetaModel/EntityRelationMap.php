@@ -20,11 +20,13 @@ class EntityRelationMap
     /**
      * @var EntityDefinition[]
      */
-    private $entityDefinitions = [];
+    protected $entityDefinitions = [];
 
-    private function __construct(EntityDefinition ...$entityDefinitions)
+    public function __construct(EntityDefinition ...$entityDefinitions)
     {
-        $this->entityDefinitions = $entityDefinitions;
+        foreach ($entityDefinitions as $entityDefinition) {
+            $this->entityDefinitions[$entityDefinition->getName()] = $entityDefinition;
+        }
     }
 
     /**
@@ -41,5 +43,61 @@ class EntityRelationMap
     public function getEntityDefinitions()
     {
         return $this->entityDefinitions;
+    }
+
+    /**
+     * @param bool $filter Whether to filter out items without relations
+     * @return array
+     */
+    public function export(bool $filter = false): array
+    {
+        $entityDefinitions = array_map(
+            function (EntityDefinition $entityDefinition) use ($filter) {
+                return $this->exportEntityDefinition(
+                    $entityDefinition,
+                    $filter
+                );
+            },
+            $this->entityDefinitions
+        );
+
+        if ($filter) {
+            $entityDefinitions = array_filter($entityDefinitions, 'count');
+        }
+
+        return $entityDefinitions;
+    }
+
+    protected function exportEntityDefinition(EntityDefinition $entityDefinition, bool $filter = false): array
+    {
+        $propertyDefinitions = array_map(
+            function (PropertyDefinition $propertyDefinition) use ($filter) {
+                return $this->exportPropertyDefinition(
+                    $propertyDefinition,
+                    $filter
+                );
+            },
+            $entityDefinition->getPropertyDefinitions()
+        );
+
+        if ($filter) {
+            $propertyDefinitions = array_filter($propertyDefinitions, 'count');
+        }
+
+        return $propertyDefinitions;
+    }
+
+    protected function exportPropertyDefinition(PropertyDefinition $propertyDefinition, bool $filter): array
+    {
+        $relations = [
+            'active' => array_map('strval', $propertyDefinition->getActiveRelations()),
+            'passive' => array_map('strval', $propertyDefinition->getPassiveRelations()),
+        ];
+
+        if ($filter) {
+            $relations = array_filter($relations, 'count');
+        }
+
+        return $relations;
     }
 }

@@ -30,9 +30,9 @@ class EntityRelationMapFactory
     protected $availableTableNames;
 
     /**
-     * @var EntityDefinition[]
+     * @var EntityRelationMap
      */
-    protected $entityDefinitions;
+    protected $entityRelationMap;
 
     public function __construct(array $configuration)
     {
@@ -52,18 +52,20 @@ class EntityRelationMapFactory
 
         $this->configuration = $configuration;
         $this->availableTableNames = array_keys($configuration);
-        $this->entityDefinitions = $this->buildEntityDefinitions();
-        foreach ($this->entityDefinitions as $entityDefinition) {
-            $this->enrichRelations($entityDefinition);
-        }
     }
 
     public function create(): EntityRelationMap
     {
-        return GeneralUtility::makeInstance(
+        $this->entityRelationMap = GeneralUtility::makeInstance(
             EntityRelationMap::class,
-            $this->entityDefinitions
+            ...$this->buildEntityDefinitions()
         );
+
+        foreach ($this->entityRelationMap->getEntityDefinitions() as $entityDefinition) {
+            $this->enrichRelations($entityDefinition);
+        }
+
+        return $this->entityRelationMap;
     }
 
     /**
@@ -77,13 +79,13 @@ class EntityRelationMapFactory
 
         // first build all available entity definitions and properties
         foreach ($this->configuration as $tableName => $tableConfiguration) {
-            $entityDefinitions = GeneralUtility::makeInstance(
+            $entityDefinition = GeneralUtility::makeInstance(
                 EntityDefinition::class,
                 $tableName
             );
 
             foreach ($tableConfiguration['columns'] as $columnName => $columnConfiguration) {
-                $entityDefinitions->addPropertyDefinition(
+                $entityDefinition->addPropertyDefinition(
                     GeneralUtility::makeInstance(
                         PropertyDefinition::class,
                         $columnName,
@@ -92,7 +94,7 @@ class EntityRelationMapFactory
                 );
             }
 
-            $entityDefinitions[] = $entityDefinitions;
+            $entityDefinitions[] = $entityDefinition;
         }
 
         return $entityDefinitions;
@@ -104,8 +106,8 @@ class EntityRelationMapFactory
      * @param EntityDefinition $entityDefinition
      */
     protected function enrichRelations(EntityDefinition $entityDefinition) {
-        foreach ($entityDefinition->getProperties() as $property) {
-            $this->buildEntityDefinitionRelations($property);
+        foreach ($entityDefinition->getPropertyDefinitions() as $propertyDefinitions) {
+            $this->buildEntityDefinitionRelations($propertyDefinitions);
         }
     }
 
@@ -115,18 +117,22 @@ class EntityRelationMapFactory
         if (empty($tableNames)) {
             return;
         }
+        if ($tableNames === ['*']) {
+            $tableNames = $this->availableTableNames;
+        }
 
         $configuration = $propertyDefinition->getConfiguration();
 
         foreach ($tableNames as $tableName) {
-            $passiveEntityDefinition = $this->entityDefinitions[$tableName] ?? null;
+            $passiveEntityDefinition = $this->entityRelationMap
+                ->getEntityDefinition($tableName);
             if ($passiveEntityDefinition === null) {
                 continue;
             }
 
             $propertyDefinition->addRelation(
                 GeneralUtility::makeInstance(
-                    ActiveRelation::class,
+                    ActiveEntityRelation::class,
                     $propertyDefinition,
                     $passiveEntityDefinition
                 )
@@ -145,14 +151,16 @@ class EntityRelationMapFactory
                 $passiveProperty = GeneralUtility::makeInstance(
                     PropertyDefinition::class,
                     $foreignFieldName,
-                    [] // no configuration, otherwise $passiveProperty would exist
+                    // no configuration, otherwise $passiveProperty would exist
+                    // as it has been defined in $this->configuration
+                    []
                 );
-                $passiveEntityDefinition->addProperty($passiveProperty);
+                $passiveEntityDefinition->addPropertyDefinition($passiveProperty);
             }
 
             $passiveProperty->addRelation(
                 GeneralUtility::makeInstance(
-                    PassiveRelation::class,
+                    PassivePropertyRelation::class,
                     $passiveProperty,
                     $propertyDefinition
                 )

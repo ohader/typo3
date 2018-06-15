@@ -35,12 +35,12 @@ class PropertyDefinition
     protected $entityDefinition;
 
     /**
-     * @var ActiveRelation[]
+     * @var ActiveEntityRelation[]
      */
     protected $activeRelations = [];
 
     /**
-     * @var PassiveRelation[]
+     * @var PassivePropertyRelation[]
      */
     protected $passiveRelations = [];
 
@@ -48,6 +48,11 @@ class PropertyDefinition
     {
         $this->name = $name;
         $this->configuration = $configuration;
+    }
+
+    public function __toString(): string
+    {
+        return $this->entityDefinition . '.' . $this->name;
     }
 
     public function getName(): string
@@ -74,15 +79,21 @@ class PropertyDefinition
     }
 
     /**
-     * @return Relational|ActiveRelation[]|PassiveRelation[]
+     * @return Relational|ActiveEntityRelation[]|PassivePropertyRelation[]
      */
     public function getRelations(): array
     {
         return $this->activeRelations + $this->passiveRelations;
     }
 
+    public function hasRelations(): bool
+    {
+        return !empty($this->activeRelations)
+            || !empty($this->passiveRelations);
+    }
+
     /**
-     * @return ActiveRelation[]
+     * @return ActiveEntityRelation[]
      */
     public function getActiveRelations(): array
     {
@@ -100,7 +111,7 @@ class PropertyDefinition
     }
 
     /**
-     * @return PassiveRelation[]
+     * @return PassivePropertyRelation[]
      */
     public function getPassiveRelations(): array
     {
@@ -128,10 +139,10 @@ class PropertyDefinition
                 1528993144
             );
         }
-        if ($relation instanceof ActiveRelation) {
+        if ($relation instanceof ActiveEntityRelation) {
             $this->activeRelations[] = $relation;
         }
-        if ($relation instanceof PassiveRelation) {
+        if ($relation instanceof PassivePropertyRelation) {
             $this->passiveRelations[] = $relation;
         }
     }

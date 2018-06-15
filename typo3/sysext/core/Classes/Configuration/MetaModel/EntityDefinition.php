@@ -25,11 +25,16 @@ class EntityDefinition
     /**
      * @var PropertyDefinition[]
      */
-    protected $properties = [];
+    protected $propertyDefinitions = [];
 
     public function __construct(string $name)
     {
-        $this->name;
+        $this->name = $name;
+    }
+
+    public function __toString(): string
+    {
+        return $this->name;
     }
 
     public function getName(): string
@@ -40,9 +45,9 @@ class EntityDefinition
     /**
      * @return PropertyDefinition[]
      */
-    public function getProperties(): array
+    public function getPropertyDefinitions(): array
     {
-        return $this->properties;
+        return $this->propertyDefinitions;
     }
 
     public function addPropertyDefinition(PropertyDefinition $propertyDefinition)
@@ -57,12 +62,12 @@ class EntityDefinition
             );
         }
         $propertyDefinition->setEntityDefinition($this);
-        $this->properties[$propertyDefinition->getName()] = $propertyDefinition;
+        $this->propertyDefinitions[$propertyDefinition->getName()] = $propertyDefinition;
     }
 
     public function hasProperty($propertyName): bool
     {
-        return isset($this->properties[$propertyName]);
+        return isset($this->propertyDefinitions[$propertyName]);
     }
 
     /**
@@ -71,6 +76,6 @@ class EntityDefinition
      */
     public function getProperty(string $propertyName)
     {
-        return ($this->properties[$propertyName] ?? null);
+        return ($this->propertyDefinitions[$propertyName] ?? null);
     }
 }

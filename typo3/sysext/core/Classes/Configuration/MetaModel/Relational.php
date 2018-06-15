@@ -17,5 +17,7 @@ namespace TYPO3\CMS\Core\Configuration\MetaModel;
 
 interface Relational
 {
+    public function __toString(): string;
+
     public function getPropertyDefinition(): PropertyDefinition;
 }

@@ -15,7 +15,7 @@ namespace TYPO3\CMS\Core\Configuration\MetaModel;
  * The TYPO3 project - inspiring people to share!
  */
 
-class PassiveRelation implements Relational
+class ActiveEntityRelation implements Relational
 {
     /**
      * @var PropertyDefinition
@@ -23,14 +23,19 @@ class PassiveRelation implements Relational
     protected $propertyDefinition;
 
     /**
-     * @var PropertyDefinition
+     * @var EntityDefinition
      */
-    protected $from;
+    protected $to;
 
-    public function __construct(PropertyDefinition $propertyDefinition, PropertyDefinition $from)
+    public function __construct(PropertyDefinition $propertyDefinition, EntityDefinition $to)
     {
         $this->propertyDefinition = $propertyDefinition;
-        $this->from = $from;
+        $this->to = $to;
+    }
+
+    public function __toString(): string
+    {
+        return $this->propertyDefinition . ' -> ' . $this->to;
     }
 
     public function getPropertyDefinition(): PropertyDefinition
@@ -38,8 +43,8 @@ class PassiveRelation implements Relational
         return $this->propertyDefinition;
     }
 
-    public function getFrom(): PropertyDefinition
+    public function getTo(): EntityDefinition
     {
-        return $this->from;
+        return $this->to;
     }
 }
