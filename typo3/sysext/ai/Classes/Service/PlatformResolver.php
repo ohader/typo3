@@ -17,6 +17,9 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\AI\Service;
 
+use TYPO3\CMS\AI\Domain\Authorization;
+use TYPO3\CMS\AI\Domain\Availability;
+use TYPO3\CMS\AI\Domain\Platform;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
@@ -24,10 +27,77 @@ use TYPO3\CMS\Core\Site\SiteFinder;
  */
 final readonly class PlatformResolver
 {
-    public function __construct(private SiteFinder $siteFinder) {}
+    public function __construct(
+        private PackageService $packageService,
+        private SiteFinder $siteFinder,
+    ) {}
 
-    public function getPlatforms(string $siteIdentifier): array
+    /**
+     * Resolves the platforms of the site configuration that is declared to be default.
+     *
+     * @return list<Platform>
+     */
+    public function getDefaultPlatforms(): array
     {
+        foreach ($this->siteFinder->getAllSites(true) as $site) {
+            $configuration = $site->getConfiguration();
+            if (!empty($configuration['aiDefault'])) {
+                return $this->getCurrentPlatforms($site->getIdentifier());
+            }
+        }
+        return [];
+    }
 
+    /**
+     * Resolves the platforms of a particular site configuration.
+     *
+     * @param string $siteIdentifier
+     * @return list<Platform>
+     */
+    public function getCurrentPlatforms(string $siteIdentifier): array
+    {
+        $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+        $configuration = $site->getConfiguration();
+        if (empty($configuration['aiPlatforms'])) {
+            return [];
+        }
+        return $this->buildPlatforms($configuration['aiPlatforms']);
+    }
+
+    /**
+     * @return list<Platform>
+     */
+    private function buildPlatforms(array $platformsConfiguration): array
+    {
+        return array_map($this->buildPlatform(...), $platformsConfiguration);
+    }
+
+    private function buildPlatform(array $data): Platform
+    {
+        $options = [];
+        if (($data['baseUrl'] ?? '') !== '') {
+            $options['baseUrl'] = $data['baseUrl'];
+        }
+
+        $authorization = null;
+        if (($data['authorizationType'] ?? 'none') !== 'none' && ($data['authorizationToken'] ?? '') !== '') {
+            $authorization = new Authorization($data['authorizationType'], $data['authorizationToken']);
+        }
+
+        if (!$this->packageService->isPackageInstalled($data['package'])) {
+            $availability = Availability::unavailable;
+        } elseif ($data['enabled'] ?? false) {
+            $availability = Availability::enabled;
+        } else {
+            $availability = Availability::disabled;
+        }
+
+        return new Platform(
+            availability: $availability,
+            name: $data['name'],
+            package: $data['package'],
+            options: $options,
+            authorization: $authorization,
+        );
     }
 }

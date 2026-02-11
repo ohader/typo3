@@ -16,9 +16,11 @@ declare(strict_types=1);
  */
 
 namespace TYPO3\CMS\AI\Domain;
+
 final readonly class Platform
 {
     public function __construct(
+        public Availability $availability,
         public string $name,
         public string $package,
         public array $options = [],
