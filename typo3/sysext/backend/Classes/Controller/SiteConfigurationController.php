@@ -496,6 +496,8 @@ readonly class SiteConfigurationController
                 }
             }
 
+            $this->validateUniqueFields($newSysSiteData, $siteTca, $allSites, $currentIdentifier);
+
             $newSiteConfiguration = $this->validateFullStructure(
                 $this->getMergeSiteData($currentSiteConfiguration, $newSysSiteData),
                 $isNewConfiguration
@@ -592,6 +594,54 @@ readonly class SiteConfigurationController
     }
 
     /**
+     * Validate that fields with eval => 'unique' do not conflict with other sites.
+     *
+     * For check-type fields: only one site may have the value set to true.
+     * For other field types: no two sites may have the same non-empty value.
+     *
+     * @param array $newSysSiteData Incoming processed form data
+     * @param array $siteTca Site TCA configuration
+     * @param array<string, Site> $allSites All existing sites (with flattened config via events)
+     * @param string $currentSiteIdentifier Identifier of the site being saved (empty for new sites)
+     * @throws SiteValidationErrorException
+     */
+    protected function validateUniqueFields(array $newSysSiteData, array $siteTca, array $allSites, string $currentSiteIdentifier): void
+    {
+        $languageService = $this->getLanguageService();
+        foreach ($siteTca['site']['columns'] ?? [] as $fieldName => $fieldConfig) {
+            $evalString = $fieldConfig['config']['eval'] ?? '';
+            $evals = GeneralUtility::trimExplode(',', $evalString, true);
+            if (!in_array('unique', $evals, true)) {
+                continue;
+            }
+            $newValue = $newSysSiteData[$fieldName] ?? null;
+            if (empty($newValue)) {
+                continue;
+            }
+            foreach ($allSites as $site) {
+                if ($site->getIdentifier() === $currentSiteIdentifier) {
+                    continue;
+                }
+                $otherValue = $site->getConfiguration()[$fieldName] ?? null;
+                if (!empty($otherValue) && $otherValue == $newValue) {
+                    $message = sprintf(
+                        $languageService->sL('LLL:EXT:backend/Resources/Private/Language/locallang_siteconfiguration.xlf:validation.uniqueField.message'),
+                        $fieldName,
+                        $site->getIdentifier()
+                    );
+                    $messageTitle = $languageService->sL('LLL:EXT:backend/Resources/Private/Language/locallang_siteconfiguration.xlf:validation.uniqueField.title');
+                    $flashMessage = GeneralUtility::makeInstance(FlashMessage::class, $message, $messageTitle, ContextualFeedbackSeverity::WARNING, true);
+                    $this->flashMessageService->getMessageQueueByIdentifier()->enqueue($flashMessage);
+                    throw new SiteValidationErrorException(
+                        'Field "' . $fieldName . '" must be unique across sites, conflict with "' . $site->getIdentifier() . '".',
+                        1749999001
+                    );
+                }
+            }
+        }
+    }
+
+    /**
      * Simple validation and processing method for incoming form field values.
      *
      * Note this does not support all TCA "eval" options but only what we really need.
@@ -644,6 +694,10 @@ readonly class SiteConfigurationController
             if (in_array('int', $evalArray, true)) {
                 $handledEvals[] = 'int';
                 $fieldValue = (int)$fieldValue;
+            }
+            if (in_array('unique', $evalArray, true)) {
+                $handledEvals[] = 'unique';
+                // Actual validation is handled by validateUniqueFields()
             }
             if (!empty(array_diff($evalArray, $handledEvals))) {
                 throw new \RuntimeException('At least one not implemented \'eval\' in list ' . $fieldConfig['eval'], 1522491734);
