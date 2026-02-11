@@ -1,5 +1,7 @@
 <?php
 
+use TYPO3\CMS\AI\Backend\PlatformItemsProcFunc;
+
 return [
     'ctrl' => [
         'label' => 'name',
@@ -31,14 +33,9 @@ return [
                 'type' => 'select',
                 'renderType' => 'selectSingle',
                 'required' => true,
+                'itemsProcFunc' => PlatformItemsProcFunc::class . '->getInstalledPlatformPackages',
                 'items' => [
                     ['label' => '', 'value' => ''],
-                    ['label' => 'Anthropic', 'value' => 'symfony/ai-anthropic-platform'],
-                    ['label' => 'OpenAI', 'value' => 'symfony/ai-openai-platform'],
-                    ['label' => 'Google Gemini', 'value' => 'symfony/ai-google-platform'],
-                    ['label' => 'Mistral', 'value' => 'symfony/ai-mistral-platform'],
-                    ['label' => 'Ollama', 'value' => 'symfony/ai-ollama-platform'],
-                    ['label' => 'LM Studio', 'value' => 'symfony/ai-lm-studio-platform'],
                 ],
             ],
         ],
