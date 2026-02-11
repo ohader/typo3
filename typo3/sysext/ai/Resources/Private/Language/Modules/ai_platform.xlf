@@ -12,6 +12,36 @@
       <trans-unit id="description">
         <source>Manage AI platform configurations and connections.</source>
       </trans-unit>
+      <trans-unit id="noSiteSelected">
+        <source>Please select a page from the page tree to view the AI platform configuration for the corresponding site.</source>
+      </trans-unit>
+      <trans-unit id="siteLabel">
+        <source>Site</source>
+      </trans-unit>
+      <trans-unit id="noPlatformsConfigured">
+        <source>No AI platforms configured for this site.</source>
+      </trans-unit>
+      <trans-unit id="column.name">
+        <source>Name</source>
+      </trans-unit>
+      <trans-unit id="column.package">
+        <source>Package</source>
+      </trans-unit>
+      <trans-unit id="column.availability">
+        <source>Availability</source>
+      </trans-unit>
+      <trans-unit id="column.baseUrl">
+        <source>Base URL</source>
+      </trans-unit>
+      <trans-unit id="availability.enabled">
+        <source>Enabled</source>
+      </trans-unit>
+      <trans-unit id="availability.disabled">
+        <source>Disabled</source>
+      </trans-unit>
+      <trans-unit id="availability.unavailable">
+        <source>Unavailable</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>
