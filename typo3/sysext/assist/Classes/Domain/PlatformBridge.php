@@ -49,7 +49,10 @@ final readonly class PlatformBridge
     public function getModelCatalog(): ModelCatalogInterface
     {
         $class = $this->namespace . 'ModelCatalog';
-        return $this->instantiate($class, 'modelCatalog');
+        $modelCatalog = $this->instantiate($class, 'modelCatalog');
+        return $this->effective && $this->platform->models !== []
+            ? new FilteredModelCatalog($this->platform, $modelCatalog)
+            : $modelCatalog;
     }
 
     /**
