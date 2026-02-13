@@ -56,7 +56,7 @@ readonly class SiteDatabaseEditRow implements FormDataProviderInterface
             $rowData = $this->getRawConfigurationForSiteWithRootPageId($rootPageId);
             $result['databaseRow']['uid'] = $rowData['rootPageId'];
             $result['databaseRow']['identifier'] = $result['customData']['siteIdentifier'];
-        } elseif (in_array($tableName, ['site_errorhandling', 'site_language', 'site_route', 'site_base_variant', 'site_ai_platform'], true)) {
+        } elseif (in_array($tableName, ['site_errorhandling', 'site_language', 'site_route', 'site_base_variant', 'site_assist_platform'], true)) {
             $rootPageId = (int)($result['inlineTopMostParentUid'] ?? $result['inlineParentUid']);
             try {
                 $rowData = $this->getRawConfigurationForSiteWithRootPageId($rootPageId);

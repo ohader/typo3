@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" datatype="plaintext" original="EXT:assist/Resources/Private/Language/locallang_siteconfiguration_tca.xlf" date="2025-05-01T00:00:00Z" product-name="assist">
+    <header/>
+    <body>
+      <trans-unit id="site.tab.assist">
+        <source>AI</source>
+      </trans-unit>
+      <trans-unit id="site.assistDefault">
+        <source>Default AI site</source>
+      </trans-unit>
+      <trans-unit id="site.assistPlatforms">
+        <source>AI Platforms</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.ctrl.title">
+        <source>AI Platform</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.enabled">
+        <source>Enable Platform</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.name">
+        <source>Name</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.package">
+        <source>Platform Package</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.baseUrl">
+        <source>Base URL</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.authorizationType">
+        <source>Authorization Type</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.authorizationToken">
+        <source>Authorization Token</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
