@@ -20,7 +20,6 @@ namespace TYPO3\CMS\Assist\Controller\Ajax;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\AI\Platform\Capability;
-use TYPO3\CMS\Assist\Service\PackageService;
 use TYPO3\CMS\Assist\Service\PlatformConnector;
 use TYPO3\CMS\Assist\Service\PlatformResolver;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -37,7 +36,6 @@ class PlatformAjaxController
     public function __construct(
         private readonly PlatformResolver $platformResolver,
         private readonly PlatformConnector $platformConnector,
-        private readonly PackageService $packageService,
         private readonly SiteFinder $siteFinder,
         private readonly SiteWriter $siteWriter,
     ) {}
@@ -74,7 +72,7 @@ class PlatformAjaxController
                 return new JsonResponse(['models' => []], 404);
             }
 
-            $bridge = $this->packageService->buildBridge($platform);
+            $bridge = $this->platformConnector->buildBridge($platform);
             $catalog = $bridge->getModelCatalog();
             $catalogModels = $catalog->getModels();
             $enabledModels = $platform->models;

@@ -17,11 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Service;
 
-use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Config\Resource\ComposerResource;
-use TYPO3\CMS\Assist\Domain\Platform;
-use TYPO3\CMS\Assist\Domain\PlatformBridge;
-use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 
 /**
  * Service to interact with installed composer packages.
@@ -37,7 +33,6 @@ final readonly class PackageService
 
     public function __construct(
         private ComposerResource $composerResource,
-        private EventDispatcherInterface $eventDispatcher,
     )
     {
         $allPackages = [];
@@ -64,37 +59,6 @@ final readonly class PackageService
     {
         return $this->packages[$packageName] ?? null;
 
-    }
-
-    public function buildBridge(Platform $platform): PlatformBridge
-    {
-        $packageName = $platform->package;
-        $package = $this->packages[$packageName] ?? null;
-        if ($package === null) {
-            throw new \InvalidArgumentException(
-                sprintf('Package "%s" is not installed.', $packageName),
-            );
-        }
-
-        $psr4 = $package['autoload']['psr-4'] ?? [];
-        $namespace = array_key_first($psr4);
-        if ($namespace === null) {
-            throw new \InvalidArgumentException(
-                sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
-            );
-        }
-
-        $options = [
-            'platformFactory' => [
-                'hostUrl' => $platform->options['baseUrl'] ?? '',
-                'apiKey' => $platform->authorization?->token ?? '',
-            ],
-        ];
-
-        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $options);
-        $this->eventDispatcher->dispatch($event);
-
-        return new PlatformBridge($namespace, $event->getOptions());
     }
 
     /**

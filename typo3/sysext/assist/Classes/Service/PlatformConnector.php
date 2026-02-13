@@ -17,33 +17,61 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Service;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\AI\Platform\Capability;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
-use Symfony\AI\Platform\PlatformInterface;
 use TYPO3\CMS\Assist\Domain\Platform;
+use TYPO3\CMS\Assist\Domain\PlatformBridge;
+use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 
 /**
  * Creates live Symfony AI Platform instances from TYPO3 Platform domain objects
  * and tests connections by invoking a minimal prompt.
  *
  * @internal
- * @todo probably all PackageService platform-related logic should be here instead
  */
 final readonly class PlatformConnector
 {
     public function __construct(
         private PackageService $packageService,
+        private EventDispatcherInterface $eventDispatcher,
     ) {}
 
+
+    public function buildBridge(Platform $platform): PlatformBridge
+    {
+        $packageName = $platform->package;
+        $package = $this->packageService->getPackage($packageName);
+        if ($package === null) {
+            throw new \InvalidArgumentException(
+                sprintf('Package "%s" is not installed.', $packageName),
+            );
+        }
+
+        $psr4 = $package['autoload']['psr-4'] ?? [];
+        $namespace = array_key_first($psr4);
+        if ($namespace === null) {
+            throw new \InvalidArgumentException(
+                sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
+            );
+        }
+
+        $options = [
+            'platformFactory' => [
+                'hostUrl' => $platform->options['baseUrl'] ?? '',
+                'apiKey' => $platform->authorization?->token ?? '',
+            ],
+        ];
+
+        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $options);
+        $this->eventDispatcher->dispatch($event);
+
+        return new PlatformBridge($namespace, $event->getOptions());
+    }
     /**
      * Creates a live PlatformInterface instance from a TYPO3 Platform domain object.
      */
-    public function createLivePlatform(Platform $platform): PlatformInterface
-    {
-        return $this->packageService->buildBridge($platform)->getPlatformFactory();
-    }
-
     /**
      * Tests the connection by picking the first text-capable model and invoking a minimal prompt.
      *
@@ -52,8 +80,8 @@ final readonly class PlatformConnector
      */
     public function checkConnection(Platform $platform): array
     {
-        $bridge = $this->packageService->buildBridge($platform);
-        $livePlatform = $this->createLivePlatform($platform);
+        $bridge = $this->buildBridge($platform);
+        $livePlatform = $bridge->getPlatformFactory();
         // @todo use local catalog, which might be more specific (overridden)
         // $catalog = $livePlatform->getModelCatalog();
         $catalog = $bridge->getModelCatalog();
