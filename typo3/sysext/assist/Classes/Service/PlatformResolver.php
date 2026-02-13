@@ -84,7 +84,7 @@ final readonly class PlatformResolver
             $authorization = new Authorization($data['authorizationType'], $data['authorizationToken']);
         }
 
-        if (!$this->packageService->isPackageInstalled($data['package'])) {
+        if (!$this->packageService->hasPackage($data['package'])) {
             $availability = Availability::unavailable;
         } elseif ($data['enabled'] ?? false) {
             $availability = Availability::enabled;

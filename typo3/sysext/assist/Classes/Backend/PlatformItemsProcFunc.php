@@ -30,7 +30,7 @@ final readonly class PlatformItemsProcFunc
         /** @var array{value: string, label: string} $platformItems */
         $platformItems = array_map(
             static fn (string $name): array => ['value' => $name, 'label' => $name],
-            $this->packageService->getInstalledPackageNamesByType(PackageService::SYMFONY_AI_PLATFORM)
+            $this->packageService->findPackageNamesByType(PackageService::SYMFONY_AI_PLATFORM)
         );
         $parameters['items'] = array_merge($parameters['items'] ?? [], $platformItems);
     }

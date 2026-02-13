@@ -55,9 +55,15 @@ final readonly class PackageService
         $this->packages = $allPackages;
     }
 
-    public function isPackageInstalled(string $packageName): bool
+    public function hasPackage(string $packageName): bool
     {
         return isset($this->packages[$packageName]);
+    }
+
+    public function getPackage(string $packageName): ?array
+    {
+        return $this->packages[$packageName] ?? null;
+
     }
 
     public function buildBridge(Platform $platform): PlatformBridge
@@ -94,7 +100,7 @@ final readonly class PackageService
     /**
      * @return list<string>
      */
-    public function getInstalledPackageNamesByType(string $type): array
+    public function findPackageNamesByType(string $type): array
     {
         $names = array_keys(
             array_filter(
