@@ -33,6 +33,11 @@
 	},
 	"require": {
 		"eliashaeussler/sse": "^2.0",
+		"mittwald/symfony-ai-platform": "dev-main",
+		"symfony/ai-anthropic-platform": "^0.3",
+		"symfony/ai-lm-studio-platform": "^0.3",
+		"symfony/ai-ollama-platform": "^0.3",
+		"symfony/ai-open-ai-platform": "^0.3",
 		"typo3/cms-backend": "14.2.*@dev",
 		"typo3/cms-core": "14.2.*@dev",
 		"typo3/cms-fluid": "14.2.*@dev"
