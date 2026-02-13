@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\AI\Service;
 
-use TYPO3\CMS\Core\Core\Environment;
+use Symfony\Component\Config\Resource\ComposerResource;
 
 /**
  * Service to interact with installed composer packages.
@@ -26,34 +26,44 @@ final readonly class PackageService
 {
     public const SYMFONY_AI_PLATFORM = 'symfony-ai-platform';
 
+    /**
+     * @var array<string, array>
+     */
     private array $packages;
 
-    public function __construct()
+    public function __construct(ComposerResource $composerResource)
     {
-        $path = Environment::getProjectPath() . '/vendor/composer/installed.json';
-        $json = @file_get_contents($path);
-        $data = $json !== false ? json_decode($json, true) : [];
-        $this->packages = $data['packages'] ?? [];
+        $allPackages = [];
+        foreach ($composerResource->getVendors() as $vendorDir) {
+            $path = $vendorDir . '/composer/installed.json';
+            $json = @file_get_contents($path);
+            $data = $json !== false ? json_decode($json, true) : [];
+            $packages = array_filter(
+                $data['packages'] ?? [],
+                static fn (array $package): bool => is_string($package['name'] ?? null)
+            );
+            $names = array_column($packages, 'name');
+            $allPackages += array_combine($names, $packages);
+        }
+        $this->packages = $allPackages;
     }
 
     public function isPackageInstalled(string $packageName): bool
     {
-        foreach ($this->packages as $package) {
-            if ($package['name'] === $packageName) {
-                return true;
-            }
-        }
-        return false;
+        return isset($this->packages[$packageName]);
     }
 
-    public function getInstalledPackagesByType(string $type): array
+    /**
+     * @return list<string>
+     */
+    public function getInstalledPackageNamesByType(string $type): array
     {
-        $result = [];
-        foreach ($this->packages as $package) {
-            if (($package['type'] ?? '') === $type) {
-                $result[] = $package['name'];
-            }
-        }
-        return $result;
+        $names = array_keys(
+            array_filter(
+                $this->packages,
+                static fn (array $package) => ($package['type'] ?? null) === $type
+            )
+        );
+        return array_values($names);
     }
 }

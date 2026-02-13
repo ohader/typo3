@@ -6,3 +6,5 @@ services:
 
   TYPO3\CMS\AI\:
     resource: '../Classes/*'
+
+  Symfony\Component\Config\Resource\ComposerResource: ~
