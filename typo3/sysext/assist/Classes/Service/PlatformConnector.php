@@ -39,7 +39,10 @@ final readonly class PlatformConnector
     ) {}
 
 
-    public function buildBridge(Platform $platform): PlatformBridge
+    /**
+     * @param bool $effective Whether to apply platform/model filtering (if applicable)
+     */
+    public function buildBridge(Platform $platform, bool $effective = true): PlatformBridge
     {
         $packageName = $platform->package;
         $package = $this->packageService->getPackage($packageName);
@@ -64,10 +67,10 @@ final readonly class PlatformConnector
             ],
         ];
 
-        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $options);
+        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $effective, $options);
         $this->eventDispatcher->dispatch($event);
 
-        return new PlatformBridge($namespace, $event->getOptions());
+        return new PlatformBridge($platform, $namespace, $effective, $event->getOptions());
     }
     /**
      * Creates a live PlatformInterface instance from a TYPO3 Platform domain object.

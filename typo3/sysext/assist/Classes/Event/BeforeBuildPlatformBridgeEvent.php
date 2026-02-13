@@ -32,6 +32,7 @@ final class BeforeBuildPlatformBridgeEvent
     public function __construct(
         public readonly Platform $platform,
         public readonly string $namespace,
+        public bool $effective,
         array $options,
     ) {
         $this->options = $options;

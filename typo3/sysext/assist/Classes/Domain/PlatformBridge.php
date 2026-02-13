@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Domain;
 
 use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
 use Symfony\AI\Platform\PlatformInterface;
+use TYPO3\CMS\Assist\Exception\PlatformNotAvailableException;
 
 /**
  * @internal create instances via PackageService
@@ -26,9 +27,18 @@ use Symfony\AI\Platform\PlatformInterface;
 final readonly class PlatformBridge
 {
     public function __construct(
+        private Platform $platform,
         private string $namespace,
+        private bool $effective,
         private array $options = [],
-    ) {}
+    ) {
+        if ($this->effective && $this->platform->availability !== Availability::enabled) {
+            throw new PlatformNotAvailableException(
+                'Platform ' . $this->platform->name . ' is not available.',
+                1771009690
+            );
+        }
+    }
 
     public function getPlatformFactory(): PlatformInterface
     {

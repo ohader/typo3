@@ -72,7 +72,7 @@ class PlatformAjaxController
                 return new JsonResponse(['models' => []], 404);
             }
 
-            $bridge = $this->platformConnector->buildBridge($platform);
+            $bridge = $this->platformConnector->buildBridge($platform, false);
             $catalog = $bridge->getModelCatalog();
             $catalogModels = $catalog->getModels();
             $enabledModels = $platform->models;
