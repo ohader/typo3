@@ -36,6 +36,15 @@
       <trans-unit id="mode.inline">
         <source>Inline</source>
       </trans-unit>
+      <trans-unit id="column.model">
+        <source>Model</source>
+      </trans-unit>
+      <trans-unit id="siteLabel">
+        <source>Site</source>
+      </trans-unit>
+      <trans-unit id="noSiteSelected">
+        <source>Select a site from the page tree to manage assistant model assignments.</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>

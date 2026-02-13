@@ -17,13 +17,15 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Domain;
 
+use Symfony\AI\Platform\Capability;
+
 /**
  * @internal
  */
 final readonly class Assistant
 {
     /**
-     * @param string[] $capabilities
+     * @param list<AssistantCapability> $capabilities
      */
     public function __construct(
         public string $identifier,
@@ -54,7 +56,7 @@ final readonly class Assistant
         }
 
         $capabilities = array_values(array_filter(array_map(
-            strval(...),
+            static fn(mixed $value): ?AssistantCapability => AssistantCapability::tryFrom((string)$value),
             $configuration['capabilities'] ?? [],
         )));
 
@@ -69,8 +71,24 @@ final readonly class Assistant
         );
     }
 
-    public function hasCapability(string $capability): bool
+    public function hasCapability(AssistantCapability $capability): bool
     {
         return in_array($capability, $this->capabilities, true);
+    }
+
+    /**
+     * Returns the aggregated Symfony AI Capability values required by this assistant.
+     *
+     * @return list<Capability>
+     */
+    public function getRequiredCapabilities(): array
+    {
+        $capabilities = [];
+        foreach ($this->capabilities as $assistantCapability) {
+            foreach ($assistantCapability->getRequiredCapabilities() as $capability) {
+                $capabilities[$capability->value] = $capability;
+            }
+        }
+        return array_values($capabilities);
     }
 }

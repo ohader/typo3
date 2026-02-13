@@ -17,9 +17,23 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Domain;
 
+use Symfony\AI\Platform\Capability;
+
 enum AssistantCapability: string
 {
     case text = 'text';
     case image = 'image';
     case toolCall = 'tool_call';
+
+    /**
+     * @return list<Capability>
+     */
+    public function getRequiredCapabilities(): array
+    {
+        return match ($this) {
+            self::text => [Capability::INPUT_MESSAGES, Capability::OUTPUT_TEXT],
+            self::image => [Capability::INPUT_IMAGE],
+            self::toolCall => [Capability::TOOL_CALLING],
+        };
+    }
 }

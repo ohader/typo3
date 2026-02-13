@@ -20,6 +20,8 @@ namespace TYPO3\CMS\Assist\Controller\Ajax;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\AI\Platform\Capability;
+use TYPO3\CMS\Assist\Domain\Availability;
+use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\PlatformConnector;
 use TYPO3\CMS\Assist\Service\PlatformResolver;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -36,6 +38,7 @@ class PlatformAjaxController
     public function __construct(
         private readonly PlatformResolver $platformResolver,
         private readonly PlatformConnector $platformConnector,
+        private readonly AssistantRegistry $assistantRegistry,
         private readonly SiteFinder $siteFinder,
         private readonly SiteWriter $siteWriter,
     ) {}
@@ -121,5 +124,92 @@ class PlatformAjaxController
         } catch (\Throwable $e) {
             return new JsonResponse(['success' => false, 'error' => $e->getMessage()]);
         }
+    }
+
+    public function getMatchingModels(ServerRequestInterface $request): ResponseInterface
+    {
+        $params = $request->getQueryParams();
+        $siteIdentifier = (string)($params['siteIdentifier'] ?? '');
+        $assistantIdentifier = (string)($params['assistantIdentifier'] ?? '');
+
+        try {
+            if (!$this->assistantRegistry->hasAssistant($assistantIdentifier)) {
+                return new JsonResponse(['models' => []], 404);
+            }
+            $assistant = $this->assistantRegistry->getAssistant($assistantIdentifier);
+            $requiredCapabilities = $assistant->getRequiredCapabilities();
+
+            $platforms = $this->platformResolver->getCurrentPlatforms($siteIdentifier);
+            $models = [];
+
+            foreach ($platforms as $platform) {
+                if ($platform->availability !== Availability::enabled) {
+                    continue;
+                }
+                $bridge = $this->platformConnector->buildBridge($platform, false);
+                $catalog = $bridge->getModelCatalog();
+                $catalogModels = $catalog->getModels();
+                $enabledModels = $platform->models;
+
+                foreach ($catalogModels as $name => $meta) {
+                    if ($enabledModels !== [] && !in_array($name, $enabledModels, true)) {
+                        continue;
+                    }
+                    $modelCapabilities = $meta['capabilities'] ?? [];
+                    if ($this->modelSatisfiesCapabilities($requiredCapabilities, $modelCapabilities)) {
+                        $models[] = [
+                            'identifier' => $name . '@' . $platform->package,
+                            'model' => $name,
+                            'platform' => $platform->name,
+                        ];
+                    }
+                }
+            }
+
+            return new JsonResponse(['models' => $models]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['models' => [], 'error' => $e->getMessage()]);
+        }
+    }
+
+    public function updateAssistantModel(ServerRequestInterface $request): ResponseInterface
+    {
+        $body = $request->getParsedBody();
+        $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
+        $assistantIdentifier = (string)($body['assistantIdentifier'] ?? '');
+        $model = (string)($body['model'] ?? '');
+
+        try {
+            $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+            $configuration = $site->getConfiguration();
+            $assistAssistants = $configuration['assistAssistants'] ?? [];
+
+            if ($model === '') {
+                unset($assistAssistants[$assistantIdentifier]);
+            } else {
+                $assistAssistants[$assistantIdentifier] = ['model' => $model];
+            }
+
+            $configuration['assistAssistants'] = $assistAssistants;
+            $this->siteWriter->write($siteIdentifier, $configuration);
+
+            return new JsonResponse(['success' => true]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['success' => false, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * @param list<Capability> $requiredCapabilities
+     * @param list<Capability> $modelCapabilities
+     */
+    private function modelSatisfiesCapabilities(array $requiredCapabilities, array $modelCapabilities): bool
+    {
+        foreach ($requiredCapabilities as $required) {
+            if (!in_array($required, $modelCapabilities, true)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

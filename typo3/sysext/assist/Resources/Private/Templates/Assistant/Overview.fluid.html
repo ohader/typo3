@@ -5,11 +5,24 @@
 <f:layout name="Module" />
 
 <f:section name="Content">
+    <f:be.pageRenderer includeJavaScriptModules="{0: '@typo3/assist/assistant-management.js'}" />
+
     <h1><f:translate id="title" domain="assist.modules.assist_assistant"/></h1>
+
+    <f:if condition="{siteIdentifier}">
+        <f:then>
+            <p><f:translate id="siteLabel" domain="assist.modules.assist_assistant"/>: <strong>{siteIdentifier}</strong></p>
+        </f:then>
+        <f:else>
+            <f:be.infobox state="{f:constant(name: 'TYPO3\CMS\Core\Type\ContextualFeedbackSeverity::INFO')}">
+                <f:translate id="noSiteSelected" domain="assist.modules.assist_assistant"/>
+            </f:be.infobox>
+        </f:else>
+    </f:if>
 
     <f:if condition="{assistants -> f:count()}">
         <f:then>
-            <div class="table-fit">
+            <div class="table-fit" data-assistant-management data-site-identifier="{siteIdentifier}" data-assistant-models="{assistantModels}">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -18,6 +31,9 @@
                             <th><f:translate id="column.capabilities" domain="assist.modules.assist_assistant"/></th>
                             <th><f:translate id="column.handler" domain="assist.modules.assist_assistant"/></th>
                             <th><f:translate id="column.triggers" domain="assist.modules.assist_assistant"/></th>
+                            <f:if condition="{siteIdentifier}">
+                                <th><f:translate id="column.model" domain="assist.modules.assist_assistant"/></th>
+                            </f:if>
                         </tr>
                     </thead>
                     <tbody>
@@ -36,7 +52,7 @@
                                 </td>
                                 <td>
                                     <f:for each="{assistant.capabilities}" as="capability">
-                                        <span class="badge badge-secondary">{capability}</span>
+                                        <span class="badge badge-secondary">{capability.value}</span>
                                     </f:for>
                                 </td>
                                 <td><code>{assistant.handler}</code></td>
@@ -45,6 +61,15 @@
                                         <span class="badge badge-secondary">{triggerType}</span>
                                     </f:for>
                                 </td>
+                                <f:if condition="{siteIdentifier}">
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                data-action="select-model"
+                                                data-assistant-identifier="{assistant.identifier}">
+                                            <option value="">Loading...</option>
+                                        </select>
+                                    </td>
+                                </f:if>
                             </tr>
                         </f:for>
                     </tbody>

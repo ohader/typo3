@@ -23,4 +23,16 @@ return [
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'assist_platform',
     ],
+    'assist_assistant_get_matching_models' => [
+        'path' => '/assist/assistant/matching-models',
+        'target' => PlatformAjaxController::class . '::getMatchingModels',
+        'methods' => ['GET'],
+        'inheritAccessFromModule' => 'assist_assistant',
+    ],
+    'assist_assistant_update_model' => [
+        'path' => '/assist/assistant/model/update',
+        'target' => PlatformAjaxController::class . '::updateAssistantModel',
+        'methods' => ['POST'],
+        'inheritAccessFromModule' => 'assist_assistant',
+    ],
 ];

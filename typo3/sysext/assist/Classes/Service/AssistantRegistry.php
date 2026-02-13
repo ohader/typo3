@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Service;
 
 use TYPO3\CMS\Assist\Domain\Assistant;
+use TYPO3\CMS\Assist\Domain\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\AssistantMode;
 
 final readonly class AssistantRegistry
@@ -81,7 +82,7 @@ final readonly class AssistantRegistry
     /**
      * @return array<string, Assistant>
      */
-    public function getAssistantsByCapability(string $capability): array
+    public function getAssistantsByCapability(AssistantCapability $capability): array
     {
         return array_filter(
             $this->assistants,

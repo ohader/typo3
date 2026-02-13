@@ -59,6 +59,14 @@ final class SiteConfigurationAssistNormalizer
         }
         $configuration['assistPlatforms'] = $platforms;
 
+        $assistants = [];
+        foreach ($assist['assistants'] ?? [] as $identifier => $settings) {
+            $assistants[$identifier] = [
+                'model' => (string)($settings['model'] ?? ''),
+            ];
+        }
+        $configuration['assistAssistants'] = $assistants;
+
         unset($configuration['assist']);
         $event->setConfiguration($configuration);
     }
@@ -72,6 +80,7 @@ final class SiteConfigurationAssistNormalizer
         $configuration = $event->getConfiguration();
         if (!array_key_exists('assistDefault', $configuration)
             && !array_key_exists('assistPlatforms', $configuration)
+            && !array_key_exists('assistAssistants', $configuration)
         ) {
             return;
         }
@@ -105,8 +114,19 @@ final class SiteConfigurationAssistNormalizer
         }
         $assist['platforms'] = $platforms;
 
+        $assistants = [];
+        foreach ($configuration['assistAssistants'] ?? [] as $identifier => $settings) {
+            $model = $settings['model'] ?? '';
+            if ($model !== '') {
+                $assistants[$identifier] = ['model' => $model];
+            }
+        }
+        if ($assistants !== []) {
+            $assist['assistants'] = $assistants;
+        }
+
         $configuration['assist'] = $assist;
-        unset($configuration['assistDefault'], $configuration['assistPlatforms']);
+        unset($configuration['assistDefault'], $configuration['assistPlatforms'], $configuration['assistAssistants']);
         $event->setConfiguration($configuration);
     }
 }
