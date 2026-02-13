@@ -40,7 +40,7 @@ final readonly class PlatformConnector
      */
     public function createLivePlatform(Platform $platform): PlatformInterface
     {
-        $bridge = $this->packageService->buildBridge($platform->package);
+        $bridge = $this->packageService->buildBridge($platform);
         $factory = $bridge->getPlatformFactory();
 
         $createMethod = new \ReflectionMethod($factory, 'create');
@@ -67,7 +67,7 @@ final readonly class PlatformConnector
      */
     public function checkConnection(Platform $platform): array
     {
-        $bridge = $this->packageService->buildBridge($platform->package);
+        $bridge = $this->packageService->buildBridge($platform);
         $livePlatform = $this->createLivePlatform($platform);
         // @todo use local catalog, which might be more specific (overridden)
         // $catalog = $livePlatform->getModelCatalog();

@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Service;
 
 use Symfony\Component\Config\Resource\ComposerResource;
+use TYPO3\CMS\Assist\Domain\Platform;
 use TYPO3\CMS\Assist\Domain\PlatformBridge;
 
 /**
@@ -32,10 +33,12 @@ final readonly class PackageService
      */
     private array $packages;
 
-    public function __construct(ComposerResource $composerResource)
+    public function __construct(
+        private ComposerResource $composerResource,
+    )
     {
         $allPackages = [];
-        foreach ($composerResource->getVendors() as $vendorDir) {
+        foreach ($this->composerResource->getVendors() as $vendorDir) {
             $path = $vendorDir . '/composer/installed.json';
             $json = @file_get_contents($path);
             $data = $json !== false ? json_decode($json, true) : [];
@@ -54,8 +57,9 @@ final readonly class PackageService
         return isset($this->packages[$packageName]);
     }
 
-    public function buildBridge(string $packageName): PlatformBridge
+    public function buildBridge(Platform $platform): PlatformBridge
     {
+        $packageName = $platform->package;
         $package = $this->packages[$packageName] ?? null;
         if ($package === null) {
             throw new \InvalidArgumentException(
