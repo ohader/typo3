@@ -27,10 +27,11 @@ final readonly class PlatformItemsProcFunc
 
     public function getInstalledPlatformPackages(array &$parameters): void
     {
-        $names = array_map(
-            static fn (string $name): array => ['value' => $name, 'lable' => $name],
+        /** @var array{value: string, label: string} $platformItems */
+        $platformItems = array_map(
+            static fn (string $name): array => ['value' => $name, 'label' => $name],
             $this->packageService->getInstalledPackageNamesByType(PackageService::SYMFONY_AI_PLATFORM)
         );
-        $parameters['items'] = array_merge($parameters['items'] ?? [], $names);
+        $parameters['items'] = array_merge($parameters['items'] ?? [], $platformItems);
     }
 }
