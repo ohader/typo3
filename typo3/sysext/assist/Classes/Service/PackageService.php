@@ -17,9 +17,11 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Service;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Config\Resource\ComposerResource;
 use TYPO3\CMS\Assist\Domain\Platform;
 use TYPO3\CMS\Assist\Domain\PlatformBridge;
+use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 
 /**
  * Service to interact with installed composer packages.
@@ -35,6 +37,7 @@ final readonly class PackageService
 
     public function __construct(
         private ComposerResource $composerResource,
+        private EventDispatcherInterface $eventDispatcher,
     )
     {
         $allPackages = [];
@@ -75,7 +78,17 @@ final readonly class PackageService
             );
         }
 
-        return new PlatformBridge($namespace);
+        $options = [
+            'platformFactory' => [
+                'hostUrl' => $platform->options['baseUrl'] ?? '',
+                'apiKey' => $platform->authorization?->token ?? '',
+            ],
+        ];
+
+        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $options);
+        $this->eventDispatcher->dispatch($event);
+
+        return new PlatformBridge($namespace, $event->getOptions());
     }
 
     /**

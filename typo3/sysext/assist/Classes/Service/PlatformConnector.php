@@ -28,6 +28,7 @@ use TYPO3\CMS\Assist\Domain\Platform;
  * and tests connections by invoking a minimal prompt.
  *
  * @internal
+ * @todo probably all PackageService platform-related logic should be here instead
  */
 final readonly class PlatformConnector
 {
@@ -40,23 +41,7 @@ final readonly class PlatformConnector
      */
     public function createLivePlatform(Platform $platform): PlatformInterface
     {
-        $bridge = $this->packageService->buildBridge($platform);
-        $factory = $bridge->getPlatformFactory();
-
-        $createMethod = new \ReflectionMethod($factory, 'create');
-        $args = [];
-        foreach ($createMethod->getParameters() as $param) {
-            $name = $param->getName();
-            if ($name === 'apiKey') {
-                $args[$name] = $platform->authorization?->token ?? '';
-            } elseif ($name === 'hostUrl' || $name === 'baseUrl') {
-                $args[$name] = $platform->options['baseUrl'] ?? $param->getDefaultValue();
-            } else {
-                continue;
-            }
-        }
-
-        return $factory::create(...$args);
+        return $this->packageService->buildBridge($platform)->getPlatformFactory();
     }
 
     /**
