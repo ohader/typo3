@@ -80,6 +80,7 @@ module.exports = function (grunt) {
       dashboard: '<%= paths.sysext %>dashboard/Resources/',
       frontend: '<%= paths.sysext %>frontend/Resources/',
       adminpanel: '<%= paths.sysext %>adminpanel/Resources/',
+      assist: '<%= paths.sysext %>assist/Resources/',
       install: '<%= paths.sysext %>install/Resources/',
       linkvalidator: '<%= paths.sysext %>linkvalidator/Resources/',
       backend: '<%= paths.sysext %>backend/Resources/',

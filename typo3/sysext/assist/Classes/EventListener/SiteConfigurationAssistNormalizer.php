@@ -54,6 +54,7 @@ final class SiteConfigurationAssistNormalizer
                 'baseUrl' => (string)($platform['options']['baseUrl'] ?? ''),
                 'authorizationType' => (string)($platform['authorization']['type'] ?? 'none'),
                 'authorizationToken' => (string)($platform['authorization']['token'] ?? ''),
+                'models' => (array)($platform['models'] ?? []),
             ];
         }
         $configuration['assistPlatforms'] = $platforms;
@@ -96,6 +97,9 @@ final class SiteConfigurationAssistNormalizer
                     'type' => $authType,
                     'token' => $platform['authorizationToken'] ?? '',
                 ];
+            }
+            if (!empty($platform['models'])) {
+                $entry['models'] = array_values($platform['models']);
             }
             $platforms[] = $entry;
         }

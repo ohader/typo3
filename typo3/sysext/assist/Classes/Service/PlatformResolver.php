@@ -98,6 +98,7 @@ final readonly class PlatformResolver
             package: $data['package'],
             options: $options,
             authorization: $authorization,
+            models: $data['models'] ?? [],
         );
     }
 }

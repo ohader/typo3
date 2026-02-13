@@ -42,6 +42,27 @@
       <trans-unit id="availability.unavailable">
         <source>Unavailable</source>
       </trans-unit>
+      <trans-unit id="column.connection">
+        <source>Connection</source>
+      </trans-unit>
+      <trans-unit id="column.models">
+        <source>Models</source>
+      </trans-unit>
+      <trans-unit id="connection.check">
+        <source>Check</source>
+      </trans-unit>
+      <trans-unit id="connection.success">
+        <source>Connected</source>
+      </trans-unit>
+      <trans-unit id="connection.failed">
+        <source>Failed</source>
+      </trans-unit>
+      <trans-unit id="models.toggle">
+        <source>Models</source>
+      </trans-unit>
+      <trans-unit id="models.noModels">
+        <source>No models available for this platform.</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>

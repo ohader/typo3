@@ -25,6 +25,7 @@ final readonly class Platform
         public string $package,
         public array $options = [],
         public ?Authorization $authorization = null,
+        public array $models = [],
     ) {
     }
 }

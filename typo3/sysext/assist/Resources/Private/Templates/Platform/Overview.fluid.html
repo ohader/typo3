@@ -5,6 +5,8 @@
 <f:layout name="Module" />
 
 <f:section name="Content">
+    <f:be.pageRenderer includeJavaScriptModules="{0: '@typo3/assist/platform-management.js'}" />
+
     <h1><f:translate id="title" domain="assist.modules.assist_platform"/></h1>
 
     <f:if condition="{siteIdentifier}">
@@ -23,7 +25,7 @@
 
     <f:if condition="{platforms -> f:count()}">
         <f:then>
-            <div class="table-fit">
+            <div class="table-fit" data-platform-management data-site-identifier="{siteIdentifier}">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -31,10 +33,12 @@
                             <th><f:translate id="column.package" domain="assist.modules.assist_platform"/></th>
                             <th><f:translate id="column.availability" domain="assist.modules.assist_platform"/></th>
                             <th><f:translate id="column.baseUrl" domain="assist.modules.assist_platform"/></th>
+                            <th><f:translate id="column.connection" domain="assist.modules.assist_platform"/></th>
+                            <th><f:translate id="column.models" domain="assist.modules.assist_platform"/></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <f:for each="{platforms}" as="platform">
+                        <f:for each="{platforms}" as="platform" iteration="iterator">
                             <tr>
                                 <td>{platform.name}</td>
                                 <td><code>{platform.package}</code></td>
@@ -52,6 +56,28 @@
                                     </f:switch>
                                 </td>
                                 <td>{platform.options.baseUrl}</td>
+                                <td>
+                                    <f:if condition="{platform.availability.value} == 'enabled'">
+                                        <button type="button" class="btn btn-sm btn-default"
+                                                data-action="check-connection"
+                                                data-platform-index="{iterator.index}">
+                                            <f:translate id="connection.check" domain="assist.modules.assist_platform"/>
+                                        </button>
+                                        <span id="connection-status-{iterator.index}" class="connection-status"></span>
+                                    </f:if>
+                                </td>
+                                <td>
+                                    <f:if condition="{platform.availability.value} != 'unavailable'">
+                                        <button type="button" class="btn btn-sm btn-default"
+                                                data-action="toggle-models"
+                                                data-platform-index="{iterator.index}">
+                                            <f:translate id="models.toggle" domain="assist.modules.assist_platform"/>
+                                        </button>
+                                    </f:if>
+                                </td>
+                            </tr>
+                            <tr id="models-{iterator.index}" style="display: none;">
+                                <td colspan="6"></td>
                             </tr>
                         </f:for>
                     </tbody>
