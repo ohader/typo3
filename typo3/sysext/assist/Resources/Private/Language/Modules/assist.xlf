@@ -10,7 +10,7 @@
         <source>AI Management</source>
       </trans-unit>
       <trans-unit id="description">
-        <source>Manage AI platforms, tasks, glossaries and prompts.</source>
+        <source>Manage AI platforms, assistants, glossaries and prompts.</source>
       </trans-unit>
     </body>
   </file>

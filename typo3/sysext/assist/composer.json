@@ -50,6 +50,9 @@
 			"dev-main": "14.2.x-dev"
 		},
 		"typo3/cms": {
+			"Package": {
+				"serviceProvider": "TYPO3\\CMS\\Assist\\ServiceProvider"
+			},
 			"extension-key": "assist"
 		}
 	},

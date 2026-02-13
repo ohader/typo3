@@ -18,7 +18,7 @@ declare(strict_types=1);
 use TYPO3\CMS\Assist\Controller\Module\GlossaryController;
 use TYPO3\CMS\Assist\Controller\Module\PlatformController;
 use TYPO3\CMS\Assist\Controller\Module\PromptController;
-use TYPO3\CMS\Assist\Controller\Module\TaskController;
+use TYPO3\CMS\Assist\Controller\Module\AssistantController;
 
 /**
  * Definitions for modules provided by EXT:assist
@@ -45,16 +45,16 @@ return [
             ],
         ],
     ],
-    'assist_tasks' => [
+    'assist_assistant' => [
         'parent' => 'assist',
         'access' => 'admin',
-        'path' => '/module/assist/tasks',
+        'path' => '/module/assist/assistant',
         'iconIdentifier' => 'module-assist',
-        'labels' => 'assist.modules.assist_tasks',
+        'labels' => 'assist.modules.assist_assistant',
         'navigationComponent' => '@typo3/backend/tree/page-tree-element',
         'routes' => [
             '_default' => [
-                'target' => TaskController::class . '::handleRequest',
+                'target' => AssistantController::class . '::handleRequest',
             ],
         ],
     ],

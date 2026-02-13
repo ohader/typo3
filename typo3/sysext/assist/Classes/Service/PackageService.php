@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Service;
 
 use Symfony\Component\Config\Resource\ComposerResource;
+use TYPO3\CMS\Assist\Domain\PlatformBridge;
 
 /**
  * Service to interact with installed composer packages.
@@ -51,6 +52,26 @@ final readonly class PackageService
     public function isPackageInstalled(string $packageName): bool
     {
         return isset($this->packages[$packageName]);
+    }
+
+    public function buildBridge(string $packageName): PlatformBridge
+    {
+        $package = $this->packages[$packageName] ?? null;
+        if ($package === null) {
+            throw new \InvalidArgumentException(
+                sprintf('Package "%s" is not installed.', $packageName),
+            );
+        }
+
+        $psr4 = $package['autoload']['psr-4'] ?? [];
+        $namespace = array_key_first($psr4);
+        if ($namespace === null) {
+            throw new \InvalidArgumentException(
+                sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
+            );
+        }
+
+        return new PlatformBridge($namespace);
     }
 
     /**

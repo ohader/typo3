@@ -1,0 +1,62 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:layout name="Module" />
+
+<f:section name="Content">
+    <h1><f:translate id="title" domain="assist.modules.assist_assistant"/></h1>
+
+    <f:if condition="{assistants -> f:count()}">
+        <f:then>
+            <div class="table-fit">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th><f:translate id="column.identifier" domain="assist.modules.assist_assistant"/></th>
+                            <th><f:translate id="column.mode" domain="assist.modules.assist_assistant"/></th>
+                            <th><f:translate id="column.capabilities" domain="assist.modules.assist_assistant"/></th>
+                            <th><f:translate id="column.handler" domain="assist.modules.assist_assistant"/></th>
+                            <th><f:translate id="column.triggers" domain="assist.modules.assist_assistant"/></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <f:for each="{assistants}" as="assistant">
+                            <tr>
+                                <td>{assistant.identifier}</td>
+                                <td>
+                                    <f:switch expression="{assistant.mode.value}">
+                                        <f:case value="module">
+                                            <span class="badge badge-info"><f:translate id="mode.module" domain="assist.modules.assist_assistant"/></span>
+                                        </f:case>
+                                        <f:case value="inline">
+                                            <span class="badge badge-primary"><f:translate id="mode.inline" domain="assist.modules.assist_assistant"/></span>
+                                        </f:case>
+                                    </f:switch>
+                                </td>
+                                <td>
+                                    <f:for each="{assistant.capabilities}" as="capability">
+                                        <span class="badge badge-secondary">{capability}</span>
+                                    </f:for>
+                                </td>
+                                <td><code>{assistant.handler}</code></td>
+                                <td>
+                                    <f:for each="{assistant.trigger.types}" as="triggerType" iteration="iterator">
+                                        <span class="badge badge-secondary">{triggerType}</span>
+                                    </f:for>
+                                </td>
+                            </tr>
+                        </f:for>
+                    </tbody>
+                </table>
+            </div>
+        </f:then>
+        <f:else>
+            <f:be.infobox state="{f:constant(name: 'TYPO3\CMS\Core\Type\ContextualFeedbackSeverity::INFO')}">
+                <f:translate id="noAssistantsRegistered" domain="assist.modules.assist_assistant"/>
+            </f:be.infobox>
+        </f:else>
+    </f:if>
+</f:section>
+
+</html>

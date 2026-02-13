@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" datatype="plaintext" original="EXT:assist/Resources/Private/Language/Modules/assist_assistants.xlf" date="2026-02-11T00:00:00Z" product-name="assist">
+    <header/>
+    <body>
+      <trans-unit id="title">
+        <source>Assistant Management</source>
+      </trans-unit>
+      <trans-unit id="short_description">
+        <source>Assistant Management</source>
+      </trans-unit>
+      <trans-unit id="description">
+        <source>Manage AI assistants and their configurations.</source>
+      </trans-unit>
+      <trans-unit id="column.identifier">
+        <source>Identifier</source>
+      </trans-unit>
+      <trans-unit id="column.mode">
+        <source>Mode</source>
+      </trans-unit>
+      <trans-unit id="column.capabilities">
+        <source>Capabilities</source>
+      </trans-unit>
+      <trans-unit id="column.handler">
+        <source>Handler</source>
+      </trans-unit>
+      <trans-unit id="column.triggers">
+        <source>Triggers</source>
+      </trans-unit>
+      <trans-unit id="noAssistantsRegistered">
+        <source>No assistants registered. Register assistants via Configuration/Backend/Assistants.php in your extension.</source>
+      </trans-unit>
+      <trans-unit id="mode.module">
+        <source>Module</source>
+      </trans-unit>
+      <trans-unit id="mode.inline">
+        <source>Inline</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

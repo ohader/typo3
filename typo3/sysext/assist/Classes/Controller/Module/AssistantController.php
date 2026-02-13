@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Controller\Module;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 
@@ -26,15 +27,17 @@ use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
  * @internal This class is a specific TYPO3 Backend controller implementation and is not part of the Public TYPO3 API.
  */
 #[AsController]
-class TaskController
+final readonly class AssistantController
 {
     public function __construct(
-        protected readonly ModuleTemplateFactory $moduleTemplateFactory,
+        private AssistantRegistry $assistantRegistry,
+        private ModuleTemplateFactory $moduleTemplateFactory,
     ) {}
 
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
     {
         $view = $this->moduleTemplateFactory->create($request);
-        return $view->renderResponse('Task/Overview');
+        $view->assign('assistants', $this->assistantRegistry->getAssistants());
+        return $view->renderResponse('Assistant/Overview');
     }
 }
