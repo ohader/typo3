@@ -40,4 +40,5 @@ assist:
     typo3-a11y:
       model: gemma-3-4b-it-qat@symfony/ai-lm-studio-platform
     typo3-inline-chat:
-      model: gpt-oss-120b@mittwald/symfony-ai-platform```
+      model: gpt-oss-120b@mittwald/symfony-ai-platform
+```
