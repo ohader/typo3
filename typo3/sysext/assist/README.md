@@ -37,8 +37,8 @@ assist:
         - gpt-oss-120b
         - Qwen3-Embedding-8B
   assistants:
-    typo3-a11y:
+    typo3-assist-a11y:
       model: gemma-3-4b-it-qat@symfony/ai-lm-studio-platform
-    typo3-inline-chat:
+    typo3-assist-inline-chat:
       model: gpt-oss-120b@mittwald/symfony-ai-platform
 ```

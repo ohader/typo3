@@ -21,7 +21,7 @@ use TYPO3\CMS\Assist\Assistant\InlineChatAssistant;
 use TYPO3\CMS\Assist\Domain\AssistantCapability;
 
 return [
-    'typo3-a11y' => [
+    'typo3-assist-a11y' => [
         'mode' => 'module',
         'capabilities' => [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
         'handler' => A11yAssistant::class,
@@ -31,7 +31,7 @@ return [
             'components' => ['page-tree'],
         ],
     ],
-    'typo3-inline-chat' => [
+    'typo3-assist-inline-chat' => [
         'mode' => 'inline',
         'capabilities' => [AssistantCapability::messages, AssistantCapability::toolCalling],
         'handler' => InlineChatAssistant::class,
