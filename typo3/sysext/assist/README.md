@@ -14,12 +14,30 @@ The relevant part in ´sites/my-site/config.yaml` looks like this:
 assist:
   default: true
   platforms:
-    - name: LM Studio
+    - enabled: true
+      name: 'LM Studio'
       package: symfony/ai-lm-studio-platform
-      enabled: true
       options:
-        - baseUrl: 'http://localhost:1234/'
+        baseUrl: 'http://127.0.0.1:1234/'
       authorization:
         type: bearer
-        token: sk-test-1234
-```
+        token: sk-...-...
+      models:
+        - gemma-3-4b-it-qat
+        - openai/gpt-oss-20b
+    - enabled: true
+      name: Mittwald
+      package: mittwald/symfony-ai-platform
+      options:
+        baseUrl: 'https://llm.aihosting.mittwald.de/'
+      authorization:
+        type: bearer
+        token: sk-...-...
+      models:
+        - gpt-oss-120b
+        - Qwen3-Embedding-8B
+  assistants:
+    typo3-a11y:
+      model: gemma-3-4b-it-qat@symfony/ai-lm-studio-platform
+    typo3-inline-chat:
+      model: gpt-oss-120b@mittwald/symfony-ai-platform```
