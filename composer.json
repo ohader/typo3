@@ -90,6 +90,7 @@
 		"psr/http-server-handler": "^1.0",
 		"psr/http-server-middleware": "^1.0",
 		"psr/log": "^3.0.1",
+		"symfony/ai-agent": "^0.3.0",
 		"symfony/ai-anthropic-platform": "^0.3",
 		"symfony/ai-lm-studio-platform": "^0.3",
 		"symfony/ai-ollama-platform": "^0.3",

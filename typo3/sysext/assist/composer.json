@@ -34,6 +34,7 @@
 	"require": {
 		"eliashaeussler/sse": "^2.0",
 		"mittwald/symfony-ai-platform": "dev-main",
+		"symfony/ai-agent": "^0.3.0",
 		"symfony/ai-anthropic-platform": "^0.3",
 		"symfony/ai-lm-studio-platform": "^0.3",
 		"symfony/ai-ollama-platform": "^0.3",
