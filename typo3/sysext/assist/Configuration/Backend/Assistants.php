@@ -16,11 +16,15 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
+use TYPO3\CMS\Assist\Assistant\A11yAssistant;
+use TYPO3\CMS\Assist\Assistant\InlineChatAssistant;
+use TYPO3\CMS\Assist\Domain\AssistantCapability;
+
 return [
     'typo3-a11y' => [
         'mode' => 'module',
-        'capabilities' => ['text', 'image', 'tool_call'],
-        'handler' => \TYPO3\CMS\Assist\Assistant\A11yAssistant::class,
+        'capabilities' => [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
+        'handler' => A11yAssistant::class,
         'trigger' => [
             'types' => ['context', 'view'],
             'records' => ['pages'],
@@ -29,8 +33,8 @@ return [
     ],
     'typo3-inline-chat' => [
         'mode' => 'inline',
-        'capabilities' => ['text', 'tool_call'],
-        'handler' => \TYPO3\CMS\Assist\Assistant\InlineChatAssistant::class,
+        'capabilities' => [AssistantCapability::messages, AssistantCapability::toolCalling],
+        'handler' => InlineChatAssistant::class,
         'trigger' => [
             'types' => ['inline'],
             'records' => ['pages', 'tt_content'],

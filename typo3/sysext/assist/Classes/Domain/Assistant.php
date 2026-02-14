@@ -25,7 +25,7 @@ use Symfony\AI\Platform\Capability;
 final readonly class Assistant
 {
     /**
-     * @param list<AssistantCapability> $capabilities
+     * @param list<Capability> $capabilities
      */
     public function __construct(
         public string $identifier,
@@ -35,7 +35,8 @@ final readonly class Assistant
         public AssistantTrigger $trigger,
         public string $packageName,
         public string $absolutePackagePath,
-    ) {}
+    ) {
+    }
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
     {
@@ -55,15 +56,10 @@ final readonly class Assistant
             );
         }
 
-        $capabilities = array_values(array_filter(array_map(
-            static fn(mixed $value): ?AssistantCapability => AssistantCapability::tryFrom((string)$value),
-            $configuration['capabilities'] ?? [],
-        )));
-
         return new self(
             identifier: $identifier,
             mode: $mode,
-            capabilities: $capabilities,
+            capabilities: self::normalizeCapabilities($configuration['capabilities'] ?? []),
             handler: $handler,
             trigger: AssistantTrigger::createFromConfiguration($configuration['trigger'] ?? []),
             packageName: $configuration['packageName'] ?? '',
@@ -77,18 +73,19 @@ final readonly class Assistant
     }
 
     /**
-     * Returns the aggregated Symfony AI Capability values required by this assistant.
-     *
      * @return list<Capability>
      */
-    public function getRequiredCapabilities(): array
+    private static function normalizeCapabilities(array $capabilities): array
     {
-        $capabilities = [];
-        foreach ($this->capabilities as $assistantCapability) {
-            foreach ($assistantCapability->getRequiredCapabilities() as $capability) {
-                $capabilities[$capability->value] = $capability;
+        $result = [];
+        foreach ($capabilities as $capability) {
+            $convertedCapabilities = AssistantCapability::normalize($capability);
+            foreach ($convertedCapabilities as $convertedCapability) {
+                if (!in_array($convertedCapability, $result, true)) {
+                    $result[] = $convertedCapability;
+                }
             }
         }
-        return array_values($capabilities);
+        return $result;
     }
 }

@@ -21,19 +21,58 @@ use Symfony\AI\Platform\Capability;
 
 enum AssistantCapability: string
 {
-    case text = 'text';
-    case image = 'image';
-    case toolCall = 'tool_call';
+    case messages = 'messages';
+    case embeddings = 'embeddings';
+    case textToSpeech = 'textToSpeech';
+    case textToImage = 'textToImage';
+    case speechToText = 'speechToText';
+    case imageToImage = 'imageToImage';
+
+    case toolCalling = 'toolCalling';
+
+    case inputAudio = 'inputAudio';
+    case inputImage = 'inputImage';
+    case inputPdf = 'inputPdf';
+
+    case outputStreaming = 'outputStreaming';
+    case outputStructured = 'outputStructured';
 
     /**
      * @return list<Capability>
      */
-    public function getRequiredCapabilities(): array
+    public static function normalize(string|self|Capability $capability): array
+    {
+        if ($capability instanceof self) {
+            return $capability->convertToCapabilities();
+        }
+        if ($capability instanceof Capability) {
+            return [$capability];
+        }
+        $target = self::tryFrom($capability);
+        if ($target === null) {
+            throw new \LogicException('Unknown capability: ' . $capability, 1771059495);
+        }
+        return $target->convertToCapabilities();
+    }
+
+    /**
+     * @return list<Capability>
+     */
+    public function convertToCapabilities(): array
     {
         return match ($this) {
-            self::text => [Capability::INPUT_MESSAGES, Capability::OUTPUT_TEXT],
-            self::image => [Capability::INPUT_IMAGE],
-            self::toolCall => [Capability::TOOL_CALLING],
+            self::messages => [Capability::INPUT_MESSAGES, Capability::OUTPUT_TEXT],
+            self::embeddings => [Capability::INPUT_TEXT, Capability::EMBEDDINGS],
+            self::textToSpeech => [Capability::INPUT_TEXT, Capability::OUTPUT_AUDIO],
+            self::textToImage => [Capability::INPUT_TEXT, Capability::OUTPUT_IMAGE],
+            self::speechToText => [Capability::INPUT_AUDIO, Capability::OUTPUT_TEXT],
+            self::imageToImage => [Capability::INPUT_IMAGE, Capability::OUTPUT_IMAGE, Capability::IMAGE_TO_IMAGE],
+            self::toolCalling => [Capability::TOOL_CALLING],
+            self::inputAudio => [Capability::INPUT_AUDIO],
+            self::inputImage => [Capability::INPUT_IMAGE],
+            self::inputPdf => [Capability::INPUT_PDF],
+            self::outputStreaming => [Capability::OUTPUT_STREAMING],
+            self::outputStructured => [Capability::OUTPUT_STRUCTURED],
         };
     }
 }

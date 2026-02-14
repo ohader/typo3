@@ -31,6 +31,7 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * @internal This class is a specific TYPO3 Backend controller implementation and is not part of the Public TYPO3 API.
+ * @todo enforce permission checks
  */
 #[AsController]
 class PlatformAjaxController
@@ -137,8 +138,6 @@ class PlatformAjaxController
                 return new JsonResponse(['models' => []], 404);
             }
             $assistant = $this->assistantRegistry->getAssistant($assistantIdentifier);
-            $requiredCapabilities = $assistant->getRequiredCapabilities();
-
             $platforms = $this->platformResolver->getCurrentPlatforms($siteIdentifier);
             $models = [];
 
@@ -156,7 +155,7 @@ class PlatformAjaxController
                         continue;
                     }
                     $modelCapabilities = $meta['capabilities'] ?? [];
-                    if ($this->modelSatisfiesCapabilities($requiredCapabilities, $modelCapabilities)) {
+                    if ($this->modelSatisfiesCapabilities($assistant->capabilities, $modelCapabilities)) {
                         $models[] = [
                             'identifier' => $name . '@' . $platform->package,
                             'model' => $name,
