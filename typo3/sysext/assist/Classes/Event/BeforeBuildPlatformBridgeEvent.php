@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Event;
 
 use TYPO3\CMS\Assist\Domain\Platform;
+use TYPO3\CMS\Assist\Domain\PlatformReflector;
 
 /**
  * @internal
@@ -31,7 +32,7 @@ final class BeforeBuildPlatformBridgeEvent
 
     public function __construct(
         public readonly Platform $platform,
-        public readonly string $namespace,
+        public readonly PlatformReflector $reflector,
         public bool $effective,
         array $options,
     ) {

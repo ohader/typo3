@@ -23,6 +23,7 @@ use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use TYPO3\CMS\Assist\Domain\Platform;
 use TYPO3\CMS\Assist\Domain\PlatformBridge;
+use TYPO3\CMS\Assist\Domain\PlatformReflector;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 
 /**
@@ -59,18 +60,16 @@ final readonly class PlatformConnector
                 sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
             );
         }
+        $reflector = new PlatformReflector($namespace);
 
         $options = [
-            'platformFactory' => [
-                'hostUrl' => $platform->options['baseUrl'] ?? '',
-                'apiKey' => $platform->authorization?->token ?? '',
-            ],
+            'platformFactory' => $platform->options,
         ];
 
-        $event = new BeforeBuildPlatformBridgeEvent($platform, $namespace, $effective, $options);
+        $event = new BeforeBuildPlatformBridgeEvent($platform, $reflector, $effective, $options);
         $this->eventDispatcher->dispatch($event);
 
-        return new PlatformBridge($platform, $namespace, $effective, $event->getOptions());
+        return new PlatformBridge($platform, $reflector, $effective, $event->getOptions());
     }
     /**
      * Creates a live PlatformInterface instance from a TYPO3 Platform domain object.

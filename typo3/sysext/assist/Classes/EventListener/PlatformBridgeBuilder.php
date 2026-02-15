@@ -20,6 +20,7 @@ namespace TYPO3\CMS\Assist\EventListener;
 use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Bridge\Generic\EmbeddingsModel;
 use Symfony\AI\Platform\Capability;
+use TYPO3\CMS\Assist\Domain\Availability;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Http\RequestFactory;
@@ -36,20 +37,18 @@ final class PlatformBridgeBuilder
 
     public function __invoke(BeforeBuildPlatformBridgeEvent $event): void
     {
-        if ($event->platform->package === 'symfony/ai-lm-studio-platform') {
-            $uri = (new Uri($event->platform->options['baseUrl'] ?? ''))
+        if ($event->platform->availability === Availability::enabled
+            && $event->platform->package === 'symfony/ai-lm-studio-platform'
+        ) {
+            $defaults = $event->reflector->getPlatformFactoryOptions();
+            $uri = (new Uri($defaults['baseUrl'] ?? ''))
                 ->withPath('/api/v1/models');
 
-            $options = [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                    ...$event->platform->authorization?->getHeaderItem() ?? [],
-                ],
-            ];
+            $headers = ['Content-Type' => 'application/json'];
             $response = $this->requestFactory->request(
                 (string)$uri,
                 'GET',
-                $options
+                ['headers' => $headers]
             );
 
             $data = json_decode($response->getBody()->getContents(), true);
