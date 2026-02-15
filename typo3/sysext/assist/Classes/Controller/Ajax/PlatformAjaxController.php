@@ -21,6 +21,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\Domain\Availability;
+use TYPO3\CMS\Assist\Domain\PlatformModel;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\PlatformConnector;
 use TYPO3\CMS\Assist\Service\PlatformResolver;
@@ -156,9 +157,9 @@ class PlatformAjaxController
                     $modelCapabilities = $meta['capabilities'] ?? [];
                     if ($this->modelSatisfiesCapabilities($assistant->capabilities, $modelCapabilities)) {
                         $models[] = [
-                            'identifier' => $name . '@' . $platform->package,
-                            'model' => $name,
+                            'identifier' => (string)new PlatformModel($platform->package, $name),
                             'platform' => $platform->name,
+                            'model' => $name,
                         ];
                     }
                 }
@@ -178,6 +179,11 @@ class PlatformAjaxController
         $model = (string)($body['model'] ?? '');
 
         try {
+            if ($model !== '') {
+                // validate `model@platform` syntax
+                PlatformModel::fromString($model);
+            }
+
             $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
             $configuration = $site->getConfiguration();
             $assistAssistants = $configuration['assistAssistants'] ?? [];

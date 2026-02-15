@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\Domain\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Progress;
 use TYPO3\CMS\Assist\Domain\ProgressItem;
 use TYPO3\CMS\Assist\Domain\ProgressItemType;
@@ -50,7 +51,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
     public function addIncreasesSequencePerUuid(): void
     {
         $uuid = Uuid::v4();
-        $model = 'numb-encore@typo3/symfony-ai-numb-platform';
+        $model = new PlatformModel('typo3/symfony-ai-numb-platform', 'numb-encore');
 
         $seq0 = $this->subject->append($uuid, $model, new ProgressItem(ProgressItemType::submitted, 'hello'));
         $seq1 = $this->subject->append($uuid, $model, new ProgressItem(ProgressItemType::received, 'world'));
@@ -65,7 +66,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
     public function findByUuidReturnsProgressWithOrderedItems(): void
     {
         $uuid = Uuid::v4();
-        $model = 'numb-encore@typo3/symfony-ai-numb-platform';
+        $model = new PlatformModel('typo3/symfony-ai-numb-platform', 'numb-encore');
 
         $this->subject->append($uuid, $model, new ProgressItem(ProgressItemType::submitted, 'first'));
         $this->subject->append($uuid, $model, new ProgressItem(ProgressItemType::received, 'second'));
@@ -74,7 +75,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
 
         self::assertInstanceOf(Progress::class, $progress);
         self::assertTrue($uuid->equals($progress->uuid));
-        self::assertSame($model, $progress->model);
+        self::assertSame((string)$model, (string)$progress->model);
         self::assertCount(2, $progress->items);
         self::assertInstanceOf(ProgressItem::class, $progress->items[0]);
         self::assertSame(ProgressItemType::submitted, $progress->items[0]->type);
@@ -95,7 +96,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
     {
         $uuid1 = Uuid::v4();
         $uuid2 = Uuid::v4();
-        $model = 'numb-encore@typo3/symfony-ai-numb-platform';
+        $model = new PlatformModel('typo3/symfony-ai-numb-platform', 'numb-encore');
 
         $this->subject->append($uuid1, $model, new ProgressItem(ProgressItemType::submitted, null));
         $this->subject->append($uuid1, $model, new ProgressItem(ProgressItemType::received, null));
@@ -108,13 +109,13 @@ class ProgressRepositoryTest extends FunctionalTestCase
     public function addStoresModelAndType(): void
     {
         $uuid = Uuid::v4();
-        $model = 'gpt-oss-120b@mittwald/symfony-ai-platform';
+        $model = new PlatformModel('mittwald/symfony-ai-platform', 'gpt-oss-120b');
 
         $this->subject->append($uuid, $model, new ProgressItem(ProgressItemType::received, 'response'));
 
         $progress = $this->subject->findByUuid($uuid);
         self::assertInstanceOf(Progress::class, $progress);
-        self::assertSame($model, $progress->model);
+        self::assertSame((string)$model, (string)$progress->model);
         self::assertCount(1, $progress->items);
         self::assertSame(ProgressItemType::received, $progress->items[0]->type);
     }

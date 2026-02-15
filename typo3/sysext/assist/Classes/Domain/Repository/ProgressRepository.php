@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\Domain\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Progress;
 use TYPO3\CMS\Assist\Domain\ProgressItem;
 use TYPO3\CMS\Core\Database\Connection;
@@ -68,14 +69,14 @@ final readonly class ProgressRepository
         }
     }
 
-    public function append(Uuid $uuid, string $model, ProgressItem $item): int
+    public function append(Uuid $uuid, PlatformModel $model, ProgressItem $item): int
     {
         $sequence = $this->nextSequence($uuid);
         $this->assign($uuid, $model, $sequence, $item);
         return $sequence;
     }
 
-    private function assign(Uuid $uuid, string $model, int $sequence, ProgressItem $item): void
+    private function assign(Uuid $uuid, PlatformModel $model, int $sequence, ProgressItem $item): void
     {
         $this->getConnection()->insert(
             self::TABLE_NAME,
@@ -83,7 +84,7 @@ final readonly class ProgressRepository
                 'uuid' => (string)$uuid,
                 'sequence' => $sequence,
                 'type' => $item->type->value,
-                'model' => $model,
+                'model' => (string)$model,
                 'datetime' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
                 'payload' => json_encode($item->payload),
             ]
