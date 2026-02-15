@@ -21,6 +21,7 @@ use TYPO3\CMS\Core\Tests\Functional\SiteHandling\SiteBasedTestTrait;
 
 trait AssistBasedTestTrait
 {
+    private const ASSIST_MODEL_NUMB_ENCORE = 'numb-encore';
     private const ASSIST_PLATFORM_NUMB_ENCORE = 'assist-platform-numb-encore';
 
     use SiteBasedTestTrait;

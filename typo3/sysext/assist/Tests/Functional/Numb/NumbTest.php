@@ -15,23 +15,26 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
+namespace TYPO3\CMS\Assist\Tests\Functional\Numb;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
-use Symfony\AI\Platform\Capability;
+use Symfony\AI\Platform\Message\Message;
+use Symfony\AI\Platform\Message\MessageBag;
+use TYPO3\CMS\Assist\Domain\PlatformBridge;
 use TYPO3\CMS\Assist\Service\PlatformConnector;
 use TYPO3\CMS\Assist\Service\PlatformResolver;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
-use TYPO3\Symfony\AI\NumbPlatform\Bridge\ChatModel;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class PlatformBridgeTest extends FunctionalTestCase
+class NumbTest extends FunctionalTestCase
 {
     use AssistBasedTestTrait;
 
     protected array $coreExtensionsToLoad = ['assist'];
     private PlatformConnector $platformConnector;
     private PlatformResolver $platformResolver;
+    private PlatformBridge $bridge;
 
     public function setUp(): void
     {
@@ -45,26 +48,29 @@ class PlatformBridgeTest extends FunctionalTestCase
         );
         $this->platformConnector = $this->get(PlatformConnector::class);
         $this->platformResolver = $this->get(PlatformResolver::class);
-    }
-
-    #[Test]
-    public function canResolveModels(): void
-    {
-
         $platform = $this->platformResolver->getSitePlatform(
             'PlatformBridgeTest',
             'typo3/symfony-ai-numb-platform'
         );
-        $bridge = $this->platformConnector->buildBridge($platform);
-        $modelCatalog = $bridge->getModelCatalog();
-        $models = $modelCatalog->getModels();
+        $this->bridge = $this->platformConnector->buildBridge($platform);
+    }
 
-        $model = $models[self::ASSIST_MODEL_NUMB_ENCORE] ?? null;
-        self::assertArrayHasKey(self::ASSIST_MODEL_NUMB_ENCORE, $models);
-        self::assertSame(ChatModel::class, $model['class']);
-        self::assertContainsEquals(Capability::INPUT_MESSAGES, $model['capabilities']);
-        self::assertContainsEquals(Capability::INPUT_TEXT, $model['capabilities']);
-        self::assertContainsEquals(Capability::OUTPUT_TEXT, $model['capabilities']);
-        self::assertContainsEquals(Capability::TOOL_CALLING, $model['capabilities']);
+    public static function canSendAndReceiveMessageToPlatformDataProvider(): iterable
+    {
+        yield ['ping', 'pong'];
+        yield ['Who are you?', 'My name is Numb-Encore. Nice to meet you!'];
+        yield ['What is the current time?', 'I cannot help with "What is the current time?"'];
+        yield ['How much is 1+1?', 'I cannot help with "How much is 1+1?"'];
+    }
+
+    #[Test]
+    #[DataProvider('canSendAndReceiveMessageToPlatformDataProvider')]
+    public function canSendAndReceiveMessageToPlatform(string $payload, string $expectation): void
+    {
+        $result = $this->bridge->getPlatformFactory()->invoke(
+            self::ASSIST_MODEL_NUMB_ENCORE,
+            new MessageBag(Message::ofUser($payload))
+        );
+        self::assertSame($expectation, $result->asText());
     }
 }

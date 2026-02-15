@@ -59,11 +59,17 @@ final class ModelClient implements ModelClientInterface
             }
         }
 
+        $responseContent = match ($lastUserMessage) {
+            'ping' => 'pong',
+            'Who are you?' => 'My name is Numb-Encore. Nice to meet you!',
+            default => sprintf('I cannot help with "%s"', addcslashes($lastUserMessage, '"\\')),
+        };
+
         return new InMemoryRawResult([
             'choices' => [
                 [
                     'message' => [
-                        'content' => 'numb-encore received: ' . $lastUserMessage,
+                        'content' => $responseContent,
                     ],
                 ],
             ],
