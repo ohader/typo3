@@ -60,7 +60,7 @@
                                     <f:if condition="{platform.availability.value} == 'enabled'">
                                         <button type="button" class="btn btn-sm btn-default"
                                                 data-action="check-connection"
-                                                data-platform-index="{iterator.index}">
+                                                data-platform-identifier="{platform.package}">
                                             <f:translate id="connection.check" domain="assist.modules.assist_platform"/>
                                         </button>
                                         <span id="connection-status-{iterator.index}" class="connection-status"></span>

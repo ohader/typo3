@@ -22,7 +22,6 @@ interface ModelInfo {
 
 /**
  * @todo replace `element.innerHTML` by proper DOM templates
- * @todo use data attributes for platform names, no numeric indices
  */
 class PlatformManagement {
   private readonly siteIdentifier: string;
@@ -31,12 +30,12 @@ class PlatformManagement {
     const container = document.querySelector('[data-platform-management]') as HTMLElement | null;
     this.siteIdentifier = container?.dataset.siteIdentifier ?? '';
 
-    document.querySelectorAll('[data-action="check-connection"]').forEach((button: Element) => {
+    document.querySelectorAll('[data-action="check-connection"]').forEach((button: Element, index: number) => {
       button.addEventListener('click', (e: Event) => {
         e.preventDefault();
         const btn = e.currentTarget as HTMLElement;
-        const index = parseInt(btn.dataset.platformIndex ?? '0', 10);
-        this.checkConnection(index, btn);
+        const platformIdentifier = btn.dataset.platformIdentifier ?? '';
+        this.checkConnection(platformIdentifier, index, btn);
       });
     });
 
@@ -50,7 +49,7 @@ class PlatformManagement {
     });
   }
 
-  private async checkConnection(platformIndex: number, button: HTMLElement): Promise<void> {
+  private async checkConnection(platformIdentifier: string, platformIndex: number, button: HTMLElement): Promise<void> {
     const statusSpan = document.getElementById('connection-status-' + platformIndex);
     if (!statusSpan) {
       return;
@@ -62,7 +61,7 @@ class PlatformManagement {
     try {
       const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.assist_platform_check_connection).post({
         siteIdentifier: this.siteIdentifier,
-        platformIndex: platformIndex,
+        platformIdentifier: platformIdentifier,
       });
       const data = await response.resolve();
 

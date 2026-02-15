@@ -48,11 +48,10 @@ class PlatformAjaxController
     {
         $body = $request->getParsedBody();
         $siteIdentifier = (string)($body['siteIdentifier'] ?? '');
-        $platformIndex = (int)($body['platformIndex'] ?? 0);
+        $platformIdentifier = (string)($body['platformIdentifier'] ?? '');
 
         try {
-            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
-            $platform = $platforms[$platformIndex] ?? null;
+            $platform = $this->platformResolver->getSitePlatform($siteIdentifier, $platformIdentifier);
             if ($platform === null) {
                 return new JsonResponse(['success' => false, 'error' => 'Platform not found.'], 404);
             }
