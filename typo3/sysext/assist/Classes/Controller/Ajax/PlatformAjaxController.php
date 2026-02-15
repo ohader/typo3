@@ -51,7 +51,7 @@ class PlatformAjaxController
         $platformIndex = (int)($body['platformIndex'] ?? 0);
 
         try {
-            $platforms = $this->platformResolver->getCurrentPlatforms($siteIdentifier);
+            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
             $platform = $platforms[$platformIndex] ?? null;
             if ($platform === null) {
                 return new JsonResponse(['success' => false, 'error' => 'Platform not found.'], 404);
@@ -70,7 +70,7 @@ class PlatformAjaxController
         $platformIndex = (int)($params['platformIndex'] ?? 0);
 
         try {
-            $platforms = $this->platformResolver->getCurrentPlatforms($siteIdentifier);
+            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
             $platform = $platforms[$platformIndex] ?? null;
             if ($platform === null) {
                 return new JsonResponse(['models' => []], 404);
@@ -138,7 +138,7 @@ class PlatformAjaxController
                 return new JsonResponse(['models' => []], 404);
             }
             $assistant = $this->assistantRegistry->getAssistant($assistantIdentifier);
-            $platforms = $this->platformResolver->getCurrentPlatforms($siteIdentifier);
+            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
             $models = [];
 
             foreach ($platforms as $platform) {

@@ -50,7 +50,7 @@ final readonly class PlatformController
             $siteIdentifier = $site->getIdentifier();
             $view->assignMultiple([
                 'siteIdentifier' => $siteIdentifier,
-                'platforms' => $this->platformResolver->getCurrentPlatforms($siteIdentifier),
+                'platforms' => $this->platformResolver->getSitePlatforms($siteIdentifier),
             ]);
         } else {
             $view->assignMultiple([

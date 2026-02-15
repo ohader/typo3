@@ -42,10 +42,21 @@ final readonly class PlatformResolver
         foreach ($this->siteFinder->getAllSites(true) as $site) {
             $configuration = $site->getConfiguration();
             if (!empty($configuration['assistDefault'])) {
-                return $this->getCurrentPlatforms($site->getIdentifier());
+                return $this->getSitePlatforms($site->getIdentifier());
             }
         }
         return [];
+    }
+
+    public function getSitePlatform(string $siteIdentifier, string $platformIdentifier): ?Platform
+    {
+        $platforms = $this->getSitePlatforms($siteIdentifier);
+        foreach ($platforms as $platform) {
+            if ($platform->package === $platformIdentifier) {
+                return $platform;
+            }
+        }
+        return null;
     }
 
     /**
@@ -54,7 +65,7 @@ final readonly class PlatformResolver
      * @param string $siteIdentifier
      * @return list<Platform>
      */
-    public function getCurrentPlatforms(string $siteIdentifier): array
+    public function getSitePlatforms(string $siteIdentifier): array
     {
         $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
         $configuration = $site->getConfiguration();
@@ -69,6 +80,7 @@ final readonly class PlatformResolver
      */
     private function buildPlatforms(array $platformsConfiguration): array
     {
+        // @todo add array key here, for faster platform lookup
         return array_map($this->buildPlatform(...), $platformsConfiguration);
     }
 
