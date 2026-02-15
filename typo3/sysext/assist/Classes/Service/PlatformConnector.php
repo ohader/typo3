@@ -45,21 +45,7 @@ final readonly class PlatformConnector
      */
     public function buildBridge(Platform $platform, bool $effective = true): PlatformBridge
     {
-        $packageName = $platform->package;
-        $package = $this->packageService->getPackage($packageName);
-        if ($package === null) {
-            throw new \InvalidArgumentException(
-                sprintf('Package "%s" is not installed.', $packageName),
-            );
-        }
-
-        $psr4 = $package['autoload']['psr-4'] ?? [];
-        $namespace = array_key_first($psr4);
-        if ($namespace === null) {
-            throw new \InvalidArgumentException(
-                sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
-            );
-        }
+        $namespace = $this->packageService->getPackageNamespace($platform->package);
         $reflector = new PlatformReflector($namespace);
 
         $options = [

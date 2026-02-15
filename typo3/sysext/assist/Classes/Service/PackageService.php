@@ -61,6 +61,27 @@ final readonly class PackageService
 
     }
 
+    public function getPackageNamespace(string $packageName): ?string
+    {
+        $package = $this->getPackage($packageName);
+        if ($package === null) {
+            throw new \InvalidArgumentException(
+                sprintf('Package "%s" is not installed.', $packageName),
+                1771173561
+            );
+        }
+
+        $psr4 = $package['autoload']['psr-4'] ?? [];
+        $namespace = array_key_first($psr4);
+        if ($namespace !== null) {
+            return $namespace;
+        }
+        throw new \InvalidArgumentException(
+            sprintf('Package "%s" does not declare a PSR-4 autoload namespace.', $packageName),
+            1771173571
+        );
+    }
+
     /**
      * @return list<string>
      */

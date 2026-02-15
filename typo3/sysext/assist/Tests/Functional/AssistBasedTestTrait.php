@@ -46,8 +46,6 @@ trait AssistBasedTestTrait
                 'enabled' => true,
                 'name' => 'TYPO3 Numb Encore',
                 'package' => 'typo3/symfony-ai-numb-platform',
-                'options' => [],
-                'authorization' => [],
                 'models' => [
                     'numb-encore',
                 ],

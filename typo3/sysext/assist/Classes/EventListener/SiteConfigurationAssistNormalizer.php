@@ -30,6 +30,10 @@ use TYPO3\CMS\Core\Configuration\Event\SiteConfigurationLoadedEvent;
  */
 final class SiteConfigurationAssistNormalizer
 {
+    /**
+     * Keys that are structural (not platform options).
+     */
+    private const STRUCTURAL_KEYS = ['enabled', 'name', 'package', 'models'];
 
     /**
      * Flatten nested assist: structure into flat TCA keys for the form.
@@ -47,15 +51,17 @@ final class SiteConfigurationAssistNormalizer
 
         $platforms = [];
         foreach ($assist['platforms'] ?? [] as $index => $platform) {
-            $platforms[$index] = [
+            $flat = [
                 'enabled' => (bool)($platform['enabled'] ?? false),
                 'name' => (string)($platform['name'] ?? ''),
                 'package' => (string)($platform['package'] ?? ''),
-                'baseUrl' => (string)($platform['options']['baseUrl'] ?? ''),
-                'authorizationType' => (string)($platform['authorization']['type'] ?? 'none'),
-                'authorizationToken' => (string)($platform['authorization']['token'] ?? ''),
                 'models' => (array)($platform['models'] ?? []),
             ];
+            // Flatten options to top-level keys
+            foreach ($platform['options'] ?? [] as $key => $value) {
+                $flat[$key] = $value;
+            }
+            $platforms[$index] = $flat;
         }
         $configuration['assistPlatforms'] = $platforms;
 
@@ -95,18 +101,14 @@ final class SiteConfigurationAssistNormalizer
                 'name' => $platform['name'] ?? '',
                 'package' => $platform['package'] ?? '',
             ];
-            if (!empty($platform['baseUrl'])) {
-                $entry['options'] = [
-                    'baseUrl' => $platform['baseUrl'],
-                ];
+
+            // Collect all non-structural keys into options
+            $options = array_diff_key($platform, array_flip(self::STRUCTURAL_KEYS));
+            $options = array_filter($options, static fn($v) => $v !== '' && $v !== null);
+            if ($options !== []) {
+                $entry['options'] = $options;
             }
-            $authType = $platform['authorizationType'] ?? 'none';
-            if ($authType !== 'none') {
-                $entry['authorization'] = [
-                    'type' => $authType,
-                    'token' => $platform['authorizationToken'] ?? '',
-                ];
-            }
+
             if (!empty($platform['models'])) {
                 $entry['models'] = array_values($platform['models']);
             }

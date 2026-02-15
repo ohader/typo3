@@ -24,14 +24,29 @@
       <trans-unit id="site_assist_platform.package">
         <source>Platform Package</source>
       </trans-unit>
+      <trans-unit id="site_assist_platform.apiKey">
+        <source>API Key</source>
+      </trans-unit>
       <trans-unit id="site_assist_platform.baseUrl">
         <source>Base URL</source>
       </trans-unit>
-      <trans-unit id="site_assist_platform.authorizationType">
-        <source>Authorization Type</source>
+      <trans-unit id="site_assist_platform.hostUrl">
+        <source>Host URL</source>
       </trans-unit>
-      <trans-unit id="site_assist_platform.authorizationToken">
-        <source>Authorization Token</source>
+      <trans-unit id="site_assist_platform.region">
+        <source>Region</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.supportsCompletions">
+        <source>Supports Completions</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.supportsEmbeddings">
+        <source>Supports Embeddings</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.completionsPath">
+        <source>Completions Path</source>
+      </trans-unit>
+      <trans-unit id="site_assist_platform.embeddingsPath">
+        <source>Embeddings Path</source>
       </trans-unit>
     </body>
   </file>

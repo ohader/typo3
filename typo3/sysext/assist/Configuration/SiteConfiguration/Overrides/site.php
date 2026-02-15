@@ -16,6 +16,7 @@ $GLOBALS['SiteConfiguration']['site']['columns']['assistPlatforms'] = [
         'foreign_table' => 'site_assist_platform',
         'appearance' => [
             'collapseAll' => true,
+            'useSortable' => true,
             'enabledControls' => [
                 'info' => false,
             ],
