@@ -48,6 +48,12 @@
 			"typo3/cms-composer-installers": true
 		}
 	},
+	"repositories": {
+		"packages": {
+			"type": "path",
+			"url": "packages/*"
+		}
+	},
 	"require": {
 		"php": "^8.2",
 		"ext-PDO": "*",
@@ -140,6 +146,7 @@
 		"phpunit/phpunit": "^11.5.50",
 		"sebastian/recursion-context": "^6.0.3",
 		"sokil/php-isocodes-db-i18n": "^4.0.28",
+		"typo3/symfony-ai-numb-platform": "@dev",
 		"typo3/testing-framework": "dev-main",
 		"webmozart/assert": "^1.11.0"
 	},
@@ -294,6 +301,7 @@
 	"autoload-dev": {
 		"psr-4": {
 			"TYPO3\\CMS\\Adminpanel\\Tests\\": "typo3/sysext/adminpanel/Tests/",
+			"TYPO3\\CMS\\Assist\\Tests\\": "typo3/sysext/assist/Tests/",
 			"TYPO3\\CMS\\Backend\\Tests\\": "typo3/sysext/backend/Tests/",
 			"TYPO3\\CMS\\Belog\\Tests\\": "typo3/sysext/belog/Tests/",
 			"TYPO3\\CMS\\Beuser\\Tests\\": "typo3/sysext/beuser/Tests/",

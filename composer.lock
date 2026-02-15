@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "fd9143e6ff262bf70dd5e8df63b03c35",
+    "content-hash": "0f5455e7de619711a6dad676130b8385",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -11053,6 +11053,35 @@
             "time": "2025-11-17T20:03:58+00:00"
         },
         {
+            "name": "typo3/symfony-ai-numb-platform",
+            "version": "dev-ai",
+            "dist": {
+                "type": "path",
+                "url": "packages/symfony-ai-numb-platform",
+                "reference": "3ef3d6a1fdaed8fc0fed7c8c0a9cedfb64b1e4ac"
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/ai-platform": "^0.3"
+            },
+            "type": "symfony-ai-platform",
+            "autoload": {
+                "psr-4": {
+                    "TYPO3\\Symfony\\AI\\NumbPlatform\\Bridge\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/vendor/"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "A numb Symfony AI Platform bridge that simulates AI model responses locally without remote API calls.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "typo3/testing-framework",
             "version": "dev-main",
             "source": {
@@ -11136,6 +11165,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "mittwald/symfony-ai-platform": 20,
+        "typo3/symfony-ai-numb-platform": 20,
         "typo3/testing-framework": 20
     },
     "prefer-stable": false,
