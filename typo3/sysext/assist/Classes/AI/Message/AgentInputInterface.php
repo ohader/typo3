@@ -15,12 +15,17 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Assistant;
+namespace TYPO3\CMS\Assist\AI\Message;
 
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
+use Symfony\AI\Platform\Message\MessageBag;
+use Symfony\AI\Platform\Message\MessageInterface;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 
-interface AssistantInterface
+interface AgentInputInterface
 {
-    public function process(AgentInputInterface $input, AgentOutputInterface $output);
+    public function getModel(): PlatformModel;
+
+    public function add(MessageInterface $message): void;
+
+    public function getMessageBag(): MessageBag;
 }
