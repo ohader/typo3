@@ -1,0 +1,2 @@
+# cat=cache; type=int+; label=LLL:EXT:assist/Resources/Private/Language/locallang_extconf.xlf:modelCacheLifetime
+modelCacheLifetime = 10800
