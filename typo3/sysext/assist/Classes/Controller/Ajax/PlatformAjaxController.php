@@ -22,13 +22,12 @@ use Psr\Http\Message\ServerRequestInterface;
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Http\JsonResponse;
-use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
  * @internal This class is a specific TYPO3 Backend controller implementation and is not part of the Public TYPO3 API.
@@ -38,10 +37,9 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 class PlatformAjaxController
 {
     public function __construct(
-        private readonly PlatformResolver $platformResolver,
+        private readonly ConfigurationResolver $configurationResolver,
         private readonly PlatformConnector $platformConnector,
         private readonly AssistantRegistry $assistantRegistry,
-        private readonly SiteFinder $siteFinder,
         private readonly SiteWriter $siteWriter,
     ) {}
 
@@ -52,7 +50,7 @@ class PlatformAjaxController
         $platformIdentifier = (string)($body['platformIdentifier'] ?? '');
 
         try {
-            $platform = $this->platformResolver->getSitePlatform($siteIdentifier, $platformIdentifier);
+            $platform = $this->configurationResolver->getSitePlatform($siteIdentifier, $platformIdentifier);
             if ($platform === null) {
                 return new JsonResponse(['success' => false, 'error' => 'Platform not found.'], 404);
             }
@@ -70,7 +68,7 @@ class PlatformAjaxController
         $platformIndex = (int)($params['platformIndex'] ?? 0);
 
         try {
-            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
+            $platforms = $this->configurationResolver->getSitePlatforms($siteIdentifier);
             $platform = $platforms[$platformIndex] ?? null;
             if ($platform === null) {
                 return new JsonResponse(['models' => []], 404);
@@ -108,8 +106,7 @@ class PlatformAjaxController
         $models = (array)($body['models'] ?? []);
 
         try {
-            $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
-            $configuration = $site->getConfiguration();
+            $configuration = $this->configurationResolver->getSiteConfiguration($siteIdentifier);
             $assistPlatforms = $configuration['assistPlatforms'] ?? [];
 
             if (!isset($assistPlatforms[$platformIndex])) {
@@ -138,7 +135,7 @@ class PlatformAjaxController
                 return new JsonResponse(['models' => []], 404);
             }
             $assistant = $this->assistantRegistry->getAssistant($assistantIdentifier);
-            $platforms = $this->platformResolver->getSitePlatforms($siteIdentifier);
+            $platforms = $this->configurationResolver->getSitePlatforms($siteIdentifier);
             $models = [];
 
             foreach ($platforms as $platform) {
@@ -184,8 +181,7 @@ class PlatformAjaxController
                 PlatformModel::fromString($model);
             }
 
-            $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
-            $configuration = $site->getConfiguration();
+            $configuration = $this->configurationResolver->getSiteConfiguration($siteIdentifier);
             $assistAssistants = $configuration['assistAssistants'] ?? [];
 
             if ($model === '') {

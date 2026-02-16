@@ -19,7 +19,7 @@ namespace TYPO3\CMS\Assist\Controller\Module;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Context\PageContext;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
@@ -32,7 +32,7 @@ use TYPO3\CMS\Core\Site\Entity\Site;
 final readonly class PlatformController
 {
     public function __construct(
-        private PlatformResolver $platformResolver,
+        private ConfigurationResolver $configurationResolver,
         private ModuleTemplateFactory $moduleTemplateFactory,
     ) {}
 
@@ -50,12 +50,12 @@ final readonly class PlatformController
             $siteIdentifier = $site->getIdentifier();
             $view->assignMultiple([
                 'siteIdentifier' => $siteIdentifier,
-                'platforms' => $this->platformResolver->getSitePlatforms($siteIdentifier),
+                'platforms' => $this->configurationResolver->getSitePlatforms($siteIdentifier),
             ]);
         } else {
             $view->assignMultiple([
                 'siteIdentifier' => false,
-                'platforms' => $this->platformResolver->getDefaultPlatforms(),
+                'platforms' => $this->configurationResolver->getDefaultPlatforms(),
             ]);
         }
         return $view->renderResponse('Platform/Overview');

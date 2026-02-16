@@ -23,8 +23,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 /**
  * Lists all available AI platform models.
@@ -33,7 +33,7 @@ use TYPO3\CMS\Assist\Domain\Enum\Availability;
 final class ListModelsCommand extends Command
 {
     public function __construct(
-        private readonly PlatformResolver $platformResolver,
+        private readonly ConfigurationResolver $configurationResolver,
         private readonly PlatformConnector $platformConnector,
     ) {
         parent::__construct();
@@ -41,7 +41,7 @@ final class ListModelsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $platforms = $this->platformResolver->getDefaultPlatforms();
+        $platforms = $this->configurationResolver->getDefaultPlatforms();
 
         if ($platforms === []) {
             $output->writeln('<comment>No platforms configured. Add platforms in the site configuration.</comment>');

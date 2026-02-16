@@ -15,8 +15,9 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Platform;
+namespace TYPO3\CMS\Assist\Service;
 
+use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -24,14 +25,61 @@ use TYPO3\CMS\Core\Site\SiteFinder;
 /**
  * Resolves platforms from site configuration (`assist` section in `sites/my-site/config.yaml`).
  */
-final readonly class PlatformResolver
+final readonly class ConfigurationResolver
 {
-    private const STRUCTURAL_KEYS = ['enabled', 'name', 'package', 'models'];
+    private const PACKAGE_STRUCTURAL_KEYS = ['enabled', 'name', 'package', 'models'];
 
     public function __construct(
-        private \TYPO3\CMS\Assist\Service\PackageService $packageService,
+        private PackageService $packageService,
         private SiteFinder $siteFinder,
     ) {}
+
+    public function getDefaultSiteIdentifier(): ?string
+    {
+        foreach ($this->siteFinder->getAllSites(true) as $site) {
+            $configuration = $site->getConfiguration();
+            if (!empty($configuration['assistDefault'])) {
+                return $site->getIdentifier();
+            }
+        }
+        return null;
+    }
+
+    public function getSiteConfiguration(string $siteIdentifier): ?array
+    {
+        $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+        $configuration = $site->getConfiguration();
+        if (!empty($configuration['assistPlatforms'])) {
+            return $configuration;
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the model for an assistant from the default site configuration.
+     */
+    public function getDefaultAssistantModel(string $assistantIdentifier): ?PlatformModel
+    {
+        $identifier = $this->getDefaultSiteIdentifier();
+        if ($identifier !== null) {
+            return $this->getSiteAssistantModel($identifier, $assistantIdentifier);
+        }
+        return null;
+    }
+
+    /**
+     * Resolves the model for an assistant from a specific site configuration.
+     */
+    public function getSiteAssistantModel(string $siteIdentifier, string $assistantIdentifier): ?PlatformModel
+    {
+        $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
+        $configuration = $site->getConfiguration();
+        $model = $configuration['assistAssistants'][$assistantIdentifier]['model'] ?? '';
+        if ($model === '') {
+            return null;
+        }
+        return PlatformModel::fromString($model);
+    }
 
     /**
      * Resolves the platforms of the site configuration that is declared to be default.
@@ -40,11 +88,9 @@ final readonly class PlatformResolver
      */
     public function getDefaultPlatforms(): array
     {
-        foreach ($this->siteFinder->getAllSites(true) as $site) {
-            $configuration = $site->getConfiguration();
-            if (!empty($configuration['assistDefault'])) {
-                return $this->getSitePlatforms($site->getIdentifier());
-            }
+        $identifier = $this->getDefaultSiteIdentifier();
+        if ($identifier !== null) {
+            return $this->getSitePlatforms($identifier);
         }
         return [];
     }
@@ -68,8 +114,7 @@ final readonly class PlatformResolver
      */
     public function getSitePlatforms(string $siteIdentifier): array
     {
-        $site = $this->siteFinder->getSiteByIdentifier($siteIdentifier);
-        $configuration = $site->getConfiguration();
+        $configuration = $this->getSiteConfiguration($siteIdentifier);
         if (empty($configuration['assistPlatforms'])) {
             return [];
         }
@@ -87,7 +132,7 @@ final readonly class PlatformResolver
 
     private function buildPlatform(array $data): Platform
     {
-        $options = array_diff_key($data, array_flip(self::STRUCTURAL_KEYS));
+        $options = array_diff_key($data, array_flip(self::PACKAGE_STRUCTURAL_KEYS));
         $options = array_filter($options, static fn($v) => $v !== '' && $v !== null);
 
         if (!$this->packageService->hasPackage($data['package'])) {

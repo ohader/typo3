@@ -29,12 +29,12 @@ use TYPO3\CMS\Assist\AI\Agent\AgentBag;
 use TYPO3\CMS\Assist\AI\Agent\AgentConnector;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 /**
  * Interactive AI chat session via the command line.
@@ -44,7 +44,7 @@ final class ChatCommand extends Command
 {
     public function __construct(
         private readonly AgentConnector $agentConnector,
-        private readonly PlatformResolver $platformResolver,
+        private readonly ConfigurationResolver $configurationResolver,
     ) {
         parent::__construct();
     }
@@ -64,7 +64,7 @@ final class ChatCommand extends Command
         }
 
         $platformFound = false;
-        foreach ($this->platformResolver->getDefaultPlatforms() as $platform) {
+        foreach ($this->configurationResolver->getDefaultPlatforms() as $platform) {
             if ($platform->package === $platformModel->platform && $platform->availability === Availability::enabled) {
                 $platformFound = true;
                 break;

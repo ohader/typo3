@@ -20,7 +20,7 @@ namespace TYPO3\CMS\Assist\Tests\Functional\AI\Platform;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\Symfony\AI\NumbPlatform\Bridge\ChatModel;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -31,7 +31,7 @@ class PlatformBridgeTest extends FunctionalTestCase
 
     protected array $coreExtensionsToLoad = ['assist'];
     private PlatformConnector $platformConnector;
-    private PlatformResolver $platformResolver;
+    private ConfigurationResolver $configurationResolver;
 
     public function setUp(): void
     {
@@ -44,14 +44,14 @@ class PlatformBridgeTest extends FunctionalTestCase
             [self::ASSIST_PLATFORM_NUMB_ENCORE]
         );
         $this->platformConnector = $this->get(PlatformConnector::class);
-        $this->platformResolver = $this->get(PlatformResolver::class);
+        $this->configurationResolver = $this->get(ConfigurationResolver::class);
     }
 
     #[Test]
     public function canResolveModels(): void
     {
 
-        $platform = $this->platformResolver->getSitePlatform(
+        $platform = $this->configurationResolver->getSitePlatform(
             'PlatformBridgeTest',
             'typo3/symfony-ai-numb-platform'
         );

@@ -23,7 +23,7 @@ use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use TYPO3\CMS\Assist\AI\Platform\PlatformBridge;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 class NumbTest extends FunctionalTestCase
@@ -32,7 +32,7 @@ class NumbTest extends FunctionalTestCase
 
     protected array $coreExtensionsToLoad = ['assist'];
     private PlatformConnector $platformConnector;
-    private PlatformResolver $platformResolver;
+    private ConfigurationResolver $configurationResolver;
     private PlatformBridge $bridge;
 
     public function setUp(): void
@@ -46,8 +46,8 @@ class NumbTest extends FunctionalTestCase
             [self::ASSIST_PLATFORM_NUMB_ENCORE]
         );
         $this->platformConnector = $this->get(PlatformConnector::class);
-        $this->platformResolver = $this->get(PlatformResolver::class);
-        $platform = $this->platformResolver->getSitePlatform(
+        $this->configurationResolver = $this->get(ConfigurationResolver::class);
+        $platform = $this->configurationResolver->getSitePlatform(
             'PlatformBridgeTest',
             'typo3/symfony-ai-numb-platform'
         );

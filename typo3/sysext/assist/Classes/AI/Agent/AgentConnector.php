@@ -20,10 +20,10 @@ namespace TYPO3\CMS\Assist\AI\Agent;
 use Symfony\AI\Agent\Agent;
 use Symfony\AI\Platform\Result\ResultInterface;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
-use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
+use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 /**
  * Accepts an {@see AgentBag}, constructs a Symfony AI {@see Agent},
@@ -35,15 +35,15 @@ use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
 final readonly class AgentConnector
 {
     public function __construct(
+        private ConfigurationResolver $configurationResolver,
         private PlatformConnector $platformConnector,
-        private PlatformResolver $platformResolver,
         private ProgressRepository $progressRepository,
     ) {}
 
     public function call(AgentBag $agentBag): ResultInterface
     {
         $platform = null;
-        foreach ($this->platformResolver->getDefaultPlatforms() as $candidate) {
+        foreach ($this->configurationResolver->getDefaultPlatforms() as $candidate) {
             if ($candidate->package === $agentBag->model->platform) {
                 $platform = $candidate;
                 break;
