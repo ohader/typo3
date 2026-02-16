@@ -15,10 +15,18 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
-enum Availability: string
+namespace TYPO3\CMS\Assist\Domain\Model;
+
+use TYPO3\CMS\Assist\Domain\Enum\Availability;
+
+final readonly class Platform
 {
-    case enabled = 'enabled';
-    case disabled = 'disabled';
-    case unavailable = 'unavailable';
+    public function __construct(
+        public Availability $availability,
+        public string $name,
+        public string $package,
+        public array $options = [],
+        public array $models = [],
+    ) {
+    }
 }

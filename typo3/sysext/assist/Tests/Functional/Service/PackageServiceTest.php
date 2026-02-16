@@ -15,20 +15,19 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
+namespace TYPO3\CMS\Assist\Tests\Functional\Service;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\Domain\Platform;
-use TYPO3\CMS\Assist\Service\PlatformResolver;
+use TYPO3\CMS\Assist\Service\PackageService;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class PlatformResolverTest extends FunctionalTestCase
+class PackageServiceTest extends FunctionalTestCase
 {
     use AssistBasedTestTrait;
 
     protected array $coreExtensionsToLoad = ['assist'];
-    private PlatformResolver $subject;
+    private PackageService $subject;
 
     public function setUp(): void
     {
@@ -40,16 +39,21 @@ class PlatformResolverTest extends FunctionalTestCase
             '/',
             [self::ASSIST_PLATFORM_NUMB_ENCORE]
         );
-        $this->subject = $this->get(PlatformResolver::class);
+        $this->subject = $this->get(PackageService::class);
     }
 
     #[Test]
-    public function canResolvePlatform(): void
+    public function canResolvePlatformPackages(): void
     {
-        $platform = $this->subject->getSitePlatform(
-            'PlatformBridgeTest',
-            'typo3/symfony-ai-numb-platform'
-        );
-        self::assertInstanceOf(Platform::class, $platform);
+        $packageNames = $this->subject->findPackageNamesByType(PackageService::SYMFONY_AI_PLATFORM);
+        self::assertContainsEquals('typo3/symfony-ai-numb-platform', $packageNames);
+    }
+
+    #[Test]
+    public function canResolveNumpPackage(): void
+    {
+        $package = $this->subject->getPackage('typo3/symfony-ai-numb-platform');
+        self::assertSame('typo3/symfony-ai-numb-platform', $package['name']);
+        self::assertSame(PackageService::SYMFONY_AI_PLATFORM, $package['type']);
     }
 }

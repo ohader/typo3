@@ -15,15 +15,13 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Service;
+namespace TYPO3\CMS\Assist\AI\Platform;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\AI\Platform\Capability;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
-use TYPO3\CMS\Assist\Domain\Platform;
-use TYPO3\CMS\Assist\Domain\PlatformBridge;
-use TYPO3\CMS\Assist\Domain\PlatformReflector;
+use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 
 /**
@@ -35,7 +33,7 @@ use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 final readonly class PlatformConnector
 {
     public function __construct(
-        private PackageService $packageService,
+        private \TYPO3\CMS\Assist\Service\PackageService $packageService,
         private EventDispatcherInterface $eventDispatcher,
     ) {}
 

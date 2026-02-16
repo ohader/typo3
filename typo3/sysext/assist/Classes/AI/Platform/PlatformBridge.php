@@ -15,10 +15,11 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\AI\Platform;
 
 use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
 use Symfony\AI\Platform\PlatformInterface;
+use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Exception\PlatformNotAvailableException;
 
 /**
@@ -27,8 +28,8 @@ use TYPO3\CMS\Assist\Exception\PlatformNotAvailableException;
 final readonly class PlatformBridge
 {
     public function __construct(
-        private Platform $platform,
-        private PlatformReflector $reflector,
+        private \TYPO3\CMS\Assist\Domain\Model\Platform $platform,
+        private \TYPO3\CMS\Assist\AI\Platform\PlatformReflector $reflector,
         private bool $effective,
         private array $options = [],
     ) {

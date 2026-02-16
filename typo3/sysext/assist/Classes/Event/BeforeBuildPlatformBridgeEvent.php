@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Event;
 
-use TYPO3\CMS\Assist\Domain\Platform;
-use TYPO3\CMS\Assist\Domain\PlatformReflector;
+use TYPO3\CMS\Assist\AI\Platform\PlatformReflector;
+use TYPO3\CMS\Assist\Domain\Model\Platform;
 
 /**
  * @internal

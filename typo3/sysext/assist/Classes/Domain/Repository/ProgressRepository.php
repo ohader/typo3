@@ -19,9 +19,9 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
-use TYPO3\CMS\Assist\Domain\PlatformModel;
-use TYPO3\CMS\Assist\Domain\Progress;
-use TYPO3\CMS\Assist\Domain\ProgressItem;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\Domain\Model\Progress;
+use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;

@@ -19,7 +19,7 @@ namespace TYPO3\CMS\Assist\Controller\Module;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use TYPO3\CMS\Assist\Service\PlatformResolver;
+use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Context\PageContext;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;

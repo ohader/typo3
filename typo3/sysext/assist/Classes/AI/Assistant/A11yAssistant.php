@@ -15,16 +15,9 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\AI\Assistant;
 
-final readonly class Platform
+final readonly class A11yAssistant implements AssistantInterface
 {
-    public function __construct(
-        public Availability $availability,
-        public string $name,
-        public string $package,
-        public array $options = [],
-        public array $models = [],
-    ) {
-    }
+
 }

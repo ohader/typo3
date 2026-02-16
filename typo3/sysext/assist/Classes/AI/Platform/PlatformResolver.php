@@ -15,10 +15,10 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Service;
+namespace TYPO3\CMS\Assist\AI\Platform;
 
-use TYPO3\CMS\Assist\Domain\Availability;
-use TYPO3\CMS\Assist\Domain\Platform;
+use TYPO3\CMS\Assist\Domain\Enum\Availability;
+use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Core\Site\SiteFinder;
 
 /**
@@ -29,7 +29,7 @@ final readonly class PlatformResolver
     private const STRUCTURAL_KEYS = ['enabled', 'name', 'package', 'models'];
 
     public function __construct(
-        private PackageService $packageService,
+        private \TYPO3\CMS\Assist\Service\PackageService $packageService,
         private SiteFinder $siteFinder,
     ) {}
 

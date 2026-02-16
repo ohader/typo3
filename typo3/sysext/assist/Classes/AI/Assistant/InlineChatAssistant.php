@@ -15,10 +15,9 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\AI\Assistant;
 
-enum ProgressItemType: string
+final readonly class InlineChatAssistant implements AssistantInterface
 {
-    case submitted = 'submitted';
-    case received = 'received';
+
 }

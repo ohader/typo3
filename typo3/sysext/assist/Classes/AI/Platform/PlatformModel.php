@@ -15,7 +15,7 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\AI\Platform;
 
 /**
  * @internal
@@ -26,7 +26,7 @@ final readonly class PlatformModel
         public string $platform,
         public string $model,
     ) {
-        if (str_contains($this->model, '@') || str_contains($this->platform, '@')) {
+        if (\str_contains($this->model, '@') || \str_contains($this->platform, '@')) {
             throw new \LogicException('Identifiers for platform or model may not contain "@" characters.', 1771165074);
         }
     }

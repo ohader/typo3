@@ -16,9 +16,9 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-use TYPO3\CMS\Assist\Assistant\A11yAssistant;
-use TYPO3\CMS\Assist\Assistant\InlineChatAssistant;
-use TYPO3\CMS\Assist\Domain\AssistantCapability;
+use TYPO3\CMS\Assist\AI\Assistant\A11yAssistant;
+use TYPO3\CMS\Assist\AI\Assistant\InlineChatAssistant;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 
 return [
     'typo3-assist-a11y' => [

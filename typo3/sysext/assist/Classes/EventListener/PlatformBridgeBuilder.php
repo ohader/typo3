@@ -20,7 +20,7 @@ namespace TYPO3\CMS\Assist\EventListener;
 use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Bridge\Generic\EmbeddingsModel;
 use Symfony\AI\Platform\Capability;
-use TYPO3\CMS\Assist\Domain\Availability;
+use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Http\RequestFactory;

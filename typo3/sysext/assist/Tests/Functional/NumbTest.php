@@ -15,16 +15,15 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Numb;
+namespace TYPO3\CMS\Assist\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
-use TYPO3\CMS\Assist\Domain\PlatformBridge;
-use TYPO3\CMS\Assist\Service\PlatformConnector;
-use TYPO3\CMS\Assist\Service\PlatformResolver;
-use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
+use TYPO3\CMS\Assist\AI\Platform\PlatformBridge;
+use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
+use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
 class NumbTest extends FunctionalTestCase
@@ -39,7 +38,7 @@ class NumbTest extends FunctionalTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration(
             'PlatformBridgeTest',
             1,

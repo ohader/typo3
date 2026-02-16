@@ -15,45 +15,41 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
+namespace TYPO3\CMS\Assist\Tests\Functional\AI\Platform;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\Service\PackageService;
+use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
+use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class PackageServiceTest extends FunctionalTestCase
+class PlatformResolverTest extends FunctionalTestCase
 {
     use AssistBasedTestTrait;
 
     protected array $coreExtensionsToLoad = ['assist'];
-    private PackageService $subject;
+    private PlatformResolver $subject;
 
     public function setUp(): void
     {
         parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration(
             'PlatformBridgeTest',
             1,
             '/',
             [self::ASSIST_PLATFORM_NUMB_ENCORE]
         );
-        $this->subject = $this->get(PackageService::class);
+        $this->subject = $this->get(PlatformResolver::class);
     }
 
     #[Test]
-    public function canResolvePlatformPackages(): void
+    public function canResolvePlatform(): void
     {
-        $packageNames = $this->subject->findPackageNamesByType(PackageService::SYMFONY_AI_PLATFORM);
-        self::assertContainsEquals('typo3/symfony-ai-numb-platform', $packageNames);
-    }
-
-    #[Test]
-    public function canResolveNumpPackage(): void
-    {
-        $package = $this->subject->getPackage('typo3/symfony-ai-numb-platform');
-        self::assertSame('typo3/symfony-ai-numb-platform', $package['name']);
-        self::assertSame(PackageService::SYMFONY_AI_PLATFORM, $package['type']);
+        $platform = $this->subject->getSitePlatform(
+            'PlatformBridgeTest',
+            'typo3/symfony-ai-numb-platform'
+        );
+        self::assertInstanceOf(Platform::class, $platform);
     }
 }

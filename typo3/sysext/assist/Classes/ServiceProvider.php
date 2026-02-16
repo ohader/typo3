@@ -18,7 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist;
 
 use Psr\Container\ContainerInterface;
-use TYPO3\CMS\Assist\Domain\Assistant;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Core\Cache\Event\CacheWarmupEvent;
 use TYPO3\CMS\Core\EventDispatcher\ListenerProvider;

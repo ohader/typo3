@@ -17,9 +17,9 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Service;
 
-use TYPO3\CMS\Assist\Domain\Assistant;
-use TYPO3\CMS\Assist\Domain\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\AssistantMode;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 final readonly class AssistantRegistry
 {

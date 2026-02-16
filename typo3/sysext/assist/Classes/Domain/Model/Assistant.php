@@ -15,9 +15,11 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\Domain\Model;
 
 use Symfony\AI\Platform\Capability;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
 /**
  * @internal

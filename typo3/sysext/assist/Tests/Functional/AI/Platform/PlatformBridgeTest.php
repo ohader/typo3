@@ -15,12 +15,12 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
+namespace TYPO3\CMS\Assist\Tests\Functional\AI\Platform;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\AI\Platform\Capability;
-use TYPO3\CMS\Assist\Service\PlatformConnector;
-use TYPO3\CMS\Assist\Service\PlatformResolver;
+use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
+use TYPO3\CMS\Assist\AI\Platform\PlatformResolver;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\Symfony\AI\NumbPlatform\Bridge\ChatModel;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -36,7 +36,7 @@ class PlatformBridgeTest extends FunctionalTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration(
             'PlatformBridgeTest',
             1,

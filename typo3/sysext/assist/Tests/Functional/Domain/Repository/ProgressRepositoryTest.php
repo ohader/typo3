@@ -15,14 +15,14 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional\Domain;
+namespace TYPO3\CMS\Assist\Tests\Functional\Domain\Repository;
 
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Uid\Uuid;
-use TYPO3\CMS\Assist\Domain\PlatformModel;
-use TYPO3\CMS\Assist\Domain\Progress;
-use TYPO3\CMS\Assist\Domain\ProgressItem;
-use TYPO3\CMS\Assist\Domain\ProgressItemType;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
+use TYPO3\CMS\Assist\Domain\Model\Progress;
+use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -37,7 +37,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../../Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration(
             'ProgressRepositoryTest',
             1,

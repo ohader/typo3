@@ -15,7 +15,7 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain;
+namespace TYPO3\CMS\Assist\AI\Platform;
 
 use Symfony\AI\Platform\ModelCatalog\AbstractModelCatalog;
 use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
@@ -26,7 +26,7 @@ use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
 final class FilteredModelCatalog extends AbstractModelCatalog
 {
     public function __construct(
-        private readonly Platform $platform,
+        private readonly \TYPO3\CMS\Assist\Domain\Model\Platform $platform,
         private readonly ModelCatalogInterface $originalModelCatalog
     )
     {

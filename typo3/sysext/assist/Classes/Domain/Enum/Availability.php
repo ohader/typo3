@@ -15,8 +15,10 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Assistant;
-final readonly class A11yAssistant implements AssistantInterface
+namespace TYPO3\CMS\Assist\Domain\Enum;
+enum Availability: string
 {
-
+    case enabled = 'enabled';
+    case disabled = 'disabled';
+    case unavailable = 'unavailable';
 }

@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Backend;
 
-use TYPO3\CMS\Assist\Domain\PlatformReflector;
+use TYPO3\CMS\Assist\AI\Platform\PlatformReflector;
 use TYPO3\CMS\Assist\Service\PackageService;
 
 /**
