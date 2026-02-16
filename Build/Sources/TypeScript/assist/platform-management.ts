@@ -69,6 +69,7 @@ class PlatformManagement {
         statusSpan.innerHTML = '<span class="badge badge-success">Connected</span>';
       } else {
         statusSpan.innerHTML = '<span class="badge badge-danger" title="' + this.escapeHtml(data.error || 'Unknown error') + '">Failed</span>';
+        Notification.error('Connection check failed', data.error || 'Unknown error');
       }
     } catch {
       statusSpan.innerHTML = '<span class="badge badge-danger">Failed</span>';
