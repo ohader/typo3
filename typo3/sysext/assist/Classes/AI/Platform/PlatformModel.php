@@ -20,7 +20,7 @@ namespace TYPO3\CMS\Assist\AI\Platform;
 /**
  * @internal
  */
-final readonly class PlatformModel
+final readonly class PlatformModel implements \Stringable
 {
     public function __construct(
         public string $platform,
