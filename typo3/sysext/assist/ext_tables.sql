@@ -8,6 +8,5 @@ CREATE TABLE sys_assist_progress (
 	 datetime datetime(3) NOT NULL,
 	 payload longblob,
 
-	 PRIMARY KEY (uuid, sequence),
-	 KEY user (user_id)
+	 PRIMARY KEY (uuid, sequence)
 );
