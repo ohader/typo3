@@ -21,12 +21,15 @@ use Psr\Log\LoggerInterface;
 use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Capability;
 use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Assist\AI\Platform\ModelCatalog;
 use TYPO3\CMS\Assist\AI\Platform\PlatformDetails;
 use TYPO3\CMS\Assist\Domain\Enum\AuthenticationType;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Http\Uri;
 
@@ -35,12 +38,15 @@ use TYPO3\CMS\Core\Http\Uri;
  * Discovered models are injected as additionalModels into the vendor's own catalog.
  */
 #[AsEventListener('typo3/cms-assist/build-platform-bridge')]
-final class PlatformBridgeBuilder
+final readonly class PlatformBridgeBuilder
 {
     public function __construct(
         private PlatformDetails $platformDetails,
         private RequestFactory $requestFactory,
         private LoggerInterface $logger,
+        #[Autowire(service: 'cache.hash')]
+        private FrontendInterface $cache,
+        private ExtensionConfiguration $extensionConfiguration,
     ) {}
 
     public function __invoke(BeforeBuildPlatformBridgeEvent $event): void
@@ -60,25 +66,41 @@ final class PlatformBridgeBuilder
             return;
         }
 
-        $uri = (new Uri($baseUrl))->withPath($modelEndpoint);
-        $headers = $this->buildHeaders($package, $event);
+        $apiKey = $this->resolveApiKey($package, $event);
+        $cacheLifetime = $this->getCacheLifetime();
+        $cacheIdentifier = $this->buildCacheIdentifier($package, $baseUrl, $apiKey);
 
-        try {
-            $response = $this->requestFactory->request(
-                (string)$uri,
-                'GET',
-                ['headers' => $headers]
-            );
-            $data = json_decode($response->getBody()->getContents(), true);
-        } catch (\Throwable $e) {
-            $this->logger->warning('Failed to fetch models from {uri}: {message}', [
-                'uri' => (string)$uri,
-                'message' => $e->getMessage(),
-            ]);
-            return;
+        $models = false;
+        if ($cacheLifetime > 0) {
+            $models = $this->cache->get($cacheIdentifier);
         }
 
-        $models = $this->buildModels($data, $package);
+        if ($models === false) {
+            $uri = (new Uri($baseUrl))->withPath($modelEndpoint);
+            $headers = $this->buildHeaders($package, $event);
+
+            try {
+                $response = $this->requestFactory->request(
+                    (string)$uri,
+                    'GET',
+                    ['headers' => $headers]
+                );
+                $data = json_decode($response->getBody()->getContents(), true);
+            } catch (\Throwable $e) {
+                $this->logger->warning('Failed to fetch models from {uri}: {message}', [
+                    'uri' => (string)$uri,
+                    'message' => $e->getMessage(),
+                ]);
+                return;
+            }
+
+            $models = $this->buildModels($data, $package);
+
+            if ($cacheLifetime > 0) {
+                $this->cache->set($cacheIdentifier, $models, ['assist'], $cacheLifetime);
+            }
+        }
+
         $modelCatalogParam = $this->getModelCatalogParam($event->reflector->getPlatformFactoryParamTypes());
 
         // replace ModelCatalog completely (if the parameter is present)
@@ -204,6 +226,12 @@ final class PlatformBridgeBuilder
         return $resolvedModels;
     }
 
+    private function resolveApiKey(string $package, BeforeBuildPlatformBridgeEvent $event): ?string
+    {
+        $authParam = $this->platformDetails->getAuthenticationParam($package);
+        return $authParam !== null ? ($event->getOptions()['platformFactory'][$authParam] ?? null) : null;
+    }
+
     private function mergeCapabilities(array $target, mixed $source): array
     {
         if (is_array($source)) {
@@ -212,5 +240,24 @@ final class PlatformBridgeBuilder
             $target[] = $source;
         }
         return $target;
+    }
+
+    private function buildCacheIdentifier(string $package, string $baseUrl, ?string $apiKey): string
+    {
+        $payload = [
+            'package' => $package,
+            'baseUrl' => $baseUrl,
+            'apiKey' => $apiKey,
+        ];
+        return 'assist-remote-models-' . hash('xxh128', json_encode($payload));
+    }
+
+    private function getCacheLifetime(): int
+    {
+        try {
+            return (int)$this->extensionConfiguration->get('assist', 'modelCacheLifetime');
+        } catch (\Exception) {
+            return 10800;
+        }
     }
 }
