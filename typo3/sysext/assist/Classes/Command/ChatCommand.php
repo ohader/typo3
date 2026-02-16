@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Command;
 
+use Symfony\AI\Platform\Message\Message;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
@@ -24,16 +25,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
-use Symfony\Component\Uid\Uuid;
-use TYPO3\CMS\Assist\AI\Agent\AgentBag;
-use TYPO3\CMS\Assist\AI\Agent\AgentConnector;
-use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantConnector;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
+use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
-use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
-use TYPO3\CMS\Assist\Domain\Model\Initiator;
-use TYPO3\CMS\Assist\Domain\Model\Progress;
-use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
+use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 /**
@@ -43,24 +40,35 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 final class ChatCommand extends Command
 {
     public function __construct(
-        private readonly AgentConnector $agentConnector,
         private readonly ConfigurationResolver $configurationResolver,
+        private readonly AssistantRegistry $assistantRegistry,
+        private readonly AssistantConnector $assistantConnector,
     ) {
         parent::__construct();
     }
 
     protected function configure(): void
     {
-        $this->addArgument('model', InputArgument::REQUIRED, 'The model@platform identifier (see assist:list)');
+        $this->addArgument('model', InputArgument::OPTIONAL, 'The model@platform identifier (see assist:list)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        try {
-            $platformModel = PlatformModel::fromString($input->getArgument('model'));
-        } catch (\InvalidArgumentException $e) {
-            $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            return Command::FAILURE;
+        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-inline-chat');
+        $modelValue = $input->getArgument('model');
+        if ($modelValue !== null) {
+            try {
+                $platformModel = PlatformModel::fromString($modelValue);
+            } catch (\InvalidArgumentException $e) {
+                $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
+                return Command::FAILURE;
+            }
+        } else {
+            $platformModel = $this->configurationResolver->getDefaultAssistantModel($assistant->identifier);
+            if ($platformModel === null) {
+                $output->writeln('<error>No model configured for this assistant. Provide a model argument or configure one in the site configuration.</error>');
+                return Command::FAILURE;
+            }
         }
 
         $platformFound = false;
@@ -75,10 +83,7 @@ final class ChatCommand extends Command
             return Command::FAILURE;
         }
 
-        $uuid = Uuid::v4();
-        $initiator = new Initiator(type: 'cli', subject: 'assist:chat');
-        $items = [];
-        $sequencePointer = new SequencePointer();
+        $agentInput = new AgentInput($platformModel);
 
         /** @var QuestionHelper $questionHelper */
         $questionHelper = $this->getHelper('question');
@@ -88,33 +93,26 @@ final class ChatCommand extends Command
         $output->writeln('');
 
         while (true) {
-            $userInput = $questionHelper->ask($input, $output, new Question('<info>You:</info> '));
-            if ($userInput === null || $userInput === '' || $userInput === '/quit') {
+            $userText = $questionHelper->ask($input, $output, new Question('<info>You:</info> '));
+            if ($userText === null || $userText === '' || $userText === '/quit') {
                 break;
             }
 
-            $items[] = new ProgressItem(type: ProgressItemType::submitted, payload: $userInput);
-
-            $progress = new Progress(
-                uuid: $uuid,
-                model: $platformModel,
-                initiator: $initiator,
-                items: $items,
-            );
-
-            $agentBag = new AgentBag(
-                model: $platformModel,
-                progress: $progress,
-                sequencePointer: $sequencePointer,
-            );
+            $agentInput->add(Message::ofUser($userText));
+            $agentOutput = new AgentOutput();
 
             try {
-                $result = $this->agentConnector->call($agentBag);
-                $content = $result->getContent();
-                $output->writeln('');
-                $output->writeln($content);
-                $output->writeln('');
-                $items[] = new ProgressItem(type: ProgressItemType::received, payload: $content);
+                $this->assistantConnector->process($assistant, $agentInput, $agentOutput);
+
+                $results = $agentOutput->getResultBag()->getResults();
+                $result = $results[0] ?? null;
+                if ($result !== null) {
+                    $content = $result->getContent();
+                    $output->writeln('');
+                    $output->writeln($content);
+                    $output->writeln('');
+                    $agentInput->add(Message::ofAssistant($content));
+                }
             } catch (\Throwable $e) {
                 $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
             }
