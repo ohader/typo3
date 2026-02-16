@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\AI\Platform;
 
 use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Bridge\Generic\EmbeddingsModel;
+use Symfony\AI\Platform\Bridge\Ollama\Ollama;
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\Domain\Enum\AuthenticationType;
 
@@ -31,10 +32,17 @@ final readonly class PlatformDetails
         'mittwald/symfony-ai-platform' => [
             'endpointParam' => 'baseUrl',
             'models' => [
-                'endpoint' => '/v1/models',
-                'response' => [
-                    'listKey' => 'data',
-                    'idKey' => 'id',
+                'listEndpoint' => [
+                    'path' => '/v1/models',
+                    'http' => [
+                        'method' => 'GET',
+                    ],
+                ],
+                'mappings' => [
+                    'response' => [
+                        'listKey' => 'data',
+                        'idKey' => 'id',
+                    ],
                 ],
             ],
             'authentication' => [
@@ -45,11 +53,23 @@ final readonly class PlatformDetails
         'symfony/ai-anthropic-platform' => [
             'endpointParam' => 'baseUrl',
             'models' => [
-                'endpoint' => '/v1/models',
+                'listEndpoint' => [
+                    'path' => '/v1/models',
+                    'http' => [
+                        'method' => 'GET',
+                    ],
+                ],
                 'mappings' => [
                     'response' => [
                         'listKey' => 'data',
                         'idKey' => 'id',
+                        'typeKey' => 'type',
+                    ],
+                    'typeCapability' => [
+                        'model' => [Capability::INPUT_MESSAGES, Capability::INPUT_IMAGE, Capability::OUTPUT_TEXT, Capability::OUTPUT_STREAMING, Capability::TOOL_CALLING],
+                    ],
+                    'typeModel' => [
+                        'model' => CompletionsModel::class,
                     ],
                 ],
             ],
@@ -68,7 +88,12 @@ final readonly class PlatformDetails
         'symfony/ai-lm-studio-platform' => [
             'endpointParam' => 'baseUrl',
             'models' => [
-                'endpoint' => '/api/v1/models',
+                'listEndpoint' => [
+                    'path' => '/api/v1/models',
+                    'http' => [
+                        'method' => 'GET',
+                    ],
+                ],
                 'mappings' => [
                     'response' => [
                         'idKey' => 'key',
@@ -93,11 +118,32 @@ final readonly class PlatformDetails
         'symfony/ai-ollama-platform' => [
             'endpointParam' => 'hostUrl',
             'models' => [
-                'endpoint' => '/api/tags',
+                'listEndpoint' => [
+                    'path' => '/api/tags',
+                    'http' => [
+                        'method' => 'GET',
+                    ],
+                ],
+                'detailEndpoint' => [
+                    'path' => '/api/show',
+                    'http' => [
+                        'method' => 'POST',
+                        'bodyKey' => 'model',
+                    ],
+                ],
                 'mappings' => [
                     'response' => [
                         'listKey' => 'models',
                         'idKey' => 'name',
+                        'capabilitiesKey' => 'capabilities',
+                    ],
+                    'defaultModel' => Ollama::class,
+                    'capabilityMap' => [
+                        'completion' => [Capability::INPUT_MESSAGES, Capability::OUTPUT_TEXT, Capability::OUTPUT_STREAMING],
+                        'embedding' => [Capability::INPUT_TEXT, Capability::INPUT_MULTIPLE, Capability::EMBEDDINGS],
+                        'tools' => [Capability::TOOL_CALLING],
+                        'thinking' => [Capability::THINKING],
+                        'vision' => [Capability::INPUT_IMAGE],
                     ],
                 ],
             ],
@@ -105,7 +151,12 @@ final readonly class PlatformDetails
         'symfony/ai-open-ai-platform' => [
             'endpointParam' => 'baseUrl',
             'models' => [
-                'endpoint' => '/v1/models',
+                'listEndpoint' => [
+                    'path' => '/v1/models',
+                    'http' => [
+                        'method' => 'GET',
+                    ],
+                ],
                 'mappings' => [
                     'response' => [
                         'listKey' => 'data',
@@ -130,9 +181,14 @@ final readonly class PlatformDetails
         return $this->get($platform)['endpointParam'] ?? null;
     }
 
-    public function getModelsEndpoint(string $platform): ?string
+    public function getModelsListEndpoint(string $platform): ?array
     {
-        return $this->get($platform)['models']['endpoint'] ?? null;
+        return $this->get($platform)['models']['listEndpoint'] ?? null;
+    }
+
+    public function getModelsDetailEndpoint(string $platform): ?array
+    {
+        return $this->get($platform)['models']['detailEndpoint'] ?? null;
     }
 
     public function getModelsMappings(string $platform): ?array

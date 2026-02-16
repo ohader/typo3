@@ -56,8 +56,8 @@ final readonly class PlatformBridgeBuilder
         }
 
         $package = $event->platform->package;
-        $modelEndpoint = $this->platformDetails->getModelsEndpoint($package);
-        if ($modelEndpoint === null) {
+        $listEndpoint = $this->platformDetails->getModelsListEndpoint($package);
+        if ($listEndpoint === null) {
             return;
         }
 
@@ -76,13 +76,15 @@ final readonly class PlatformBridgeBuilder
         }
 
         if ($models === false) {
-            $uri = (new Uri($baseUrl))->withPath($modelEndpoint);
+            $listPath = $listEndpoint['path'] ?? '';
+            $listMethod = $listEndpoint['http']['method'] ?? 'GET';
+            $uri = (new Uri($baseUrl))->withPath($listPath);
             $headers = $this->buildHeaders($package, $event);
 
             try {
                 $response = $this->requestFactory->request(
                     (string)$uri,
-                    'GET',
+                    $listMethod,
                     ['headers' => $headers]
                 );
                 $data = json_decode($response->getBody()->getContents(), true);
@@ -95,6 +97,12 @@ final readonly class PlatformBridgeBuilder
             }
 
             $models = $this->buildModels($data, $package);
+
+            $detailConfig = $this->platformDetails->getModelsDetailEndpoint($package);
+            if ($detailConfig !== null) {
+                $mappings = $this->platformDetails->getModelsMappings($package) ?? [];
+                $models = $this->enrichModelsWithDetails($models, $baseUrl, $headers, $detailConfig, $mappings);
+            }
 
             if ($cacheLifetime > 0) {
                 $this->cache->set($cacheIdentifier, $models, ['assist'], $cacheLifetime);
@@ -224,6 +232,63 @@ final readonly class PlatformBridgeBuilder
         }
 
         return $resolvedModels;
+    }
+
+    /**
+     * @param array<string, array{class: class-string, capabilities: list<Capability>}> $models
+     * @param array<string, string> $headers
+     * @return array<string, array{class: class-string, capabilities: list<Capability>}>
+     */
+    private function enrichModelsWithDetails(array $models, string $baseUrl, array $headers, array $detailConfig, array $mappings): array
+    {
+        $path = $detailConfig['path'] ?? '';
+        $method = $detailConfig['http']['method'] ?? 'POST';
+        $bodyKey = $detailConfig['http']['bodyKey'] ?? null;
+        $responseCapabilitiesKey = $mappings['response']['capabilitiesKey'] ?? 'capabilities';
+        $defaultClass = $mappings['defaultModel'] ?? CompletionsModel::class;
+        $capabilityMap = $mappings['capabilityMap'] ?? [];
+
+        $uri = (string)(new Uri($baseUrl))->withPath($path);
+
+        foreach ($models as $modelId => $modelEntry) {
+            try {
+                $requestOptions = ['headers' => $headers];
+                if ($bodyKey !== null) {
+                    $requestOptions['body'] = json_encode([$bodyKey => $modelId]);
+                }
+                $response = $this->requestFactory->request($uri, $method, $requestOptions);
+                $data = json_decode($response->getBody()->getContents(), true);
+            } catch (\Throwable $e) {
+                $this->logger->warning('Failed to fetch model details for {model} from {uri}: {message}', [
+                    'model' => $modelId,
+                    'uri' => $uri,
+                    'message' => $e->getMessage(),
+                ]);
+                continue;
+            }
+
+            $rawCapabilities = $data[$responseCapabilitiesKey] ?? [];
+            if (!is_array($rawCapabilities) || $rawCapabilities === []) {
+                continue;
+            }
+
+            $capabilities = [];
+            foreach ($rawCapabilities as $capabilityName) {
+                if (isset($capabilityMap[$capabilityName])) {
+                    $mapped = $capabilityMap[$capabilityName];
+                    $capabilities = $this->mergeCapabilities($capabilities, $mapped);
+                }
+            }
+
+            if ($capabilities !== []) {
+                $models[$modelId] = [
+                    'class' => $defaultClass,
+                    'capabilities' => $capabilities,
+                ];
+            }
+        }
+
+        return $models;
     }
 
     private function resolveApiKey(string $package, BeforeBuildPlatformBridgeEvent $event): ?string
