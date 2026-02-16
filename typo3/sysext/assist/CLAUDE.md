@@ -1,6 +1,6 @@
 # EXT:assist — TYPO3 AI Assistant
 
-_Last updated: 2026-02-15_
+_Last updated: 2026-02-16_
 
 Experimental TYPO3 system extension (v14.2) that integrates Symfony AI platform packages into the TYPO3 backend. Classes, interfaces, and configuration may change without notice.
 
@@ -37,25 +37,29 @@ Four-layer platform abstraction:
 3. **Bridge** — `PlatformBridge` dynamically instantiates Symfony AI classes via reflection on composer PSR-4 metadata
 4. **Runtime** — live Symfony AI `PlatformInterface` and `ModelCatalogInterface` instances
 
-Flow: `SiteConfig → PlatformResolver → Platform → PlatformConnector → BeforeBuildPlatformBridgeEvent → PlatformBridge → PlatformFactory/ModelCatalog`
+Flow: `SiteConfig → AI\Platform\PlatformResolver → Domain\Model\Platform → AI\Platform\PlatformConnector → BeforeBuildPlatformBridgeEvent → AI\Platform\PlatformBridge → PlatformFactory/ModelCatalog`
 
 ## Directory structure
 
 ```
 Classes/
-  Assistant/          AssistantInterface (marker), A11yAssistant, InlineChatAssistant
-  Backend/            PlatformItemsProcFunc (TCA items processor)
+  AI/
+    Assistant/        AssistantInterface (marker), A11yAssistant, InlineChatAssistant
+    Platform/         PlatformBridge, PlatformConnector, PlatformResolver,
+                      PlatformReflector, PlatformModel, FilteredModelCatalog
+  Backend/            PlatformItemsProcFunc (TCA items processor), PlatformTcaProvider
   Controller/
     Ajax/             PlatformAjaxController (connection test, model CRUD)
     Module/           AssistantController, PlatformController, GlossaryController, PromptController
-  Domain/             Platform, Assistant, PlatformBridge, AssistantCapability (enum),
-                      AssistantMode (enum), Availability (enum), AssistantTrigger,
-                      Authorization, FilteredModelCatalog
+  Domain/
+    Enum/             AssistantCapability, AssistantMode, Availability, ProgressItemType
+    Model/            Assistant, AssistantTrigger, Platform, Progress, ProgressItem
+    Repository/       ProgressRepository
   Event/              BeforeBuildPlatformBridgeEvent
   EventListener/      PlatformBridgeBuilder (LM Studio model discovery),
                       SiteConfigurationAssistNormalizer (YAML ↔ TCA flattening)
   Exception/          Exception (base), PlatformNotAvailableException
-  Service/            AssistantRegistry, PackageService, PlatformConnector, PlatformResolver
+  Service/            AssistantRegistry, PackageService
   ServiceProvider.php (DI factories, cache warmup, event wiring)
 Configuration/
   Backend/            AjaxRoutes.php, Assistants.php, Modules.php
@@ -70,16 +74,20 @@ Tests/Functional/
 
 | Class | Role |
 |---|---|
-| `Service\PlatformResolver` | Site config → `Platform` domain objects. Determines `Availability` based on package presence + enabled flag. |
-| `Service\PlatformConnector` | `Platform` → `PlatformBridge`. Extracts PSR-4 namespace from composer metadata, dispatches `BeforeBuildPlatformBridgeEvent`, constructs bridge. `@internal` |
+| `AI\Platform\PlatformResolver` | Site config → `Platform` domain objects. Determines `Availability` based on package presence + enabled flag. |
+| `AI\Platform\PlatformConnector` | `Platform` → `PlatformBridge`. Extracts PSR-4 namespace from composer metadata, dispatches `BeforeBuildPlatformBridgeEvent`, constructs bridge. `@internal` |
+| `AI\Platform\PlatformBridge` | Dynamically resolves `{namespace}PlatformFactory` and `{namespace}ModelCatalog` via reflection. Wraps catalog in `FilteredModelCatalog` when effective=true. `@internal` |
+| `AI\Platform\PlatformReflector` | Uses PHP reflection to discover Symfony AI platform classes and their constructor parameters. `@internal` |
+| `AI\Platform\PlatformModel` | Value object for `model@platform` identifier strings. |
+| `AI\Platform\FilteredModelCatalog` | Decorator that filters a `ModelCatalogInterface` to a platform's model whitelist. `@internal` |
 | `Service\PackageService` | Reads `vendor/composer/installed.json`. Finds packages by type (`symfony-ai-platform`). |
 | `Service\AssistantRegistry` | Central registry of all assistants. Queryable by mode, capability, trigger type, record. |
-| `Domain\Platform` | `final readonly` value object: availability, name, package, options, authorization, models. |
-| `Domain\PlatformBridge` | Dynamically resolves `{namespace}PlatformFactory` and `{namespace}ModelCatalog` via reflection. Wraps catalog in `FilteredModelCatalog` when effective=true. `@internal` |
-| `Domain\Assistant` | `final readonly` value object with `createFromConfiguration()` factory. `@internal` |
-| `Domain\AssistantCapability` | String-backed enum. Maps TYPO3 capability names → Symfony AI `Capability` objects via `convertToCapabilities()`. |
-| `Domain\Availability` | Enum: `enabled`, `disabled`, `unavailable` |
-| `Domain\AssistantMode` | Enum: `module`, `inline` |
+| `Domain\Model\Platform` | `final readonly` value object: availability, name, package, options, authorization, models. |
+| `Domain\Model\Assistant` | `final readonly` value object with `createFromConfiguration()` factory. `@internal` |
+| `Domain\Model\AssistantTrigger` | Value object defining when an assistant triggers based on types, records, or components. `@internal` |
+| `Domain\Enum\AssistantCapability` | String-backed enum. Maps TYPO3 capability names → Symfony AI `Capability` objects via `convertToCapabilities()`. |
+| `Domain\Enum\Availability` | Enum: `enabled`, `disabled`, `unavailable` |
+| `Domain\Enum\AssistantMode` | Enum: `module`, `inline` |
 | `Event\BeforeBuildPlatformBridgeEvent` | Modify bridge options before construction (e.g. inject additional models). `@internal` |
 | `EventListener\SiteConfigurationAssistNormalizer` | Bidirectional transform: nested `assist:` YAML ↔ flat `assistDefault`/`assistPlatforms`/`assistAssistants` TCA keys. |
 | `ServiceProvider` | Registers `backend.assistants` ArrayObject factory, cache warmup, `AssistantRegistry` construction. |
@@ -105,7 +113,7 @@ return [
 ];
 ```
 
-The handler class must implement `TYPO3\CMS\Assist\Assistant\AssistantInterface`.
+The handler class must implement `TYPO3\CMS\Assist\AI\Assistant\AssistantInterface`.
 
 ### Customizing platform bridges via events
 
@@ -122,6 +130,15 @@ public function __invoke(BeforeBuildPlatformBridgeEvent $event): void
 ```
 
 See `EventListener\PlatformBridgeBuilder` for a real example (LM Studio dynamic model discovery).
+
+### AI namespace
+
+The `AI\` namespace groups all AI-specific infrastructure. Current sub-namespaces:
+
+- `AI\Assistant\` — Assistant handler implementations (`AssistantInterface`, `A11yAssistant`, `InlineChatAssistant`)
+- `AI\Platform\` — Platform bridge layer (reflection, connection, resolution, model catalog filtering)
+
+Future sub-namespaces may include `AI\MCP\`, `AI\Tool\`, etc.
 
 ## Site configuration format
 
@@ -151,9 +168,9 @@ After `SiteConfigurationAssistNormalizer` flattens for TCA, the runtime keys are
 ## Conventions
 
 - **Immutability**: all domain objects and services are `final readonly`
-- **Enums**: string-backed enums for `Availability`, `AssistantMode`, `AssistantCapability`
+- **Enums**: string-backed enums in `Domain\Enum\` for `Availability`, `AssistantMode`, `AssistantCapability`, `ProgressItemType`
 - **Factory methods**: `createFromConfiguration()` on `Assistant` and `AssistantTrigger` — validates input, throws `\InvalidArgumentException` with numeric codes
-- **`@internal`**: `PlatformBridge`, `Assistant`, `AssistantTrigger`, `FilteredModelCatalog`, `PlatformConnector`, `BeforeBuildPlatformBridgeEvent`, all controllers
+- **`@internal`**: `AI\Platform\PlatformBridge`, `AI\Platform\PlatformConnector`, `AI\Platform\PlatformReflector`, `AI\Platform\FilteredModelCatalog`, `Domain\Model\Assistant`, `Domain\Model\AssistantTrigger`, `BeforeBuildPlatformBridgeEvent`, all controllers
 - **Strict types**: all files declare `strict_types=1`
 - **Named constructor parameters**: domain objects use named params for clarity
 - **Attributes**: `#[AsController]`, `#[AsEventListener('identifier')]`, `#[Autoconfigure(public: true)]`
@@ -190,7 +207,7 @@ class MyTest extends FunctionalTestCase
 
 ### Adding a new assistant
 
-1. Create handler class implementing `AssistantInterface` in `Classes/Assistant/`
+1. Create handler class implementing `AssistantInterface` in `Classes/AI/Assistant/`
 2. Register in `Configuration/Backend/Assistants.php` with mode, capabilities, handler, trigger
 3. Flush caches (assistant configs are cached in `cache.core`)
 
