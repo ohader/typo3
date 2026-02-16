@@ -23,6 +23,7 @@ TypeScript linting: `Build/Scripts/runTests.sh -s lintTypescript`
 
 Functional tests are executed with `Build/Scripts/runTests.sh -s functional typo3/sysext/assist/Tests/Functional/`
 Run a single test method: `Build/Scripts/runTests.sh -s functional -- --filter testMethodName typo3/sysext/assist/Tests/Functional/Domain/PlatformBridgeTest.php`
+Only run tests when your changes affect testable code (e.g. PHP class logic, configuration loading). To save tokens, you may also delegate test execution to the developer.
 
 ### Coding Guidelines (CGL)
 
