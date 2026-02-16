@@ -6,6 +6,28 @@ Experimental TYPO3 system extension (v14.2) that integrates Symfony AI platform 
 
 Package: `typo3/cms-assist` | Extension key: `assist` | Namespace: `TYPO3\CMS\Assist\`
 
+## Development & Tools
+
+The extension directory is `typo3/sysext/assist/` (relative to the TYPO3 project root source).
+
+`Build/Scripts/runTests.sh` requires Docker or podman.
+
+### JavaScript Client Components
+
+TypeScript is located in directory `Build/Sources/TypeScript/assist/`, compiled `.js` versions are copied to `typo3/sysext/assist/Resources/Public/JavaScript/`
+TypeScript is compiled with `cd Build; nvm use; npm run build-js`
+TypeScript watch mode for iterative development: `Build/Scripts/runTests.sh -s npm -- run watch:build`
+TypeScript linting: `Build/Scripts/runTests.sh -s lintTypescript`
+
+### PHP Tests (phpunit)
+
+Functional tests are executed with `Build/Scripts/runTests.sh -s functional typo3/sysext/assist/Tests/Functional/`
+Run a single test method: `Build/Scripts/runTests.sh -s functional -- --filter testMethodName typo3/sysext/assist/Tests/Functional/Domain/PlatformBridgeTest.php`
+
+### Coding Guidelines (CGL)
+
+Check coding style: `Build/Scripts/runTests.sh -s cgl typo3/sysext/assist/`
+
 ## Architecture
 
 Four-layer platform abstraction:
