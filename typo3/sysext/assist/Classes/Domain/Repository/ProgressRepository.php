@@ -20,6 +20,7 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Core\Database\Connection;
@@ -65,18 +66,18 @@ final readonly class ProgressRepository
     public function add(Progress $progress): void
     {
         foreach ($progress->items as $sequence => $item) {
-            $this->assign($progress->uuid, $progress->model, $sequence, $item);
+            $this->assign($progress->uuid, $progress->model, $progress->initiator, $sequence, $item);
         }
     }
 
-    public function append(Uuid $uuid, PlatformModel $model, ProgressItem $item): int
+    public function append(Uuid $uuid, PlatformModel $model, Initiator $initiator, ProgressItem $item): int
     {
         $sequence = $this->nextSequence($uuid);
-        $this->assign($uuid, $model, $sequence, $item);
+        $this->assign($uuid, $model, $initiator, $sequence, $item);
         return $sequence;
     }
 
-    private function assign(Uuid $uuid, PlatformModel $model, int $sequence, ProgressItem $item): void
+    private function assign(Uuid $uuid, PlatformModel $model, Initiator $initiator, int $sequence, ProgressItem $item): void
     {
         $this->getConnection()->insert(
             self::TABLE_NAME,
@@ -85,6 +86,7 @@ final readonly class ProgressRepository
                 'sequence' => $sequence,
                 'type' => $item->type->value,
                 'model' => (string)$model,
+                'initiator' => json_encode($initiator->toArray()),
                 'datetime' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
                 'payload' => json_encode($item->payload),
             ]

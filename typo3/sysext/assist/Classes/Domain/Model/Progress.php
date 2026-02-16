@@ -31,6 +31,7 @@ final readonly class Progress
     public function __construct(
         public Uuid $uuid,
         public PlatformModel $model,
+        public Initiator $initiator,
         public array $items,
     ) {}
 
@@ -45,6 +46,7 @@ final readonly class Progress
         return new self(
             uuid: Uuid::fromString($firstRow['uuid']),
             model: PlatformModel::fromString($firstRow['model']),
+            initiator: Initiator::fromJson($firstRow['initiator']),
             items: array_map(ProgressItem::fromRow(...), $rows),
         );
     }
