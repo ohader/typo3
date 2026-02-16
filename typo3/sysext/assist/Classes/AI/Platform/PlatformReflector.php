@@ -41,6 +41,16 @@ final readonly class PlatformReflector
         return $this->resolveOptions($reflector, $options);
     }
 
+    public function getPlatformFactoryParamTypes(): array
+    {
+        $paramTypes = [];
+        $reflector = new \ReflectionMethod($this->getPlatformFactoryClassName(), 'create');
+        foreach ($reflector->getParameters() as $parameter) {
+            $paramTypes[$parameter->getName()] = $parameter->getType()?->getName();
+        }
+        return $paramTypes;
+    }
+
     /**
      * @return class-string<ModelCatalogInterface>
      */

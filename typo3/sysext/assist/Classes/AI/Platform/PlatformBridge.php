@@ -52,10 +52,15 @@ final readonly class PlatformBridge
 
     public function getModelCatalog(): ModelCatalogInterface
     {
-        $class = $this->reflector->getModelCatalogClassName();
-        $modelCatalog = new $class(
-            ...$this->reflector->getModelCatalogOptions($this->options['modelCatalog'] ?? [])
-        );
+        $options = $this->options['modelCatalog'] ?? [];
+        if ($options instanceof ModelCatalogInterface) {
+            $modelCatalog = $options;
+        } else {
+            $class = $this->reflector->getModelCatalogClassName();
+            $modelCatalog = new $class(
+                ...$this->reflector->getModelCatalogOptions($options)
+            );
+        }
         return $this->effective && $this->platform->models !== []
             ? new FilteredModelCatalog($this->platform, $modelCatalog)
             : $modelCatalog;
