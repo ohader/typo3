@@ -17,7 +17,4 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-final readonly class A11yAssistant implements AssistantInterface
-{
-
-}
+final readonly class A11yAssistant implements AssistantInterface {}

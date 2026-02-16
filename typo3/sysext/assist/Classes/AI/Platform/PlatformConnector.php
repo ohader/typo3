@@ -37,7 +37,6 @@ final readonly class PlatformConnector
         private EventDispatcherInterface $eventDispatcher,
     ) {}
 
-
     /**
      * @param bool $effective Whether to apply platform/model filtering (if applicable)
      */

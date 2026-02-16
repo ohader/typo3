@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 
 namespace TYPO3\CMS\Assist\Domain\Enum;
+
 enum Availability: string
 {
     case enabled = 'enabled';

@@ -33,8 +33,7 @@ final readonly class PackageService
 
     public function __construct(
         private ComposerResource $composerResource,
-    )
-    {
+    ) {
         $allPackages = [];
         foreach ($this->composerResource->getVendors() as $vendorDir) {
             $path = $vendorDir . '/composer/installed.json';
@@ -42,7 +41,7 @@ final readonly class PackageService
             $data = $json !== false ? json_decode($json, true) : [];
             $packages = array_filter(
                 $data['packages'] ?? [],
-                static fn (array $package): bool => is_string($package['name'] ?? null)
+                static fn(array $package): bool => is_string($package['name'] ?? null)
             );
             $names = array_column($packages, 'name');
             $allPackages += array_combine($names, $packages);
@@ -90,7 +89,7 @@ final readonly class PackageService
         $names = array_keys(
             array_filter(
                 $this->packages,
-                static fn (array $package) => ($package['type'] ?? null) === $type
+                static fn(array $package) => ($package['type'] ?? null) === $type
             )
         );
         return array_values($names);

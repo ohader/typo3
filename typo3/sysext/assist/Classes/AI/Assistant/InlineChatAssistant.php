@@ -17,7 +17,4 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-final readonly class InlineChatAssistant implements AssistantInterface
-{
-
-}
+final readonly class InlineChatAssistant implements AssistantInterface {}

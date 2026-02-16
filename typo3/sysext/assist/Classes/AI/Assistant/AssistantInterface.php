@@ -16,7 +16,5 @@ declare(strict_types=1);
  */
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
-interface AssistantInterface
-{
 
-}
+interface AssistantInterface {}

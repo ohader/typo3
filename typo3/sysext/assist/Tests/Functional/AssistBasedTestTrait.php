@@ -21,18 +21,16 @@ use TYPO3\CMS\Core\Tests\Functional\SiteHandling\SiteBasedTestTrait;
 
 trait AssistBasedTestTrait
 {
+    use SiteBasedTestTrait;
     private const ASSIST_MODEL_NUMB_ENCORE = 'numb-encore';
     private const ASSIST_PLATFORM_NUMB_ENCORE = 'assist-platform-numb-encore';
-
-    use SiteBasedTestTrait;
 
     private function buildAssistSiteConfiguration(
         string $identifier,
         int $rootPageId,
         string $base,
         array $aspects,
-    ): void
-    {
+    ): void {
         $siteConfiguration = [
             'rootPageId' => $rootPageId,
             'base' => $base,

@@ -29,7 +29,7 @@ final readonly class ProgressItem
     public function __construct(
         public ProgressItemType $type,
         public mixed $payload,
-        \DateTimeImmutable $dateTime = null,
+        ?\DateTimeImmutable $dateTime = null,
     ) {
         $this->dateTime = $dateTime ?? new \DateTimeImmutable();
     }

@@ -15,10 +15,10 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
+use TYPO3\CMS\Assist\Controller\Module\AssistantController;
 use TYPO3\CMS\Assist\Controller\Module\GlossaryController;
 use TYPO3\CMS\Assist\Controller\Module\PlatformController;
 use TYPO3\CMS\Assist\Controller\Module\PromptController;
-use TYPO3\CMS\Assist\Controller\Module\AssistantController;
 
 /**
  * Definitions for modules provided by EXT:assist

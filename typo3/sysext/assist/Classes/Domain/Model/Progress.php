@@ -32,8 +32,7 @@ final readonly class Progress
         public Uuid $uuid,
         public PlatformModel $model,
         public array $items,
-    ) {
-    }
+    ) {}
 
     /**
      * @param list<array<string, mixed>> $rows

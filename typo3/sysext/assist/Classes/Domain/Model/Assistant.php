@@ -37,8 +37,7 @@ final readonly class Assistant
         public AssistantTrigger $trigger,
         public string $packageName,
         public string $absolutePackagePath,
-    ) {
-    }
+    ) {}
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
     {

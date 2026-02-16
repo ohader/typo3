@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 #[Autoconfigure(public: true)]
 final readonly class ProgressRepository
 {
-    protected const TABLE_NAME = 'sys_assist_progress';
+    private const TABLE_NAME = 'sys_assist_progress';
 
     public function __construct(private ConnectionPool $pool) {}
 

@@ -28,8 +28,7 @@ final class FilteredModelCatalog extends AbstractModelCatalog
     public function __construct(
         private readonly \TYPO3\CMS\Assist\Domain\Model\Platform $platform,
         private readonly ModelCatalogInterface $originalModelCatalog
-    )
-    {
+    ) {
         $models = $this->originalModelCatalog->getModels();
         if ($this->platform->models !== []) {
             $models = array_filter(
