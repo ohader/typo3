@@ -28,7 +28,7 @@
         <source>Triggers</source>
       </trans-unit>
       <trans-unit id="noAssistantsRegistered">
-        <source>No assistants registered. Register assistants via Configuration/Backend/Assistants.php in your extension.</source>
+        <source>No assistants registered. Register assistants using the #[AsAssistant] attribute on your handler class.</source>
       </trans-unit>
       <trans-unit id="mode.module">
         <source>Module</source>

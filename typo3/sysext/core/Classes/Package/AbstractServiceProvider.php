@@ -64,7 +64,6 @@ abstract class AbstractServiceProvider implements ServiceProviderInterface
             'middlewares' => [ static::class, 'configureMiddlewares' ],
             'backend.routes' => [ static::class, 'configureBackendRoutes' ],
             'backend.modules' => [ static::class, 'configureBackendModules' ],
-            'backend.assistants' => [ static::class, 'configureBackendAssistants' ],
             'content.security.policies' => [ static::class, 'configureContentSecurityPolicies' ],
             'icons' => [ static::class, 'configureIcons' ],
             'fluid.namespaces' => [ static::class, 'configureFluidNamespaces' ],
@@ -172,29 +171,6 @@ abstract class AbstractServiceProvider implements ServiceProviderInterface
             }
         }
         return $modules;
-    }
-
-    /**
-     * @param string|null $path supplied when invoked internally through PseudoServiceProvider
-     * @param string|null $packageName supplied when invoked internally through PseudoServiceProvider
-     */
-    public static function configureBackendAssistants(ContainerInterface $container, \ArrayObject $assistants, ?string $path = null, ?string $packageName = null): \ArrayObject
-    {
-        $path = $path ?? static::getPackagePath();
-        $packageName = $packageName ?? static::getPackageName();
-        $assistantsFileNameForPackage = $path . 'Configuration/Backend/Assistants.php';
-        if (file_exists($assistantsFileNameForPackage)) {
-            $definedAssistantsInPackage = self::requireFile($assistantsFileNameForPackage);
-            if (is_array($definedAssistantsInPackage)) {
-                array_walk($definedAssistantsInPackage, static function (array &$assistant) use ($packageName, $path): void {
-                    // Add packageName and absolutePackagePath to all assistants
-                    $assistant['packageName'] = $packageName;
-                    $assistant['absolutePackagePath'] = $path;
-                });
-                $assistants->exchangeArray(array_merge($assistants->getArrayCopy(), $definedAssistantsInPackage));
-            }
-        }
-        return $assistants;
     }
 
     /**

@@ -27,12 +27,13 @@ final readonly class AssistantRegistry
     private array $assistants;
 
     /**
-     * @param array<string, Assistant> $assistants
+     * @param array<string, array> $assistants Raw configuration arrays keyed by identifier
      */
     public function __construct(array $assistants)
     {
         $indexed = [];
-        foreach ($assistants as $assistant) {
+        foreach ($assistants as $identifier => $configuration) {
+            $assistant = Assistant::createFromConfiguration($identifier, $configuration);
             if (isset($indexed[$assistant->identifier])) {
                 throw new \InvalidArgumentException(
                     sprintf('Duplicate assistant identifier "%s".', $assistant->identifier),

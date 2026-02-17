@@ -48,10 +48,12 @@ Classes/
     Assistant/        AssistantInterface (marker), A11yAssistant, InlineChatAssistant
     Platform/         PlatformBridge, PlatformConnector, PlatformResolver,
                       PlatformReflector, PlatformModel, FilteredModelCatalog
+  Attribute/          AsAssistant (PHP attribute for assistant registration)
   Backend/            PlatformItemsProcFunc (TCA items processor), PlatformTcaProvider
   Controller/
     Ajax/             PlatformAjaxController (connection test, model CRUD)
     Module/           AssistantController, PlatformController, GlossaryController, PromptController
+  DependencyInjection/ AssistantCompilerPass (wires #[AsAssistant] into AssistantRegistry)
   Domain/
     Enum/             AssistantCapability, AssistantMode, Availability, ProgressItemType
     Model/            Assistant, AssistantTrigger, Platform, Progress, ProgressItem
@@ -61,9 +63,11 @@ Classes/
                       SiteConfigurationAssistNormalizer (YAML ↔ TCA flattening)
   Exception/          Exception (base), PlatformNotAvailableException
   Service/            AssistantRegistry, PackageService
-  ServiceProvider.php (DI factories, cache warmup, event wiring)
+  ServiceProvider.php (package identity)
 Configuration/
-  Backend/            AjaxRoutes.php, Assistants.php, Modules.php
+  Backend/            AjaxRoutes.php, Modules.php
+  Services.yaml       (autowiring)
+  Services.php        (attribute autoconfiguration + compiler pass)
   SiteConfiguration/  site_assist_platform.php, Overrides/site.php
 Tests/Functional/
   AssistBasedTestTrait.php
@@ -91,30 +95,35 @@ Tests/Functional/
 | `Domain\Enum\AssistantMode` | Enum: `module`, `inline` |
 | `Event\BeforeBuildPlatformBridgeEvent` | Modify bridge options before construction (e.g. inject additional models). `@internal` |
 | `EventListener\SiteConfigurationAssistNormalizer` | Bidirectional transform: nested `assist:` YAML ↔ flat `assistDefault`/`assistPlatforms`/`assistAssistants` TCA keys. |
-| `ServiceProvider` | Registers `backend.assistants` ArrayObject factory, cache warmup, `AssistantRegistry` construction. |
+| `Attribute\AsAssistant` | PHP attribute for registering assistant handler classes. Discovered at compile time by `AssistantCompilerPass`. |
+| `DependencyInjection\AssistantCompilerPass` | Collects `#[AsAssistant]`-tagged services and injects config into `AssistantRegistry`. `@internal` |
+| `ServiceProvider` | Package identity (path + name). |
 
 ## Extension points
 
 ### Registering assistants
 
-Add entries in `Configuration/Backend/Assistants.php` (returns array keyed by identifier):
+Annotate the handler class with `#[AsAssistant]`. The attribute is discovered at compile time — no separate config file needed:
 
 ```php
-return [
-    'my-assistant' => [
-        'mode' => 'module',           // or 'inline'
-        'capabilities' => [AssistantCapability::messages, AssistantCapability::toolCalling],
-        'handler' => MyAssistant::class, // must implement AssistantInterface
-        'trigger' => [
-            'types' => ['context'],
-            'records' => ['pages'],
-            'components' => [],
-        ],
-    ],
-];
+use TYPO3\CMS\Assist\Attribute\AsAssistant;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
+
+#[AsAssistant(
+    identifier: 'my-assistant',
+    mode: AssistantMode::module,
+    capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
+    triggerTypes: ['context'],
+    triggerRecords: ['pages'],
+)]
+final readonly class MyAssistant implements AssistantInterface
+{
+    // ...
+}
 ```
 
-The handler class must implement `TYPO3\CMS\Assist\AI\Assistant\AssistantInterface`.
+The handler class must implement `TYPO3\CMS\Assist\AI\Assistant\AssistantInterface`. The `#[AsAssistant]` attribute automatically makes the service public (required by `AssistantConnector`).
 
 ### Customizing platform bridges via events
 
@@ -174,8 +183,9 @@ After `SiteConfigurationAssistNormalizer` flattens for TCA, the runtime keys are
 - **`@internal`**: `AI\Platform\PlatformBridge`, `AI\Platform\PlatformConnector`, `AI\Platform\PlatformReflector`, `AI\Platform\FilteredModelCatalog`, `Domain\Model\Assistant`, `Domain\Model\AssistantTrigger`, `BeforeBuildPlatformBridgeEvent`, all controllers
 - **Strict types**: all files declare `strict_types=1`
 - **Named constructor parameters**: domain objects use named params for clarity
-- **Attributes**: `#[AsController]`, `#[AsEventListener('identifier')]`, `#[Autoconfigure(public: true)]`
+- **Attributes**: `#[AsController]`, `#[AsEventListener('identifier')]`, `#[AsAssistant(...)]`
 - **Exception codes**: all exceptions use numeric timestamp-based codes (e.g. `1771009690`)
+- **No direct Agent instantiation**: `AssistantInterface` implementations must not create `new Symfony\AI\Agent\Agent(...)` directly. Instead, build an `AgentBag` and delegate to `AgentConnector::call()`, which centralises platform resolution, bridge construction, and optional progress persistence.
 
 ## Testing
 
@@ -209,8 +219,8 @@ class MyTest extends FunctionalTestCase
 ### Adding a new assistant
 
 1. Create handler class implementing `AssistantInterface` in `Classes/AI/Assistant/`
-2. Register in `Configuration/Backend/Assistants.php` with mode, capabilities, handler, trigger
-3. Flush caches (assistant configs are cached in `cache.core`)
+2. Add the `#[AsAssistant]` attribute with identifier, mode, capabilities, and trigger config
+3. Rebuild the DI container (the compiler pass discovers assistants at compile time)
 
 ### Adding a new platform
 
