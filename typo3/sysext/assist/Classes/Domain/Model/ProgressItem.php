@@ -24,14 +24,14 @@ use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
  */
 final readonly class ProgressItem
 {
-    public \DateTimeImmutable $dateTime;
+    public \DateTimeImmutable $timestamp;
 
     public function __construct(
         public ProgressItemType $type,
         public mixed $payload,
-        ?\DateTimeImmutable $dateTime = null,
+        ?\DateTimeImmutable $timestamp = null,
     ) {
-        $this->dateTime = $dateTime ?? new \DateTimeImmutable();
+        $this->timestamp = $timestamp ?? new \DateTimeImmutable();
     }
 
     /**
@@ -42,7 +42,7 @@ final readonly class ProgressItem
         return new self(
             type: ProgressItemType::from($row['type']),
             payload: $row['payload'],
-            dateTime: new \DateTimeImmutable($row['datetime']),
+            timestamp: new \DateTimeImmutable($row['timestamp']),
         );
     }
 }

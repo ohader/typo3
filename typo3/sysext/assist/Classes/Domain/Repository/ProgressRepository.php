@@ -87,7 +87,7 @@ final readonly class ProgressRepository
                 'type' => $item->type->value,
                 'model' => (string)$model,
                 'initiator' => json_encode($initiator->toArray()),
-                'datetime' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
+                'timestamp' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
                 'payload' => json_encode($item->payload),
             ]
         );
