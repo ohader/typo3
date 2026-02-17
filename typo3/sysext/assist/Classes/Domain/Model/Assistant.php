@@ -35,7 +35,6 @@ final readonly class Assistant
         public array $capabilities,
         public string $handler,
         public AssistantTrigger $trigger,
-        public array $tools,
         public string $packageName,
         public string $absolutePackagePath,
     ) {}
@@ -64,7 +63,6 @@ final readonly class Assistant
             capabilities: self::normalizeCapabilities($configuration['capabilities'] ?? []),
             handler: $handler,
             trigger: AssistantTrigger::createFromConfiguration($configuration['trigger'] ?? []),
-            tools: $configuration['tools'] ?? [],
             packageName: $configuration['packageName'] ?? '',
             absolutePackagePath: $configuration['absolutePackagePath'] ?? '',
         );

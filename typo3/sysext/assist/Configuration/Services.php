@@ -25,7 +25,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
                 'triggerTypes' => json_encode($attribute->triggerTypes),
                 'triggerRecords' => json_encode($attribute->triggerRecords),
                 'triggerComponents' => json_encode($attribute->triggerComponents),
-                'tools' => json_encode($attribute->tools),
             ]);
         }
     );

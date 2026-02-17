@@ -50,7 +50,6 @@ final class AssistantCompilerPass implements CompilerPassInterface
                         'records' => json_decode($attributes['triggerRecords'], true),
                         'components' => json_decode($attributes['triggerComponents'], true),
                     ],
-                    'tools' => json_decode($attributes['tools'], true),
                 ];
             }
         }

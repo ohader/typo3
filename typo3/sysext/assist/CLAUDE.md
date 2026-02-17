@@ -1,6 +1,6 @@
 # EXT:assist — TYPO3 AI Assistant
 
-_Last updated: 2026-02-16_
+_Last updated: 2026-02-17_
 
 Experimental TYPO3 system extension (v14.2) that integrates Symfony AI platform packages into the TYPO3 backend. Classes, interfaces, and configuration may change without notice.
 
@@ -45,7 +45,11 @@ Flow: `SiteConfig → AI\Platform\PlatformResolver → Domain\Model\Platform →
 ```
 Classes/
   AI/
-    Assistant/        AssistantInterface (marker), A11yAssistant, InlineChatAssistant
+    Agent/            AgentService (orchestrator), AgentGateway (transport),
+                      AgentCallRequest, ProgressRecorderInterface, ProgressRecorder,
+                      SequencePointer, ToolboxFactory
+    Assistant/        AssistantInterface (marker), AssistantOrchestrator,
+                      A11yAssistant, InlineChatAssistant
     Platform/         PlatformBridge, PlatformConnector, PlatformResolver,
                       PlatformReflector, PlatformModel, FilteredModelCatalog
   Attribute/          AsAssistant (PHP attribute for assistant registration)
@@ -79,6 +83,12 @@ Tests/Functional/
 
 | Class | Role |
 |---|---|
+| `AI\Agent\AgentService` | Orchestrates `AgentGateway` (transport) and `ProgressRecorderInterface` (persistence). Entry point for assistant call execution. `@internal` |
+| `AI\Agent\AgentGateway` | Transport-only: resolves platform, constructs Symfony AI `Agent`, invokes `$agent->call()`. `@internal` |
+| `AI\Agent\AgentCallRequest` | Immutable value object carrying model, messages, processors, and optional progress/sequence pointer. `@internal` |
+| `AI\Agent\ProgressRecorderInterface` | Abstraction for persisting submitted/received progress items. `@internal` |
+| `AI\Agent\ProgressRecorder` | Concrete `ProgressRecorderInterface` implementation backed by `ProgressRepository`. `@internal` |
+| `AI\Assistant\AssistantOrchestrator` | Resolves assistant handler, applies tool policy, delegates to `AgentService`. `@internal` |
 | `AI\Platform\PlatformResolver` | Site config → `Platform` domain objects. Determines `Availability` based on package presence + enabled flag. |
 | `AI\Platform\PlatformConnector` | `Platform` → `PlatformBridge`. Extracts PSR-4 namespace from composer metadata, dispatches `BeforeBuildPlatformBridgeEvent`, constructs bridge. `@internal` |
 | `AI\Platform\PlatformBridge` | Dynamically resolves `{namespace}PlatformFactory` and `{namespace}ModelCatalog` via reflection. Wraps catalog in `FilteredModelCatalog` when effective=true. `@internal` |
@@ -123,7 +133,7 @@ final readonly class MyAssistant implements AssistantInterface
 }
 ```
 
-The handler class must implement `TYPO3\CMS\Assist\AI\Assistant\AssistantInterface`. The `#[AsAssistant]` attribute automatically makes the service public (required by `AssistantConnector`).
+The handler class must implement `TYPO3\CMS\Assist\AI\Assistant\AssistantInterface`. The `#[AsAssistant]` attribute automatically makes the service public (required by `AssistantOrchestrator`).
 
 ### Customizing platform bridges via events
 
@@ -145,7 +155,8 @@ See `EventListener\PlatformBridgeBuilder` for a real example (LM Studio dynamic 
 
 The `AI\` namespace groups all AI-specific infrastructure. Current sub-namespaces:
 
-- `AI\Assistant\` — Assistant handler implementations (`AssistantInterface`, `A11yAssistant`, `InlineChatAssistant`)
+- `AI\Agent\` — Agent execution: `AgentService` (orchestrator), `AgentGateway` (transport), `ProgressRecorder` (persistence), `AgentCallRequest`, `SequencePointer`, `ToolboxFactory`
+- `AI\Assistant\` — Assistant handler implementations (`AssistantInterface`, `AssistantOrchestrator`, `A11yAssistant`, `InlineChatAssistant`)
 - `AI\Platform\` — Platform bridge layer (reflection, connection, resolution, model catalog filtering)
 
 Future sub-namespaces may include `AI\MCP\`, `AI\Tool\`, etc.
@@ -185,7 +196,7 @@ After `SiteConfigurationAssistNormalizer` flattens for TCA, the runtime keys are
 - **Named constructor parameters**: domain objects use named params for clarity
 - **Attributes**: `#[AsController]`, `#[AsEventListener('identifier')]`, `#[AsAssistant(...)]`
 - **Exception codes**: all exceptions use numeric timestamp-based codes (e.g. `1771009690`)
-- **No direct Agent instantiation**: `AssistantInterface` implementations must not create `new Symfony\AI\Agent\Agent(...)` directly. Instead, build an `AgentBag` and delegate to `AgentConnector::call()`, which centralises platform resolution, bridge construction, and optional progress persistence.
+- **No direct Agent instantiation**: `AssistantInterface` implementations must not create `new Symfony\AI\Agent\Agent(...)` directly. Instead, build an `AgentCallRequest` and let `AssistantOrchestrator` delegate to `AgentService::call()`, which centralises platform resolution (via `AgentGateway`) and progress persistence (via `ProgressRecorder`).
 
 ## Testing
 

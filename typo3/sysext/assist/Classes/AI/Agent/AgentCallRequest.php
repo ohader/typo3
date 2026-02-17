@@ -17,22 +17,21 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Agent;
 
-use Psr\Log\LoggerInterface;
 use Symfony\AI\Agent\InputProcessorInterface;
 use Symfony\AI\Agent\OutputProcessorInterface;
-use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface as SymfonyEventDispatcherInterface;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 
 /**
- * Bridge between TYPO3 {@see Progress} and Symfony AI Agent.
+ * Fully prepared, ready-to-send request for {@see AgentService}.
+ *
+ * Built by the assistant handler — the handler decides what messages,
+ * tools, and processors to include.
  *
  * @internal
  */
-final readonly class AgentBag
+final readonly class AgentCallRequest
 {
     /** @var InputProcessorInterface[] */
     public array $inputProcessors;
@@ -40,31 +39,34 @@ final readonly class AgentBag
     public array $outputProcessors;
 
     /**
-     * @param InputProcessorInterface[] $inputProcessors
-     * @param OutputProcessorInterface[] $outputProcessors
+     * @param list<InputProcessorInterface> $inputProcessors
+     * @param list<OutputProcessorInterface> $outputProcessors
      */
     public function __construct(
         public PlatformModel $model,
-        public Progress $progress,
-        public SequencePointer $sequencePointer,
+        public MessageBag $messageBag,
         array $inputProcessors = [],
         array $outputProcessors = [],
-        public ?LoggerInterface $logger = null,
-        public ?SymfonyEventDispatcherInterface $symfonyEventDispatcher = null,
+        public ?Progress $progress = null,
+        public ?SequencePointer $sequencePointer = null,
     ) {
         $this->inputProcessors = $inputProcessors;
         $this->outputProcessors = $outputProcessors;
     }
 
-    public function toMessageBag(): MessageBag
+    /**
+     * @param list<InputProcessorInterface> $inputProcessors
+     * @param list<OutputProcessorInterface> $outputProcessors
+     */
+    public function withProcessors(array $inputProcessors, array $outputProcessors): self
     {
-        $messages = [];
-        foreach ($this->progress->items as $item) {
-            $messages[] = match ($item->type) {
-                ProgressItemType::submitted => Message::ofUser((string)$item->payload),
-                ProgressItemType::received => Message::ofAssistant((string)$item->payload),
-            };
-        }
-        return new MessageBag(...$messages);
+        return new self(
+            model: $this->model,
+            messageBag: $this->messageBag,
+            inputProcessors: [...$this->inputProcessors, ...$inputProcessors],
+            outputProcessors: [...$this->outputProcessors, ...$outputProcessors],
+            progress: $this->progress,
+            sequencePointer: $this->sequencePointer,
+        );
     }
 }

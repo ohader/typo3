@@ -17,10 +17,32 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
+use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 
 interface AssistantInterface
 {
-    public function process(AgentInputInterface $input, AgentOutputInterface $output);
+    /**
+     * Declare which tools should be available for the agent call.
+     *
+     * Return null if no tools are needed.
+     */
+    public function getToolPolicy(): ?ToolPolicy;
+
+    /**
+     * Prepare the agent call. The assistant decides messages, tools, and system prompts.
+     *
+     * Return null if no remote call is needed (e.g. canned response written directly to $output).
+     */
+    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest;
+
+    /**
+     * Post-process the result locally after the remote agent call has completed.
+     *
+     * Called only when {@see buildAgentCall()} returned a non-null request and
+     * the result has been added to $output. Handlers can use this to transform,
+     * enrich, or act on the response.
+     */
+    public function process(AgentInputInterface $input, AgentOutputInterface $output): void;
 }

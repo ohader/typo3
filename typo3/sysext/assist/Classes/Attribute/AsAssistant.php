@@ -30,7 +30,6 @@ final readonly class AsAssistant
      * @param list<string> $triggerTypes
      * @param list<string> $triggerRecords
      * @param list<string> $triggerComponents
-     * @param list<class-string> $tools
      */
     public function __construct(
         public string $identifier,
@@ -39,6 +38,5 @@ final readonly class AsAssistant
         public array $triggerTypes = [],
         public array $triggerRecords = [],
         public array $triggerComponents = [],
-        public array $tools = [],
     ) {}
 }

@@ -17,49 +17,35 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use Symfony\AI\Agent\Agent;
-use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
+use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
-use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
-use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\Domain\Enum\Availability;
-use TYPO3\CMS\Assist\Domain\Model\Platform;
-use TYPO3\CMS\Assist\Service\ConfigurationResolver;
+use TYPO3\CMS\Assist\Attribute\AsAssistant;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
-#[Autoconfigure(public: true)]
+#[AsAssistant(
+    identifier: 'typo3-assist-a11y',
+    mode: AssistantMode::module,
+    capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
+    triggerTypes: ['context', 'view'],
+    triggerRecords: ['pages'],
+    triggerComponents: ['page-tree'],
+)]
 final readonly class A11yAssistant implements AssistantInterface
 {
-    public function __construct(
-        private ConfigurationResolver $configurationResolver,
-        private PlatformConnector $platformConnector,
-    ) {}
-
-    public function process(AgentInputInterface $input, AgentOutputInterface $output): void
+    public function getToolPolicy(): ?ToolPolicy
     {
-        $platformModel = $input->getModel();
-        $platform = $this->resolvePlatform($platformModel);
-        $bridge = $this->platformConnector->buildBridge($platform);
-
-        $agent = new Agent(
-            platform: $bridge->getPlatformFactory(),
-            model: $platformModel->model,
-        );
-
-        $result = $agent->call($input->getMessageBag());
-        $output->add($result);
+        return null;
     }
 
-    private function resolvePlatform(PlatformModel $platformModel): Platform
+    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
     {
-        foreach ($this->configurationResolver->getDefaultPlatforms() as $platform) {
-            if ($platform->package === $platformModel->platform && $platform->availability === Availability::enabled) {
-                return $platform;
-            }
-        }
-        throw new \RuntimeException(
-            sprintf('No platform found for package "%s".', $platformModel->platform),
-            1771200001,
+        return new AgentCallRequest(
+            model: $input->getModel(),
+            messageBag: $input->getMessageBag(),
         );
     }
+
+    public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
 }

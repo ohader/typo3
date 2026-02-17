@@ -25,13 +25,15 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
-use TYPO3\CMS\Assist\AI\Assistant\AssistantConnector;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
+use TYPO3\CMS\Core\Authentication\CommandLineUserAuthentication;
+use TYPO3\CMS\Core\Core\Bootstrap;
 
 /**
  * Interactive AI chat session via the command line.
@@ -42,7 +44,7 @@ final class ChatCommand extends Command
     public function __construct(
         private readonly ConfigurationResolver $configurationResolver,
         private readonly AssistantRegistry $assistantRegistry,
-        private readonly AssistantConnector $assistantConnector,
+        private readonly AssistantOrchestrator $assistantOrchestrator,
     ) {
         parent::__construct();
     }
@@ -54,7 +56,11 @@ final class ChatCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
+        Bootstrap::initializeBackendAuthentication();
+
         $assistant = $this->assistantRegistry->getAssistant('typo3-assist-inline-chat');
+
         $modelValue = $input->getArgument('model');
         if ($modelValue !== null) {
             try {
