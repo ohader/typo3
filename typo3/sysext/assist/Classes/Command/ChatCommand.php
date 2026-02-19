@@ -108,7 +108,7 @@ final class ChatCommand extends Command
             $agentOutput = new AgentOutput();
 
             try {
-                $this->assistantConnector->process($assistant, $agentInput, $agentOutput);
+                $this->assistantOrchestrator->process($assistant, $agentInput, $agentOutput);
 
                 $results = $agentOutput->getResultBag()->getResults();
                 $result = $results[0] ?? null;

@@ -87,7 +87,7 @@ final readonly class AssistantOrchestrator
         if ($tools === []) {
             return $request;
         }
-        $agentProcessor = $this->toolboxFactory->createAgentProcessor($tools);
+        $agentProcessor = $this->toolboxFactory->createAgentProcessor(...$tools);
         return $request->withProcessors([$agentProcessor], [$agentProcessor]);
     }
 }
