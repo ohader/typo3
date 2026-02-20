@@ -149,7 +149,6 @@ class SetupModuleController
             if ($locale !== null) {
                 $parameters = [
                     'language' => $locale->getLanguageCode(),
-                    'direction' => $locale->isRightToLeftLanguageDirection() ? 'rtl' : null,
                 ];
                 BackendUtility::setUpdateSignal('updateBackendLanguage', $parameters);
             }
@@ -192,7 +191,6 @@ class SetupModuleController
         );
         $view->assignMultiple([
             'typo3Info' => $this->typo3Information,
-            'isLanguageUpdate' => $this->languageUpdate,
             'menuItems' => $this->renderUserSetup(),
             'menuId' => 'DTM-375167ed176e8c9caf4809cee7df156c',
             'formToken' => $formProtection->generateToken('BE user setup', 'edit'),
@@ -286,7 +284,7 @@ class SetupModuleController
             }
             // Options which should trigger direct JS persistent update, because
             // their new state needs to be available in JS components right away.
-            foreach (['displayRecentlyUsed'] as $fieldName) {
+            foreach ($this->userSettingsSchema->getPersistentUpdateFieldNames() as $fieldName) {
                 $fieldValue = (isset($d[$fieldName]) ? 'on' : 0);
                 if ($fieldValue !== ($backendUser->uc[$fieldName] ?? null)) {
                     $this->persistentUpdate[] = [

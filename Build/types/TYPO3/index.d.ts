@@ -44,6 +44,7 @@ declare namespace TYPO3 {
     export namespace Clipboard {
       export const moduleUrl: string;
     }
+    export const DateConfiguration: import('@typo3/backend/type/date-configuration').DateConfiguration;
     export namespace FileCommit {
       export const moduleUrl: string;
     }
@@ -115,4 +116,12 @@ interface Window {
   TYPO3: Partial<typeof TYPO3>;
   ModuleStateStorage: typeof import('@typo3/backend/storage/module-state-storage').ModuleStateStorage;
   list_frame: Window;
+}
+
+// wildcard label provider, concrete modules,
+// including a map containing available labels,
+// is generated via lib/generate-label-types.js
+declare module '~labels/*' {
+  const provider: import('@typo3/backend/localization/label-provider').LabelProvider;
+  export default provider;
 }

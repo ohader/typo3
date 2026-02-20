@@ -145,7 +145,7 @@ class ColorElement extends AbstractFormElement
         $colorDefinitions = array_map(
             static fn(array $colorDefinition): array => [
                 'color' => $colorDefinition['value'],
-                'label' => $colorDefinition['label'] !== null ?
+                'label' => ($colorDefinition['label'] ?? null) !== null ?
                     sprintf('%s (%s)', $colorDefinition['label'], $colorDefinition['value']) :
                     $colorDefinition['value'],
             ],
@@ -181,7 +181,7 @@ class ColorElement extends AbstractFormElement
 
         $colorPickerAttribute = [
             'swatches' => json_encode(array_values($colorDefinitions)),
-            'opacity' => $opacityEnabled,
+            'opacity' => $opacityEnabled ? 'true' : 'false',
             'color' => htmlspecialchars((string)$itemValue),
         ];
 

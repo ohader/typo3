@@ -57,6 +57,3 @@ prototypes:
         implementationClassName: TYPO3\CMS\Form\Domain\Model\FormElements\GridColumn
         renderingOptions:
           _isCompositeFormElement: true
-    formEditor:
-      formEditorPartials:
-        FormElement-GridColumn: Stage/Fieldset

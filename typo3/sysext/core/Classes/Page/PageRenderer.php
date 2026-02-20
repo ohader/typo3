@@ -962,6 +962,11 @@ class PageRenderer implements SingletonInterface
      */
     public function addInlineLanguageDomain(string $domain): void
     {
+        trigger_error(
+            'PageRenderer->addInlineLanguageDomain is deprecated and will be removed with TYPO3 v15. Use "~label/{language.dom}" imports instead',
+            E_USER_DEPRECATED
+        );
+
         $languageService = $this->languageServiceFactory->create($this->locale);
         $allLabels = $languageService->getLabelsFromResource($domain);
 
@@ -974,13 +979,13 @@ class PageRenderer implements SingletonInterface
      * Adds Javascript Inline Setting. This will occur in TYPO3.settings - object
      * The label can be used in scripts with TYPO3.setting.<key>
      *
-     * @param string $namespace
+     * @param string|null $namespace
      * @param string $key
      * @param mixed $value
      */
     public function addInlineSetting($namespace, $key, $value)
     {
-        if ($namespace) {
+        if ($namespace !== null && $namespace !== '') {
             if (strpos($namespace, '.')) {
                 $parts = explode('.', $namespace);
                 $a = &$this->inlineSettings;

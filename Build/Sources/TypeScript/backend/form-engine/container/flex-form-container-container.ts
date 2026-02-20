@@ -18,6 +18,7 @@ import RegularEvent from '@typo3/core/event/regular-event';
 import Severity from '@typo3/backend/severity';
 import { selector } from '@typo3/core/literals';
 import ClientStorage from '@typo3/backend/storage/client';
+import backendAltDocLabels from '~labels/backend.alt_doc';
 import type FlexFormSectionContainer from './flex-form-section-container';
 
 enum Selectors {
@@ -82,17 +83,17 @@ class FlexFormContainerContainer {
 
   private registerDelete(): void {
     new RegularEvent('click', (): void => {
-      const title = TYPO3.lang['flexform.section.delete.title'] || 'Delete this container?';
-      const content = TYPO3.lang['flexform.section.delete.message'] || 'Are you sure you want to delete this container?';
+      const title = backendAltDocLabels.get('flexform.section.delete.title');
+      const content = backendAltDocLabels.get('flexform.section.delete.message');
       const modal = Modal.confirm(title, content, Severity.warning, [
         {
-          text: TYPO3.lang['buttons.confirm.delete_record.no'] || 'Cancel',
+          text: backendAltDocLabels.get('buttons.confirm.delete_record.no'),
           active: true,
           btnClass: 'btn-default',
           name: 'no',
         },
         {
-          text: TYPO3.lang['buttons.confirm.delete_record.yes'] || 'Yes, delete this container',
+          text: backendAltDocLabels.get('buttons.confirm.delete_record.yes'),
           btnClass: 'btn-warning',
           name: 'yes',
         },

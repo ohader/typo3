@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Backend\Form;
 
+use TYPO3\CMS\Backend\Date\DateConfigurationFactory;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Core\Localization\DateFormatter;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Page\PageRenderer;
@@ -149,39 +149,14 @@ class FormResultCompiler
             $pageRenderer->getJavaScriptRenderer()->addJavaScriptModuleInstruction($module);
         }
 
-        // Needed for FormEngine manipulation (date picker)
-        $formatter = new DateFormatter();
-        $dateFormat = [];
-        $dateFormat[0] = $formatter->convertPhpFormatToLuxon($GLOBALS['TYPO3_CONF_VARS']['SYS']['ddmmyy'] ?? 'Y-m-d');
-        $dateFormat[1] = $dateFormat[0] . ' ' . $formatter->convertPhpFormatToLuxon($GLOBALS['TYPO3_CONF_VARS']['SYS']['hhmm'] ?? 'H:i');
-        $pageRenderer->addInlineSetting('DateTimePicker', 'DateFormat', $dateFormat);
+        // Needed for FormEngine manipulation (date picker) and DateTime components
+        $pageRenderer->addInlineSetting(null, 'DateConfiguration', GeneralUtility::makeInstance(DateConfigurationFactory::class)->getConfiguration('javascript'));
 
         $pageRenderer->addInlineLanguageLabelFile('EXT:core/Resources/Private/Language/locallang_core.xlf', 'file_upload');
         $pageRenderer->addInlineLanguageLabelFile('EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf');
         foreach ($this->additionalInlineLanguageLabelFiles as $additionalInlineLanguageLabelFile) {
             $pageRenderer->addInlineLanguageLabelFile($additionalInlineLanguageLabelFile);
         }
-
-        // todo: change these things in JS
-        $pageRenderer->addInlineLanguageLabelArray([
-            'FormEngine.noRecordTitle' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title'),
-            'FormEngine.fieldsChanged' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.fieldsChanged'),
-            'FormEngine.fieldsMissing' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.fieldsMissing'),
-            'FormEngine.maxItemsAllowed' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.maxItemsAllowed'),
-            'FormEngine.refreshRequiredTitle' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:mess.refreshRequired.title'),
-            'FormEngine.refreshRequiredContent' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:mess.refreshRequired.content'),
-            'FormEngine.refreshRequiredCancel' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:mess.refreshRequired.cancel'),
-            'FormEngine.refreshRequiredConfirm' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:mess.refreshRequired.confirm'),
-            'FormEngine.remainingCharacters' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.remainingCharacters'),
-            'FormEngine.minCharactersLeft' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.minCharactersLeft'),
-            'labels.contextMenu.open' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.contextMenu.open'),
-            'label.confirm.delete_record.content' => $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:label.confirm.delete_record.content'),
-            'label.confirm.delete_record.title' => $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:label.confirm.delete_record.title'),
-            'buttons.confirm.delete_record.no' => $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:buttons.confirm.delete_record.no'),
-            'buttons.confirm.delete_record.yes' => $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:buttons.confirm.delete_record.yes'),
-            'button.ok' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:ok'),
-            'button.cancel' => $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_common.xlf:cancel'),
-        ]);
 
         // Add JS required for inline fields
         if ($this->inlineData !== []) {
