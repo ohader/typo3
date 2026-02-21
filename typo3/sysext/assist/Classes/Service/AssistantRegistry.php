@@ -112,4 +112,15 @@ final readonly class AssistantRegistry
             static fn(Assistant $assistant): bool => $assistant->trigger->hasRecord($record),
         );
     }
+
+    /**
+     * @return array<string, Assistant>
+     */
+    public function getAssistantsByTriggerComponent(string $component): array
+    {
+        return array_filter(
+            $this->assistants,
+            static fn(Assistant $assistant): bool => $assistant->trigger->hasComponent($component),
+        );
+    }
 }
