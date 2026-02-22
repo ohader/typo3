@@ -8,6 +8,9 @@
       <trans-unit id="fieldWizard.assistAction.button">
         <source>Assist</source>
       </trans-unit>
+      <trans-unit id="contextMenu.aiAssistants">
+        <source>AI Assistants...</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>

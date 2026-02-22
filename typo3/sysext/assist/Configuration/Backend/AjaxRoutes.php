@@ -2,9 +2,15 @@
 
 declare(strict_types=1);
 
+use TYPO3\CMS\Assist\Controller\Ajax\AssistantAjaxController;
 use TYPO3\CMS\Assist\Controller\Ajax\PlatformAjaxController;
 
 return [
+    'assist_assistant_inline_list' => [
+        'path' => '/assist/assistant/inline-list',
+        'target' => AssistantAjaxController::class . '::getInlineAssistants',
+        'methods' => ['GET'],
+    ],
     'assist_platform_check_connection' => [
         'path' => '/assist/platform/check-connection',
         'target' => PlatformAjaxController::class . '::checkConnection',
