@@ -37,6 +37,8 @@ final readonly class Assistant
         public AssistantTrigger $trigger,
         public string $packageName,
         public string $absolutePackagePath,
+        public string $label = '',
+        public string $javaScriptModule = '',
     ) {}
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
@@ -65,6 +67,8 @@ final readonly class Assistant
             trigger: AssistantTrigger::createFromConfiguration($configuration['trigger'] ?? []),
             packageName: $configuration['packageName'] ?? '',
             absolutePackagePath: $configuration['absolutePackagePath'] ?? '',
+            label: $configuration['label'] ?? '',
+            javaScriptModule: $configuration['javaScriptModule'] ?? '',
         );
     }
 

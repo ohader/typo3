@@ -20,14 +20,16 @@ namespace TYPO3\CMS\Assist\DependencyInjection;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
+use TYPO3\CMS\Core\Package\PackageManager;
 
 /**
  * @internal
  */
-final class AssistantCompilerPass implements CompilerPassInterface
+final readonly class AssistantCompilerPass implements CompilerPassInterface
 {
     public function __construct(
-        private readonly string $tagName,
+        private string $tagName,
+        private PackageManager $packageManager,
     ) {}
 
     public function process(ContainerBuilder $container): void
@@ -50,10 +52,29 @@ final class AssistantCompilerPass implements CompilerPassInterface
                         'records' => json_decode($attributes['triggerRecords'], true),
                         'components' => json_decode($attributes['triggerComponents'], true),
                     ],
+                    'label' => $this->resolveLabel($serviceName, $identifier, $attributes['labelFile'] ?? ''),
+                    'javaScriptModule' => $attributes['javaScriptModule'] ?? '',
                 ];
             }
         }
 
         $registryDefinition->setArgument('$assistants', $assistants);
+    }
+
+    private function resolveLabel(string $handlerClass, string $identifier, string $labelFile): string
+    {
+        if ($labelFile !== '') {
+            return 'LLL:' . $labelFile . ':default';
+        }
+
+        $classFile = (new \ReflectionClass($handlerClass))->getFileName();
+        foreach ($this->packageManager->getActivePackages() as $package) {
+            if (str_starts_with($classFile, $package->getPackagePath())) {
+                return 'LLL:EXT:' . $package->getPackageKey()
+                    . '/Resources/Private/Language/Assistants/' . $identifier . '.xlf:default';
+            }
+        }
+
+        return '';
     }
 }

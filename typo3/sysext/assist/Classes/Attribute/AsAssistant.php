@@ -38,5 +38,7 @@ final readonly class AsAssistant
         public array $triggerTypes = [],
         public array $triggerRecords = [],
         public array $triggerComponents = [],
+        public string $labelFile = '',
+        public string $javaScriptModule = '',
     ) {}
 }

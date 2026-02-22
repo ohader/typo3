@@ -30,7 +30,8 @@ use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
     triggerTypes: ['context', 'view'],
     triggerRecords: ['pages'],
-    triggerComponents: ['page-tree'],
+    triggerComponents: ['page-tree', 'context-menu'],
+    javaScriptModule: '@typo3/assist/assistant/a11y-assistant',
 )]
 final readonly class A11yAssistant implements AssistantInterface
 {
