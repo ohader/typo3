@@ -20,3 +20,12 @@ defined('TYPO3') or die();
 $GLOBALS['TCA']['tt_content']['columns']['header']['config']['fieldWizard']['assistAction'] = [
     'renderType' => 'assistAction',
 ];
+$GLOBALS['TCA']['tt_content']['columns']['subheader']['config']['fieldWizard']['assistAction'] = [
+    'renderType' => 'assistAction',
+    'options' => [
+        'assistants' => ['typo3-assist-inline-chat'],
+    ],
+];
+$GLOBALS['TCA']['tt_content']['columns']['categories']['config']['fieldWizard']['assistAction'] = [
+    'renderType' => 'assistAction',
+];
