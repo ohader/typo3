@@ -40,14 +40,24 @@ class AssistAction extends AbstractNode
         $triggerResource = htmlspecialchars($table . ':' . $uid, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $labelAttr = htmlspecialchars((string)$label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
+        $assistantsOption = $this->data['renderData']['fieldWizardOptions']['assistants'] ?? null;
+        $assistantsAttr = '';
+        if (is_array($assistantsOption) && $assistantsOption !== []) {
+            $assistantsAttr = sprintf(
+                ' assistants="%s"',
+                htmlspecialchars(implode(' ', $assistantsOption), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')
+            );
+        }
+
         $result['html'] = sprintf(
-            '<typo3-assist-action trigger-resource="%s" trigger-component="resource-edit" label="%s"></typo3-assist-action>',
+            '<typo3-assist-action trigger-resource="%s" trigger-component="resource-edit" label="%s"%s></typo3-assist-action>',
             $triggerResource,
-            $labelAttr
+            $labelAttr,
+            $assistantsAttr
         );
 
         $result['javaScriptModules'][] = JavaScriptModuleInstruction::create(
-            '@typo3/assist/element/assist-action-element.js'
+            '@typo3/assist/element/assist-action-element'
         );
 
         return $result;

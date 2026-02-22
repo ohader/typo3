@@ -13,7 +13,12 @@
 
 import { html, LitElement, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import Modal, { Sizes } from '@typo3/backend/modal';
+import { SeverityEnum } from '@typo3/backend/enum/severity';
+import AjaxRequest from '@typo3/core/ajax/ajax-request';
+import type { AjaxResponse } from '@typo3/core/ajax/ajax-response';
 import '@typo3/backend/element/icon-element';
+import '@typo3/assist/sidebar/assist-chat-panel';
 
 /**
  * Module: @typo3/assist/element/assist-action-element
@@ -34,6 +39,12 @@ export class AssistActionElement extends LitElement {
   @property({ type: String, attribute: 'trigger-resource' }) triggerResource: string = '';
   @property({ type: String, attribute: 'trigger-component' }) triggerComponent: string = '';
   @property({ type: String }) label: string = 'Assist';
+  @property({
+    converter: {
+      fromAttribute: (value: string | null): string[] =>
+        value ? value.trim().split(/\s+/).filter(Boolean) : [],
+    },
+  }) assistants: string[] = [];
 
   override createRenderRoot(): HTMLElement {
     return this;
@@ -49,7 +60,79 @@ export class AssistActionElement extends LitElement {
   }
 
   private handleClick(): void {
-    console.log('assist');
+    const list = this.assistants;
+    if (list.length === 1) {
+      this.openAssistantModal(list[0], list[0]);
+      return;
+    }
+    void this.openForAssistants(list);
+  }
+
+  private async openForAssistants(filter: string[]): Promise<void> {
+    const params: Record<string, string> = {};
+    if (this.triggerResource) {
+      params.record = this.triggerResource;
+    }
+    const data: { identifier: string; label: string }[] = await new AjaxRequest(
+      TYPO3.settings.ajaxUrls.assist_assistant_inline_list,
+    )
+      .withQueryArguments(params)
+      .get()
+      .then(async (r: AjaxResponse) => r.resolve());
+
+    const assistants = filter.length > 0
+      ? data.filter((a) => filter.includes(a.identifier))
+      : data;
+
+    if (assistants.length === 0) {
+      return;
+    }
+    if (assistants.length === 1) {
+      this.openAssistantModal(assistants[0].identifier, assistants[0].label);
+      return;
+    }
+    this.openSelectionModal(assistants);
+  }
+
+  private openSelectionModal(assistants: { identifier: string; label: string }[]): void {
+    Modal.advanced({
+      title: 'Select an Assistant',
+      severity: SeverityEnum.notice,
+      size: Sizes.small,
+      content: html`
+        <div class="list-group">
+          ${assistants.map((a) => html`
+            <button
+              type="button"
+              class="list-group-item list-group-item-action"
+              @click=${() => this.handleSelectionClick(a)}
+            >
+              <typo3-backend-icon identifier="module-assist" size="small"></typo3-backend-icon>
+              ${a.label || a.identifier}
+            </button>
+          `)}
+        </div>
+      `,
+      buttons: [{ text: 'Cancel', btnClass: 'btn-default', trigger: (_, m) => m.hideModal() }],
+    });
+  }
+
+  private openAssistantModal(identifier: string, label: string): void {
+    Modal.advanced({
+      title: label || identifier,
+      severity: SeverityEnum.notice,
+      size: Sizes.large,
+      content: html`
+        <typo3-assist-chat-panel
+          style="height:60vh;display:block"
+        ></typo3-assist-chat-panel>
+      `,
+    });
+  }
+
+  private handleSelectionClick(a: { identifier: string; label: string }): void {
+    Modal.dismiss();
+    this.openAssistantModal(a.identifier, a.label);
   }
 }
 
