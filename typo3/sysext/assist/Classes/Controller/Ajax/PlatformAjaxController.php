@@ -34,13 +34,13 @@ use TYPO3\CMS\Core\Http\JsonResponse;
  * @todo enforce permission checks
  */
 #[AsController]
-class PlatformAjaxController
+final readonly class PlatformAjaxController
 {
     public function __construct(
-        private readonly ConfigurationResolver $configurationResolver,
-        private readonly PlatformConnector $platformConnector,
-        private readonly AssistantRegistry $assistantRegistry,
-        private readonly SiteWriter $siteWriter,
+        private ConfigurationResolver $configurationResolver,
+        private PlatformConnector $platformConnector,
+        private AssistantRegistry $assistantRegistry,
+        private SiteWriter $siteWriter,
     ) {}
 
     public function checkConnection(ServerRequestInterface $request): ResponseInterface
