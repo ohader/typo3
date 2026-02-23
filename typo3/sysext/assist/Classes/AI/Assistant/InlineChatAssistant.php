@@ -29,8 +29,7 @@ use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
     identifier: 'typo3-assist-inline-chat',
     mode: AssistantMode::inline,
     capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
-    triggerTypes: ['inline'],
-    triggerRecords: ['pages', 'tt_content'],
+    triggerResources: ['pages', 'tt_content'],
 )]
 final readonly class InlineChatAssistant implements AssistantInterface
 {

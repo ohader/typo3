@@ -23,36 +23,28 @@ namespace TYPO3\CMS\Assist\Domain\Model;
 final readonly class AssistantTrigger
 {
     /**
-     * @param array<int, string> $types
-     * @param array<int, string> $records
+     * @param array<int, string> $resources
      * @param array<int, string> $components
      */
     public function __construct(
-        public array $types = [],
-        public array $records = [],
+        public array $resources = [],
         public array $components = [],
     ) {}
 
     /**
-     * @param array{types?: list<mixed>, records?: list<mixed>, components?: list<mixed>} $configuration
+     * @param array{resources?: list<mixed>, components?: list<mixed>} $configuration
      */
     public static function createFromConfiguration(array $configuration): self
     {
         return new self(
-            types: array_values(array_filter(array_map(strval(...), $configuration['types'] ?? []))),
-            records: array_values(array_filter(array_map(strval(...), $configuration['records'] ?? []))),
+            resources: array_values(array_filter(array_map(strval(...), $configuration['resources'] ?? []))),
             components: array_values(array_filter(array_map(strval(...), $configuration['components'] ?? []))),
         );
     }
 
-    public function hasType(string $type): bool
+    public function hasResource(string $resource): bool
     {
-        return in_array($type, $this->types, true);
-    }
-
-    public function hasRecord(string $record): bool
-    {
-        return in_array($record, $this->records, true);
+        return in_array($resource, $this->resources, true);
     }
 
     public function hasComponent(string $component): bool

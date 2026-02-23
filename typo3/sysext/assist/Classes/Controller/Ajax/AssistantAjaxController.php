@@ -44,7 +44,7 @@ final readonly class AssistantAjaxController
             $assistants = array_filter(
                 $assistants,
                 static fn(Assistant $a): bool =>
-                    $a->trigger->records === [] || $a->trigger->hasRecord($table),
+                    $a->trigger->resources === [] || $a->trigger->hasResource($table),
             );
         }
         return new JsonResponse(array_values(array_map(

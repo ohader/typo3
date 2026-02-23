@@ -27,16 +27,14 @@ final readonly class AsAssistant
 
     /**
      * @param list<AssistantCapability> $capabilities
-     * @param list<string> $triggerTypes
-     * @param list<string> $triggerRecords
-     * @param list<string> $triggerComponents
+     * @param list<string> $triggerResources Resources which shall use this assistant, e.g. `['pages', 'tt_content']`
+     * @param list<string> $triggerComponents Backend components which shall use this assistant, e.g. `['page-tree', 'context-menu']`
      */
     public function __construct(
         public string $identifier,
         public AssistantMode $mode,
         public array $capabilities,
-        public array $triggerTypes = [],
-        public array $triggerRecords = [],
+        public array $triggerResources = [],
         public array $triggerComponents = [],
         public string $labelFile = '',
         public string $javaScriptModule = '',

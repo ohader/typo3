@@ -94,22 +94,11 @@ final readonly class AssistantRegistry
     /**
      * @return array<string, Assistant>
      */
-    public function getAssistantsByTriggerType(string $type): array
+    public function getAssistantsByTriggerResource(string $resource): array
     {
         return array_filter(
             $this->assistants,
-            static fn(Assistant $assistant): bool => $assistant->trigger->hasType($type),
-        );
-    }
-
-    /**
-     * @return array<string, Assistant>
-     */
-    public function getAssistantsByRecord(string $record): array
-    {
-        return array_filter(
-            $this->assistants,
-            static fn(Assistant $assistant): bool => $assistant->trigger->hasRecord($record),
+            static fn(Assistant $assistant): bool => $assistant->trigger->hasResource($resource),
         );
     }
 

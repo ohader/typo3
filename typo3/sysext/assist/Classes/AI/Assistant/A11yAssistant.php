@@ -28,8 +28,7 @@ use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
     identifier: 'typo3-assist-a11y',
     mode: AssistantMode::module,
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
-    triggerTypes: ['context', 'view'],
-    triggerRecords: ['pages'],
+    triggerResources: ['pages'],
     triggerComponents: ['page-tree', 'context-menu'],
     javaScriptModule: '@typo3/assist/assistant/a11y-assistant',
 )]
