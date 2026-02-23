@@ -640,6 +640,12 @@ module.exports = function (grunt) {
       grunt.file.delete('JavaScript');
     }
 
+    // tsbuildinfo must be removed whenever outputs are cleared; otherwise tsc's
+    // incremental mode considers outputs up-to-date and skips re-emission.
+    if (grunt.file.exists('.cache/tsconfig.tsbuildinfo')) {
+      grunt.file.delete('.cache/tsconfig.tsbuildinfo');
+    }
+
     grunt.file.expand('types/labels/*.d.ts').map(file => grunt.file.delete(file));
   });
 
