@@ -9,8 +9,6 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Core\Package\PackageManager;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 return static function (ContainerConfigurator $container, ContainerBuilder $containerBuilder) {
     $containerBuilder->registerAttributeForAutoconfiguration(
@@ -32,8 +30,5 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
             ]);
         }
     );
-    $containerBuilder->addCompilerPass(new DependencyInjection\AssistantCompilerPass(
-        AsAssistant::TAG_NAME,
-        GeneralUtility::makeInstance(PackageManager::class),
-    ));
+    $containerBuilder->addCompilerPass(new DependencyInjection\AssistantCompilerPass(AsAssistant::TAG_NAME));
 };

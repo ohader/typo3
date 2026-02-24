@@ -55,7 +55,7 @@ final readonly class AssistantRegistry
         if (!$this->hasAssistant($identifier)) {
             throw new \InvalidArgumentException(
                 sprintf('Assistant "%s" is not registered.', $identifier),
-                1749900004
+                1771948002
             );
         }
         return $this->assistants[$identifier];

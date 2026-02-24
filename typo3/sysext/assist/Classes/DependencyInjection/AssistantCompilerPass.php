@@ -20,17 +20,13 @@ namespace TYPO3\CMS\Assist\DependencyInjection;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
-use TYPO3\CMS\Core\Package\PackageManager;
 
 /**
  * @internal
  */
 final readonly class AssistantCompilerPass implements CompilerPassInterface
 {
-    public function __construct(
-        private string $tagName,
-        private PackageManager $packageManager,
-    ) {}
+    public function __construct(private string $tagName) {}
 
     public function process(ContainerBuilder $container): void
     {
@@ -68,11 +64,8 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
         }
 
         $classFile = (new \ReflectionClass($handlerClass))->getFileName();
-        foreach ($this->packageManager->getActivePackages() as $package) {
-            if (str_starts_with($classFile, $package->getPackagePath())) {
-                return 'LLL:EXT:' . $package->getPackageKey()
-                    . '/Resources/Private/Language/Assistants/' . $identifier . '.xlf:default';
-            }
+        if (preg_match('#/(?:typo3/sysext|typo3conf/ext)/([^/]+)/#', $classFile, $matches)) {
+            return 'LLL:EXT:' . $matches[1] . '/Resources/Private/Language/Assistants/' . $identifier . '.xlf:default';
         }
 
         return '';
