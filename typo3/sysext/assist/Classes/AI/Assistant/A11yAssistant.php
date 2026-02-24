@@ -33,6 +33,7 @@ use TYPO3\CMS\Core\Http\JsonResponse;
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
     triggerResources: ['pages'],
     triggerComponents: ['page-tree', 'context-menu'],
+    triggerRoutes: ['/module/web/layout'],
     javaScriptModule: '@typo3/assist/assistant/a11y-assistant',
 )]
 final readonly class A11yAssistant implements AssistantInterface

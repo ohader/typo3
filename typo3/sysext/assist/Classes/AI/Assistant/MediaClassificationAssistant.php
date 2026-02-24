@@ -22,24 +22,24 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
-use TYPO3\CMS\Assist\AI\Tool\FetchPageRecords;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Core\Http\JsonResponse;
 
 #[AsAssistant(
-    identifier: 'typo3-assist-inline-chat',
-    mode: AssistantMode::inline,
-    capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
-    triggerResources: ['pages', 'tt_content'],
-    triggerRoutes: ['/module/web/layout'],
+    identifier: 'typo3-assist-media-classification',
+    mode: AssistantMode::module,
+    capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
+    triggerResources: ['sys_file'],
+    triggerComponents: ['file-upload'],
+    triggerRoutes: ['/module/file/list'],
 )]
-final readonly class InlineChatAssistant implements AssistantInterface
+final readonly class MediaClassificationAssistant implements AssistantInterface
 {
-    public function getToolPolicy(): ToolPolicy
+    public function getToolPolicy(): ?ToolPolicy
     {
-        return new StaticToolPolicy([FetchPageRecords::class]);
+        return null;
     }
 
     public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
