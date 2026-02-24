@@ -33,11 +33,21 @@ class AssistAction extends AbstractNode
 
         $table = $this->data['tableName'];
         $uid = $this->data['databaseRow']['uid'] ?? 0;
+        $fieldName = $this->data['fieldName'];
         $label = $this->getLanguageService()->sL(
             'LLL:EXT:assist/Resources/Private/Language/locallang_db.xlf:fieldWizard.assistAction.button'
         );
 
-        $triggerResource = htmlspecialchars($table . ':' . $uid, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $triggerResource = htmlspecialchars(
+            json_encode([
+                'type'         => 'TcaResource',
+                'tableName'    => $table,
+                'identifier'   => $uid,
+                'propertyName' => $fieldName,
+            ], JSON_THROW_ON_ERROR),
+            ENT_QUOTES | ENT_SUBSTITUTE,
+            'UTF-8'
+        );
         $labelAttr = htmlspecialchars((string)$label, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $assistantsOption = $this->data['renderData']['fieldWizardOptions']['assistants'] ?? null;
@@ -57,7 +67,7 @@ class AssistAction extends AbstractNode
         );
 
         $result['javaScriptModules'][] = JavaScriptModuleInstruction::create(
-            '@typo3/assist/element/assist-action-element'
+            '@typo3/assist/element/assist-action-element.js'
         );
 
         return $result;

@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Controller\Ajax;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
@@ -31,14 +32,26 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 #[AsController]
 final readonly class AssistantAjaxController
 {
+    use AssertJsonContentType;
+
     public function __construct(
         private AssistantRegistry $assistantRegistry,
+        private AssistantOrchestrator $orchestrator,
     ) {}
 
     public function getInlineAssistants(ServerRequestInterface $request): ResponseInterface
     {
-        $record = $request->getQueryParams()['record'] ?? '';
-        $table = $record !== '' ? explode(':', $record, 2)[0] : '';
+        if ($response = $this->assertJsonContentType($request)) {
+            return $response;
+        }
+        $body = json_decode((string)$request->getBody(), true) ?? [];
+        $triggerResource = $body['triggerResource'] ?? [];
+        $table = is_array($triggerResource)
+            ? (string)($triggerResource['tableName'] ?? '')
+            : (string)$triggerResource;
+        if ($table !== '' && str_contains($table, ':')) {
+            $table = explode(':', $table, 2)[0];
+        }
         $assistants = $this->assistantRegistry->getAssistantsByMode(AssistantMode::inline);
         if ($table !== '') {
             $assistants = array_filter(
@@ -54,5 +67,20 @@ final readonly class AssistantAjaxController
             ],
             $assistants,
         )));
+    }
+
+    public function gateClientRequest(ServerRequestInterface $request): ResponseInterface
+    {
+        if ($response = $this->assertJsonContentType($request)) {
+            return $response;
+        }
+        $body = json_decode((string)$request->getBody(), true) ?? [];
+        $identifier = (string)($body['identifier'] ?? '');
+        if ($identifier === '' || !$this->assistantRegistry->hasAssistant($identifier)) {
+            return new JsonResponse(['error' => 'Assistant not found.'], 404);
+        }
+        $assistant = $this->assistantRegistry->getAssistant($identifier);
+        $handler = $this->orchestrator->buildHandler($assistant);
+        return $handler->handleClientRequest($request);
     }
 }

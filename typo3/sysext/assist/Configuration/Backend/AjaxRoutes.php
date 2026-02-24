@@ -6,10 +6,15 @@ use TYPO3\CMS\Assist\Controller\Ajax\AssistantAjaxController;
 use TYPO3\CMS\Assist\Controller\Ajax\PlatformAjaxController;
 
 return [
-    'assist_assistant_inline_list' => [
+    'assist_get_inline_assistants' => [
         'path' => '/assist/assistant/inline-list',
         'target' => AssistantAjaxController::class . '::getInlineAssistants',
-        'methods' => ['GET'],
+        'methods' => ['POST'],
+    ],
+    'assist_gate_client_request' => [
+        'path' => '/assist/assistant/gate',
+        'target' => AssistantAjaxController::class . '::gateClientRequest',
+        'methods' => ['POST'],
     ],
     'assist_platform_check_connection' => [
         'path' => '/assist/platform/check-connection',
