@@ -19,6 +19,7 @@ import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import type { AjaxResponse } from '@typo3/core/ajax/ajax-response';
 import '@typo3/backend/element/icon-element';
 import '@typo3/assist/sidebar/assist-chat-panel';
+import type { AssistContext, TcaResource } from '@typo3/assist/sidebar/assist-chat-panel';
 
 /**
  * Module: @typo3/assist/element/assist-action-element
@@ -36,7 +37,21 @@ import '@typo3/assist/sidebar/assist-chat-panel';
  */
 @customElement('typo3-assist-action')
 export class AssistActionElement extends LitElement {
-  @property({ type: String, attribute: 'trigger-resource' }) triggerResource: string = '';
+  @property({
+    attribute: 'trigger-resource',
+    converter: {
+      fromAttribute: (value: string | null): TcaResource | null => {
+        if (!value) {
+          return null;
+        }
+        try {
+          return JSON.parse(value) as TcaResource;
+        } catch {
+          return null;
+        }
+      },
+    },
+  }) triggerResource: TcaResource | null = null;
   @property({ type: String, attribute: 'trigger-component' }) triggerComponent: string = '';
   @property({ type: String }) label: string = 'Assist';
   @property({
@@ -69,15 +84,14 @@ export class AssistActionElement extends LitElement {
   }
 
   private async openForAssistants(filter: string[]): Promise<void> {
-    const params: Record<string, string> = {};
-    if (this.triggerResource) {
-      params.record = this.triggerResource;
-    }
+    // resolves the available & allowed assistants for the current scope
     const data: { identifier: string; label: string }[] = await new AjaxRequest(
-      TYPO3.settings.ajaxUrls.assist_assistant_inline_list,
+      TYPO3.settings.ajaxUrls.assist_get_inline_assistants,
     )
-      .withQueryArguments(params)
-      .get()
+      .post(
+        { triggerResource: this.triggerResource },
+        { headers: { 'Content-Type': 'application/json' } },
+      )
       .then(async (r: AjaxResponse) => r.resolve());
 
     const assistants = filter.length > 0
@@ -118,16 +132,34 @@ export class AssistActionElement extends LitElement {
   }
 
   private openAssistantModal(identifier: string, label: string): void {
+    const context: AssistContext | null = this.triggerResource
+      ? { resource: this.triggerResource, currentValue: this.getCurrentFieldValue() }
+      : null;
+
     Modal.advanced({
       title: label || identifier,
       severity: SeverityEnum.notice,
       size: Sizes.large,
       content: html`
         <typo3-assist-chat-panel
+          .assistant=${identifier}
+          .context=${context}
           style="height:60vh;display:block"
         ></typo3-assist-chat-panel>
       `,
+      buttons: [{ text: 'Close', btnClass: 'btn-default', trigger: (_, m) => m.hideModal() }],
     });
+  }
+
+  private getCurrentFieldValue(): string {
+    if (!this.triggerResource) {
+      return '';
+    }
+    const { tableName, identifier, propertyName } = this.triggerResource;
+    const field = document.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(
+      `[name="data[${tableName}][${identifier}][${propertyName}]"]`,
+    );
+    return field?.value ?? '';
   }
 
   private handleSelectionClick(a: { identifier: string; label: string }): void {
