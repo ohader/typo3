@@ -29,6 +29,7 @@ final readonly class AsAssistant
      * @param list<AssistantCapability> $capabilities
      * @param list<string> $triggerResources Resources which shall use this assistant, e.g. `['pages', 'tt_content']`
      * @param list<string> $triggerComponents Backend components which shall use this assistant, e.g. `['page-tree', 'context-menu']`
+     * @param list<string> $triggerRoutes Backend routes which shall use this assistant, e.g. `['/module/web/layout']`
      */
     public function __construct(
         public string $identifier,
@@ -36,6 +37,7 @@ final readonly class AsAssistant
         public array $capabilities,
         public array $triggerResources = [],
         public array $triggerComponents = [],
+        public array $triggerRoutes = [],
         public string $labelFile = '',
         public string $javaScriptModule = '',
     ) {}

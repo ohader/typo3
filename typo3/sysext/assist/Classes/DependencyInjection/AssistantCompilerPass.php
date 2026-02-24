@@ -50,6 +50,7 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
                     'trigger' => [
                         'resources' => json_decode($attributes['triggerResources'], true),
                         'components' => json_decode($attributes['triggerComponents'], true),
+                        'routes' => json_decode($attributes['triggerRoutes'], true),
                     ],
                     'label' => $this->resolveLabel($serviceName, $identifier, $attributes['labelFile'] ?? ''),
                     'javaScriptModule' => $attributes['javaScriptModule'] ?? '',

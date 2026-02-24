@@ -112,4 +112,15 @@ final readonly class AssistantRegistry
             static fn(Assistant $assistant): bool => $assistant->trigger->hasComponent($component),
         );
     }
+
+    /**
+     * @return array<string, Assistant>
+     */
+    public function getAssistantsByTriggerRoute(string $route): array
+    {
+        return array_filter(
+            $this->assistants,
+            static fn(Assistant $assistant): bool => $assistant->trigger->hasRoute($route),
+        );
+    }
 }

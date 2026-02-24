@@ -23,22 +23,25 @@ namespace TYPO3\CMS\Assist\Domain\Model;
 final readonly class AssistantTrigger
 {
     /**
-     * @param array<int, string> $resources
-     * @param array<int, string> $components
+     * @param list<string> $resources Resources which shall use this assistant, e.g. `['pages', 'tt_content']`
+     * @param list<string> $components Backend components which shall use this assistant, e.g. `['page-tree', 'context-menu']`
+     * @param list<string> $routes Backend routes which shall use this assistant, e.g. `['/module/web/layout']`
      */
     public function __construct(
         public array $resources = [],
         public array $components = [],
+        public array $routes = [],
     ) {}
 
     /**
-     * @param array{resources?: list<mixed>, components?: list<mixed>} $configuration
+     * @param array{resources?: list<mixed>, components?: list<mixed>, routes?: list<mixed>} $configuration
      */
     public static function createFromConfiguration(array $configuration): self
     {
         return new self(
             resources: array_values(array_filter(array_map(strval(...), $configuration['resources'] ?? []))),
             components: array_values(array_filter(array_map(strval(...), $configuration['components'] ?? []))),
+            routes: array_values(array_filter(array_map(strval(...), $configuration['routes'] ?? []))),
         );
     }
 
@@ -50,5 +53,10 @@ final readonly class AssistantTrigger
     public function hasComponent(string $component): bool
     {
         return in_array($component, $this->components, true);
+    }
+
+    public function hasRoute(string $route): bool
+    {
+        return in_array($route, $this->routes, true);
     }
 }

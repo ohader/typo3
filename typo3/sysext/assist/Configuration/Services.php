@@ -26,6 +26,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
                 )),
                 'triggerResources' => json_encode($attribute->triggerResources),
                 'triggerComponents' => json_encode($attribute->triggerComponents),
+                'triggerRoutes' => json_encode($attribute->triggerRoutes),
                 'labelFile' => $attribute->labelFile,
                 'javaScriptModule' => $attribute->javaScriptModule,
             ]);
