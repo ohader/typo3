@@ -41,6 +41,8 @@ use TYPO3\CMS\Core\Core\Bootstrap;
 #[AsCommand('assist:chat', 'Start an interactive AI chat session')]
 final class ChatCommand extends Command
 {
+    use CommandTrait;
+
     public function __construct(
         private readonly ConfigurationResolver $configurationResolver,
         private readonly AssistantRegistry $assistantRegistry,
@@ -93,22 +95,37 @@ final class ChatCommand extends Command
 
         /** @var QuestionHelper $questionHelper */
         $questionHelper = $this->getHelper('question');
+        $useReadline = function_exists('readline') && $input->isInteractive();
+
+        $this->installSigintHandler($output, 'Chat session ended.');
 
         $output->writeln(sprintf('AI Chat — <info>%s</info>', $platformModel));
         $output->writeln('Type your message and press Enter. Send an empty message or type <comment>/quit</comment> to exit.');
         $output->writeln('');
 
         while (true) {
-            $userText = $questionHelper->ask($input, $output, new Question('<info>You:</info> '));
+            if ($useReadline) {
+                $raw = readline($output->getFormatter()->format('<info>You:</info> '));
+                $userText = $raw === false ? null : $raw;
+            } else {
+                $userText = $questionHelper->ask($input, $output, new Question('<info>You:</info> '));
+            }
+
             if ($userText === null || $userText === '' || $userText === '/quit') {
                 break;
+            }
+
+            if ($useReadline) {
+                readline_add_history($userText);
             }
 
             $agentInput->add(Message::ofUser($userText));
             $agentOutput = new AgentOutput();
 
             try {
-                $this->assistantOrchestrator->process($assistant, $agentInput, $agentOutput);
+                $this->withSpinner($output, 'Thinking…', function () use ($assistant, $agentInput, $agentOutput): void {
+                    $this->assistantOrchestrator->process($assistant, $agentInput, $agentOutput);
+                });
 
                 $results = $agentOutput->getResultBag()->getResults();
                 $result = $results[0] ?? null;
