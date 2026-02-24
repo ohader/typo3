@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
@@ -25,7 +24,6 @@ use TYPO3\CMS\Assist\AI\Tool\FetchPageRecords;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
-use TYPO3\CMS\Core\Http\JsonResponse;
 
 #[AsAssistant(
     identifier: 'typo3-assist-inline-chat',
@@ -51,8 +49,8 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
     public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
 
-    public function handleClientRequest(AssistantRequest $request): ResponseInterface
+    public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
-        return new JsonResponse([], 501);
+        return new AssistantResponse();
     }
 }

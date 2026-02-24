@@ -82,6 +82,6 @@ final readonly class AssistantAjaxController
         }
         $assistant = $this->assistantRegistry->getAssistant($identifier);
         $handler = $this->orchestrator->buildHandler($assistant);
-        return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request));
+        return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request))->toResponse();
     }
 }

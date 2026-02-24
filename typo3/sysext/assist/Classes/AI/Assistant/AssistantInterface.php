@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
@@ -47,5 +46,5 @@ interface AssistantInterface
      */
     public function process(AgentInputInterface $input, AgentOutputInterface $output): void;
 
-    public function handleClientRequest(AssistantRequest $request): ResponseInterface;
+    public function handleClientRequest(AssistantRequest $request): AssistantResponse;
 }
