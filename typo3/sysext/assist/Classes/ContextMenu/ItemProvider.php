@@ -80,7 +80,7 @@ final class ItemProvider extends AbstractProvider
             return false;
         }
         $assistant = $this->assistantRegistry->getAssistant($itemName);
-        if ($assistant->trigger->records !== [] && !in_array($this->table, $assistant->trigger->records, true)) {
+        if ($assistant->trigger->resources !== [] && !$assistant->trigger->hasResource($this->table)) {
             return false;
         }
         return true;
