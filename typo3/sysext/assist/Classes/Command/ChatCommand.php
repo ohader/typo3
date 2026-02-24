@@ -53,7 +53,15 @@ final class ChatCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument('model', InputArgument::OPTIONAL, 'The model@platform identifier (see assist:list)');
+        $this
+            ->addArgument(
+                'assistant',
+                InputArgument::OPTIONAL,
+                'The assistant identifier (available: ' . implode(', ', array_keys($this->assistantRegistry->getAssistants())) . ')',
+                'typo3-assist-inline-chat',
+                array_keys($this->assistantRegistry->getAssistants()),
+            )
+            ->addArgument('model', InputArgument::OPTIONAL, 'The model@platform identifier (see assist:list)');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -61,7 +69,12 @@ final class ChatCommand extends Command
         Bootstrap::initializeBackendUser(CommandLineUserAuthentication::class);
         Bootstrap::initializeBackendAuthentication();
 
-        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-inline-chat');
+        $assistantIdentifier = $input->getArgument('assistant');
+        if (!$this->assistantRegistry->hasAssistant($assistantIdentifier)) {
+            $output->writeln(sprintf('<error>Assistant "%s" is not registered.</error>', $assistantIdentifier));
+            return Command::FAILURE;
+        }
+        $assistant = $this->assistantRegistry->getAssistant($assistantIdentifier);
 
         $modelValue = $input->getArgument('model');
         if ($modelValue !== null) {
