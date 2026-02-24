@@ -24,7 +24,7 @@ use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 /**
  * Loads assist JavaScript modules into the backend top frame.
  */
-#[AsEventListener('typo3/cms-assist/backend-page-render')]
+#[AsEventListener('typo3/cms-assist/backend-asset-enhancer')]
 final readonly class BackendAssetEnhancer
 {
     public function __invoke(BeforeBackendPageRenderEvent $event): void
