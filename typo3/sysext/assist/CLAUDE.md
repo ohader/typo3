@@ -1,6 +1,6 @@
 # EXT:assist — TYPO3 AI Assistant
 
-_Last updated: 2026-02-17_
+_Last updated: 2026-02-24_
 
 Experimental TYPO3 system extension (v14.2) that integrates Symfony AI platform packages into the TYPO3 backend. Classes, interfaces, and configuration may change without notice.
 
@@ -48,7 +48,8 @@ Classes/
     Agent/            AgentService (orchestrator), AgentGateway (transport),
                       AgentCallRequest, ProgressRecorderInterface, ProgressRecorder,
                       SequencePointer, ToolboxFactory
-    Assistant/        AssistantInterface (marker), AssistantOrchestrator,
+    Assistant/        AssistantInterface, AssistantOrchestrator,
+                      AssistantRequest, AssistantResponse,
                       A11yAssistant, InlineChatAssistant
     Platform/         PlatformBridge, PlatformConnector, PlatformResolver,
                       PlatformReflector, PlatformModel, FilteredModelCatalog
@@ -88,6 +89,8 @@ Tests/Functional/
 | `AI\Agent\AgentCallRequest` | Immutable value object carrying model, messages, processors, and optional progress/sequence pointer. `@internal` |
 | `AI\Agent\ProgressRecorderInterface` | Abstraction for persisting submitted/received progress items. `@internal` |
 | `AI\Agent\ProgressRecorder` | Concrete `ProgressRecorderInterface` implementation backed by `ProgressRepository`. `@internal` |
+| `AI\Assistant\AssistantRequest` | `final readonly` value object built from a PSR-7 request: `$params` (decoded JSON body) + `$headers` (all `x-typo3-*` request headers). Created via `AssistantRequest::fromServerRequest()`. |
+| `AI\Assistant\AssistantResponse` | `final readonly` value object returned by `handleClientRequest()`. Holds `$results`, `$steps`, and `?$progress`. Call `->toResponse()` to get a `JsonResponse` with keys `results`/`steps`/`progress`. |
 | `AI\Assistant\AssistantOrchestrator` | Resolves assistant handler, applies tool policy, delegates to `AgentService`. `@internal` |
 | `AI\Platform\PlatformResolver` | Site config → `Platform` domain objects. Determines `Availability` based on package presence + enabled flag. |
 | `AI\Platform\PlatformConnector` | `Platform` → `PlatformBridge`. Extracts PSR-4 namespace from composer metadata, dispatches `BeforeBuildPlatformBridgeEvent`, constructs bridge. `@internal` |
@@ -108,6 +111,53 @@ Tests/Functional/
 | `Attribute\AsAssistant` | PHP attribute for registering assistant handler classes. Discovered at compile time by `AssistantCompilerPass`. |
 | `DependencyInjection\AssistantCompilerPass` | Collects `#[AsAssistant]`-tagged services and injects config into `AssistantRegistry`. `@internal` |
 | `ServiceProvider` | Package identity (path + name). |
+
+## Assistant client request/response protocol
+
+All assistant Ajax traffic goes through `AssistantAjaxController::gateClientRequest()` → `AssistantInterface::handleClientRequest()` → `AssistantResponse::toResponse()`.
+
+### Request side — `AssistantRequest`
+
+Built by `AssistantRequest::fromServerRequest(ServerRequestInterface)`:
+
+- `$params` — JSON body decoded as array (e.g. `{"identifier":"…", "steps":[…]}`)
+- `$headers` — all `x-typo3-*` HTTP request headers, lowercased, first value only
+
+Key header: **`x-typo3-assist-progress`** — UUID string of an existing progress session.
+Absent on the first request; present on all continuation requests.
+
+### Response side — `AssistantResponse`
+
+`handleClientRequest()` returns `AssistantResponse`. The controller calls `->toResponse()` to get the final PSR-7 `JsonResponse`.
+
+```json
+{
+  "results":  [ ... ],
+  "steps":    [ ... ],
+  "progress": { "uuid": "<uuid>" } | null
+}
+```
+
+- `results`: `ResultInterface` items → `getContent()`; `QuestionInterface` items → `jsonSerialize()`
+- `steps`: `Step` objects (each `JsonSerializable`); shape: `{identifier, description, subject, subs[], done}`
+- `progress`: present only when a persisted `Progress` record is attached; contains just the UUID
+
+### Multi-step progress flow
+
+```
+1st call  (no x-typo3-assist-progress header)
+  → handleClientRequest calls initializeProgress()
+  → returns AssistantResponse(steps: $planSteps, progress: null)
+  → client receives task plan, UUID comes later from agent-call ProgressRecorder
+
+Nth call  (x-typo3-assist-progress: <uuid>)
+  → handleClientRequest calls continueProgress()
+  → loads Progress from ProgressRepository, deserializes steps from request body
+  → returns AssistantResponse(steps: $updatedSteps, progress: $progress)
+  → client receives updated steps + echoes back the UUID
+```
+
+The progress UUID is **persisted by `ProgressRecorder`** during the agent call (`AgentService::call()`), not by `handleClientRequest()` directly. `handleClientRequest()` only reads and returns it.
 
 ## Extension points
 
