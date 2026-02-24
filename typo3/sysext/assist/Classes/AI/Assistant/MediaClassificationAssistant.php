@@ -52,7 +52,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
 
-    public function handleClientRequest(ServerRequestInterface $request): ResponseInterface
+    public function handleClientRequest(AssistantRequest $request): ResponseInterface
     {
         return new JsonResponse([], 501);
     }

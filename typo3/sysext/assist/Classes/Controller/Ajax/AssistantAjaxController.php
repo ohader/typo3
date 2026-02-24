@@ -20,6 +20,7 @@ namespace TYPO3\CMS\Assist\Controller\Ajax;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
@@ -81,6 +82,6 @@ final readonly class AssistantAjaxController
         }
         $assistant = $this->assistantRegistry->getAssistant($identifier);
         $handler = $this->orchestrator->buildHandler($assistant);
-        return $handler->handleClientRequest($request);
+        return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request));
     }
 }

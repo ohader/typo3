@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
@@ -52,7 +51,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
     public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
 
-    public function handleClientRequest(ServerRequestInterface $request): ResponseInterface
+    public function handleClientRequest(AssistantRequest $request): ResponseInterface
     {
         return new JsonResponse([], 501);
     }
