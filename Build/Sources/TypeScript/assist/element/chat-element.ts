@@ -13,13 +13,28 @@
 
 import { customElement, property } from 'lit/decorators.js';
 import { html, LitElement, type TemplateResult } from 'lit';
+import { LabelProvider } from '@typo3/backend/localization/label-provider';
+import labels from '~labels/assist.elements';
+
+export interface AssistChatProperties {
+  module: string,
+  subject: string;
+  assistant: string;
+  labelDomain: string;
+}
 
 /**
  * Module: @typo3/assist/element/chat-element
  */
 @customElement('typo3-assist-chat-element')
 export class ChatElement extends LitElement {
+  // @todo remove `template` occurrences
   @property({ type: String, reflect: true }) template: string = 'meta';
+
+  @property({ type: String, reflect: true }) module: string;
+  @property({ type: String, reflect: true }) subject: string;
+  @property({ type: String, reflect: true }) assistant: string;
+  @property({ type: Object }) labels: LabelProvider<any>;
 
   private readonly mediaBasePath: string = '/typo3/sysext/assist/Resources/Public/Demo/';
   private readonly imagePlaceholderA: string = this.mediaBasePath + 'banner_ultrawide.jpg';
@@ -46,7 +61,7 @@ export class ChatElement extends LitElement {
           <div class="assist-chat-header__info">
             <h2 class="h4 assist-chat-header__title">
               <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16"><path d="M6.758.254c-.29.25-.495.54-.495 1.409 0 2.364 2.984 9.464 5.017 9.464a2.2 2.2 0 0 0 .502-.053l.171-.048C10.17 13.886 8.003 16 6.718 16l-.132-.006C3.816 15.739 0 7.569 0 3.938c0-.507.095-.919.257-1.208l.073-.116C1.285 1.454 4.27.544 6.758.254ZM1.5 3.938c0 .7.196 1.747.589 2.989.385 1.218.93 2.53 1.557 3.732.632 1.212 1.318 2.255 1.963 2.97.323.358.602.596.824.736a.963.963 0 0 0 .275.132c.03-.008.145-.04.356-.164.283-.167.638-.44 1.046-.831.44-.422.907-.949 1.377-1.556a6.244 6.244 0 0 1-1.017-1.024c-.665-.826-1.286-1.898-1.812-2.988a25.121 25.121 0 0 1-1.33-3.348c-.263-.845-.473-1.711-.54-2.451-.46.113-.91.244-1.327.39-1.04.36-1.657.732-1.907.974-.004.01-.009.024-.013.04a1.655 1.655 0 0 0-.041.4ZM11.133.009c2.4.05 4.661.5 4.662 1.86l-.006.277c-.11 2.886-1.89 6.23-2.814 6.23l-.16-.013c-1.615-.27-3.526-4.502-3.647-6.85l-.006-.228C9.162.205 9.577 0 10.652 0l.482.009Zm-.462 1.495c.061.883.47 2.282 1.101 3.54.335.668.687 1.203 1 1.547l.032.034c.177-.254.38-.602.579-1.031.496-1.067.872-2.393.908-3.548a2.352 2.352 0 0 0-.53-.215c-.753-.222-1.86-.326-3.09-.327Z"/></svg>
-              <span class="assist-chat-header__title-text">AI Assistant</span>
+              <span class="assist-chat-header__title-text">${this.labels.get('chat.title')}</span>
             </h2>
             <p class="assist-chat-header__context text-variant">
               ${this.getTemplateContext(template)}
@@ -115,7 +130,7 @@ export class ChatElement extends LitElement {
                   Discover current spring trends, styling ideas, and practical tips for updating your wardrobe. Learn what to wear this season and how to combine outfits effortlessly.
                 </div>
                 <div class="panel-footer assist-chat__option-actions">
-                  <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                  <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                 </div>
               </article>
 
@@ -127,7 +142,7 @@ export class ChatElement extends LitElement {
                   Explore the Spring 2025 fashion trends, outfit ideas, and styling tips. Find inspiration for modern looks and build a versatile wardrobe for the new season.
                 </div>
                 <div class="panel-footer assist-chat__option-actions">
-                  <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                  <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                 </div>
               </article>
 
@@ -139,7 +154,7 @@ export class ChatElement extends LitElement {
                   Refresh your wardrobe this spring. Get outfit inspiration, trending colors, and easy styling tips to create modern looks for work, leisure, and everyday wear.
                 </div>
                 <div class="panel-footer assist-chat__option-actions">
-                  <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                  <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                 </div>
               </article>
             </div>
@@ -167,7 +182,7 @@ export class ChatElement extends LitElement {
                   Discover spring outfits made with sustainable materials and environmentally conscious production. Learn how to update your wardrobe with durable, modern clothing choices for everyday wear.
                 </div>
                 <div class="panel-footer assist-chat__option-actions">
-                  <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                  <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                 </div>
               </article>
             </div>
@@ -205,7 +220,7 @@ export class ChatElement extends LitElement {
                     </div>
                   </div>
                   <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                     <button
                       type="button"
                       class="assist-chat__option-action btn btn-default"
@@ -227,7 +242,7 @@ export class ChatElement extends LitElement {
                     </div>
                   </div>
                   <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                     <button
                       type="button"
                       class="assist-chat__option-action btn btn-default"
@@ -249,7 +264,7 @@ export class ChatElement extends LitElement {
                     </div>
                   </div>
                   <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                     <button
                       type="button"
                       class="assist-chat__option-action btn btn-default"
@@ -291,7 +306,7 @@ export class ChatElement extends LitElement {
                     </div>
                   </div>
                   <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                   </div>
                 </article>
               </div>
@@ -307,7 +322,7 @@ export class ChatElement extends LitElement {
                     </div>
                   </div>
                   <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">Insert</button>
+                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
                   </div>
                 </article>
               </div>
@@ -407,6 +422,10 @@ export class ChatElement extends LitElement {
     this.closest('typo3-backend-modal')?.hideModal();
   }
 
+
+  /**
+   * @todo make this a separate component `<typo3-assist-thinking-element>`
+   */
   private renderThinking(): TemplateResult {
     return html`
       <div class="assist-chat__thinking">

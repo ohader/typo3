@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" datatype="plaintext"
+        original="EXT:assist/Resources/Private/Language/elements.xlf"
+        product-name="assist">
+    <header/>
+    <body>
+      <trans-unit id="button.insert">
+        <source>Insert</source>
+      </trans-unit>
+      <trans-unit id="button.update">
+        <source>Update</source>
+      </trans-unit>
+      <trans-unit id="button.accept">
+        <source>Accept</source>
+      </trans-unit>
+      <trans-unit id="button.decline">
+        <source>Decline</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\EventListener;
 
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
+use TYPO3\CMS\Assist\Service\DataSetService;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\Buttons\ButtonInterface;
@@ -39,6 +40,7 @@ final readonly class BackendButtonBarEnhancer
     public function __construct(
         private IconFactory $iconFactory,
         private PageRenderer $pageRenderer,
+        private DataSetService $dataSetService,
         private ComponentFactory $componentFactory,
         private AssistantRegistry $assistantRegistry,
     ) {}
@@ -52,7 +54,7 @@ final readonly class BackendButtonBarEnhancer
             return;
         }
 
-        $this->pageRenderer->loadJavaScriptModule('@typo3/assist/element/action-button.js');
+        $this->pageRenderer->loadJavaScriptModule('@typo3/assist/assistant-trigger.js');
 
         $buttons = $event->getButtons();
         $nextButtonGroup = $this->resolveHighestButtonGroup(ButtonBar::BUTTON_POSITION_LEFT, $buttons) + 1;
@@ -80,7 +82,7 @@ final readonly class BackendButtonBarEnhancer
                     ->setHref('#')
                     ->setAttributes([
                         'class' => 't3js-assist-trigger-item',
-                        'data-assist-template' => 'meta',
+                        ...$this->dataSetService->forAssistant($assistant)
                     ])
             );
         }

@@ -8,6 +8,9 @@
       <trans-unit id="default">
         <source>Accessibility Review</source>
       </trans-unit>
+      <trans-unit id="chat.title">
+        <source>Get accessibility insights</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>

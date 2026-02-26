@@ -8,6 +8,9 @@
       <trans-unit id="default">
         <source>Inline Chat</source>
       </trans-unit>
+      <trans-unit id="chat.title">
+        <source>Chat</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>
