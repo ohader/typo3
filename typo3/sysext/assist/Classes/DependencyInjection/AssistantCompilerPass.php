@@ -48,26 +48,12 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
                         'components' => json_decode($attributes['triggerComponents'], true),
                         'routes' => json_decode($attributes['triggerRoutes'], true),
                     ],
-                    'label' => $this->resolveLabel($serviceName, $identifier, $attributes['labelFile'] ?? ''),
+                    'labelFile' => $attributes['labelFile'] ?? '',
                     'javaScriptModule' => $attributes['javaScriptModule'] ?? '',
                 ];
             }
         }
 
         $registryDefinition->setArgument('$assistants', $assistants);
-    }
-
-    private function resolveLabel(string $handlerClass, string $identifier, string $labelFile): string
-    {
-        if ($labelFile !== '') {
-            return 'LLL:' . $labelFile . ':default';
-        }
-
-        $classFile = (new \ReflectionClass($handlerClass))->getFileName();
-        if (preg_match('#/(?:typo3/sysext|typo3conf/ext)/([^/]+)/#', $classFile, $matches)) {
-            return 'LLL:EXT:' . $matches[1] . '/Resources/Private/Language/Assistants/' . $identifier . '.xlf:default';
-        }
-
-        return '';
     }
 }

@@ -40,6 +40,9 @@ final readonly class AssistantAjaxController
         private AssistantOrchestrator $orchestrator,
     ) {}
 
+    /**
+     * @deprecated refine usage
+     */
     public function getInlineAssistants(ServerRequestInterface $request): ResponseInterface
     {
         if ($response = $this->assertJsonContentType($request)) {
@@ -64,7 +67,7 @@ final readonly class AssistantAjaxController
         return new JsonResponse(array_values(array_map(
             static fn(Assistant $assistant): array => [
                 'identifier' => $assistant->identifier,
-                'label' => $assistant->label,
+                'label' => $assistant->labelFile,
             ],
             $assistants,
         )));
