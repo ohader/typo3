@@ -24,6 +24,7 @@ import RegularEvent from '@typo3/core/event/regular-event';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import coreCommonLabels from '~labels/core.common';
 import type { AjaxResponse } from '@typo3/core/ajax/ajax-response';
+import labels from '~labels/recycler.messages';
 
 enum Identifiers {
   searchForm = '#recycler-form',
@@ -205,12 +206,12 @@ class Recycler {
       const massUndo = document.querySelector(Identifiers.massUndo) as HTMLButtonElement;
 
       massUndo.querySelector('span.text')
-        .textContent = this.createMessage(TYPO3.lang['button.undoselected'], [this.markedRecordsForMassAction.length.toString(10)]);
+        .textContent = labels.get('button.undoselected', { '0': this.markedRecordsForMassAction.length.toString(10) });
 
       if (!TYPO3.settings.Recycler.deleteDisable) {
         const massDelete = document.querySelector(Identifiers.massDelete) as HTMLButtonElement;
         massDelete.querySelector('span.text')
-          .textContent = this.createMessage(TYPO3.lang['button.deleteselected'], [this.markedRecordsForMassAction.length.toString(10)]);
+          .textContent = labels.get('button.deleteselected', { '0': this.markedRecordsForMassAction.length.toString(10) });
       }
     } else {
       this.resetMassActionButtons();
@@ -224,11 +225,11 @@ class Recycler {
     const massUndo = document.querySelector(Identifiers.massUndo) as HTMLButtonElement;
 
     this.markedRecordsForMassAction = [];
-    massUndo.querySelector('span.text').textContent = TYPO3.lang['button.undo'];
+    massUndo.querySelector('span.text').textContent = labels.get('button.undo');
 
     if (!TYPO3.settings.Recycler.deleteDisable) {
       const massDelete = document.querySelector(Identifiers.massDelete) as HTMLButtonElement;
-      massDelete.querySelector('span.text').textContent = TYPO3.lang['button.delete'];
+      massDelete.querySelector('span.text').textContent = labels.get('button.delete');
     }
 
     document.dispatchEvent(new CustomEvent('multiRecordSelection:actions:hide'));
@@ -245,10 +246,10 @@ class Recycler {
     tableSelector.value = '';
     this.paging.currentPage = 1;
 
-    return new AjaxRequest(TYPO3.settings.ajaxUrls.recycler).withQueryArguments({
-      action: 'getTables',
+    return new AjaxRequest(TYPO3.settings.ajaxUrls['recycler.getTables']).withQueryArguments({
       startUid: TYPO3.settings.Recycler.startUid,
       depth: depthSelector.value,
+      depthSelection: depthSelector.value,
     }).get().then(async (response: AjaxResponse): Promise<AjaxResponse> => {
       const data = await response.resolve();
       const tables: Array<HTMLOptionElement> = [];
@@ -257,7 +258,7 @@ class Recycler {
       for (const value of data) {
         const tableName = value[0];
         const deletedRecords = value[1];
-        const tableDescription = value[2] ? value[2] : TYPO3.lang.label_allrecordtypes;
+        const tableDescription = value[2] ? value[2] : labels.get('label_allrecordtypes');
         const optionText = tableDescription + ' (' + deletedRecords + ')';
 
         const option = document.createElement('option');
@@ -293,14 +294,15 @@ class Recycler {
     this.getProgress().start();
     this.resetMassActionButtons();
 
-    return new AjaxRequest(TYPO3.settings.ajaxUrls.recycler).withQueryArguments({
-      action: 'getDeletedRecords',
+    return new AjaxRequest(TYPO3.settings.ajaxUrls['recycler.getDeletedRecords']).withQueryArguments({
       depth: depthSelector.value,
       startUid: TYPO3.settings.Recycler.startUid,
       table: tableSelector.value,
       filterTxt: searchTextField.value,
       start: (this.paging.currentPage - 1) * this.paging.itemsPerPage,
       limit: this.paging.itemsPerPage,
+      depthSelection: depthSelector.value,
+      tableSelection: tableSelector.value,
     }).get().then(async (response: AjaxResponse): Promise<AjaxResponse> => {
       const tableWrapper = document.querySelector(Identifiers.recyclerTable);
       const tableBody = tableWrapper.querySelector('tbody');
@@ -311,7 +313,7 @@ class Recycler {
           const alertElement = document.createElement('typo3-backend-alert');
           alertElement.id = 'no-recycler-records';
           alertElement.severity = SeverityEnum.info;
-          alertElement.message = TYPO3.lang['alert.noDeletedRecords'];
+          alertElement.message = labels.get('alert.noDeletedRecords');
           alertElement.showIcon = true;
           tableWrapper.parentElement.insertBefore(alertElement, tableWrapper);
         }
@@ -343,18 +345,20 @@ class Recycler {
 
     if (isMassDelete) {
       records = this.markedRecordsForMassAction;
-      message = TYPO3.lang['modal.massdelete.text'];
+      message = labels.get('modal.massdelete.text');
     } else {
       const uid = tableRow.dataset.uid;
       const table = tableRow.dataset.table;
       const recordTitle = tableRow.dataset.recordtitle;
       records = [table + ':' + uid];
-      message = table === 'pages' ? TYPO3.lang['modal.deletepage.text'] : TYPO3.lang['modal.deletecontent.text'];
-      message = this.createMessage(message, [recordTitle, '[' + records[0] + ']']);
+      const parameters = { '0': recordTitle, '1': '[' + records[0] + ']' } as const;
+      message = table === 'pages'
+        ? labels.get('modal.deletepage.text', parameters)
+        : labels.get('modal.deletecontent.text', parameters);
     }
 
     Modal.advanced({
-      title: TYPO3.lang['modal.delete.header'],
+      title: labels.get('modal.delete.header'),
       content: message,
       severity: SeverityEnum.error,
       staticBackdrop: true,
@@ -366,7 +370,7 @@ class Recycler {
             Modal.dismiss();
           },
         }, {
-          text: TYPO3.lang['button.delete'],
+          text: labels.get('button.delete'),
           btnClass: 'btn-danger',
           action: new DeferredAction(() => {
             this.callAjaxAction('delete', records, isMassDelete);
@@ -386,7 +390,7 @@ class Recycler {
 
     if (isMassUndo) {
       records = this.markedRecordsForMassAction;
-      messageText = TYPO3.lang['modal.massundo.text'];
+      messageText = labels.get('modal.massundo.text');
       recoverPages = true;
     } else {
       const uid = tableRow.dataset.uid;
@@ -395,11 +399,13 @@ class Recycler {
 
       records = [table + ':' + uid];
       recoverPages = table === 'pages';
-      messageText = recoverPages ? TYPO3.lang['modal.undopage.text'] : TYPO3.lang['modal.undocontent.text'];
-      messageText = this.createMessage(messageText, [recordTitle, '[' + records[0] + ']']);
+      const parameters = { '0': recordTitle, '1': '[' + records[0] + ']' } as const;
+      messageText = recoverPages
+        ? labels.get('modal.undopage.text', parameters)
+        : labels.get('modal.undocontent.text', parameters);
 
       if (recoverPages && tableRow.dataset.parentDeleted) {
-        messageText += TYPO3.lang['modal.undo.parentpages'];
+        messageText += labels.get('modal.undo.parentpages');
       }
     }
 
@@ -421,7 +427,7 @@ class Recycler {
       const label = document.createElement('label');
       label.classList.add('form-check-label');
       label.htmlFor = 'undo-recursive';
-      label.textContent = TYPO3.lang['modal.undo.recursive'];
+      label.textContent = labels.get('modal.undo.recursive');
 
       checkboxWrapper.append(checkbox, label);
       wrapper.append(paragraph, checkboxWrapper);
@@ -434,7 +440,7 @@ class Recycler {
     }
 
     Modal.advanced({
-      title: TYPO3.lang['modal.undo.header'],
+      title: labels.get('modal.undo.header'),
       content: message,
       severity: SeverityEnum.ok,
       staticBackdrop: true,
@@ -446,7 +452,7 @@ class Recycler {
             Modal.dismiss();
           },
         }, {
-          text: TYPO3.lang['button.undo'],
+          text: labels.get('button.undo'),
           btnClass: 'btn-success',
           action: new DeferredAction(() => {
             this.callAjaxAction(
@@ -462,23 +468,23 @@ class Recycler {
   }
 
   private async callAjaxAction(action: string, records: RecordToDelete[], isMassAction: boolean, recursive: boolean = false): Promise<AjaxResponse>|null {
-    const data: { records: RecordToDelete[], action: string, recursive?: number } = {
+    let ajaxUrl: string;
+    const data: { records: RecordToDelete[], recursive?: number } = {
       records: records,
-      action: '',
     };
     let reloadPageTree: boolean = false;
     if (action === 'undo') {
-      data.action = 'undoRecords';
+      ajaxUrl = TYPO3.settings.ajaxUrls['recycler.undoRecords'];
       data.recursive = recursive ? 1 : 0;
       reloadPageTree = true;
     } else if (action === 'delete') {
-      data.action = 'deleteRecords';
+      ajaxUrl = TYPO3.settings.ajaxUrls['recycler.deleteRecords'];
     } else {
       return null;
     }
 
     this.getProgress().start();
-    return new AjaxRequest(TYPO3.settings.ajaxUrls.recycler).post(data).then(async (response: AjaxResponse): Promise<AjaxResponse> => {
+    return new AjaxRequest(ajaxUrl).post(data).then(async (response: AjaxResponse): Promise<AjaxResponse> => {
       const responseData = await response.resolve();
 
       if (responseData.success) {
@@ -504,23 +510,6 @@ class Recycler {
       return response;
     });
   }
-
-  /**
-   * Replaces the placeholders with actual values
-   */
-  private createMessage(message: string, placeholders: string[]): string {
-    if (typeof message === 'undefined') {
-      return '';
-    }
-
-    return message.replace(
-      /\{([0-9]+)\}/g,
-      function(_: string, index: number): string {
-        return placeholders[index];
-      },
-    );
-  }
-
 
   /**
    * Build the paginator

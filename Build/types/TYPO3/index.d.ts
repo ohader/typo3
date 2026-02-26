@@ -22,6 +22,7 @@ declare namespace TYPO3 {
   export let LiveSearchConfigurator: typeof import('@typo3/backend/live-search/live-search-configurator').default;
   export let Severity: import('@typo3/backend/severity').default;
   export let BookmarkStore: typeof import('@typo3/backend/bookmark/bookmark-store').default;
+  export let OpenDocumentStore: typeof import('@typo3/opendocs/open-document-store').default;
   export let WindowManager: typeof import('@typo3/backend/window-manager').default;
   export let WorkspaceState: typeof import('@typo3/workspaces/workspace-state').default;
   export const lang: {
@@ -54,8 +55,6 @@ declare namespace TYPO3 {
     export namespace FormEngine {
       export const moduleUrl: string;
       export const formName: string;
-
-      export const doSaveFieldName: string;
     }
     export namespace FormEngineInline {
       export const config: {
@@ -116,12 +115,4 @@ interface Window {
   TYPO3: Partial<typeof TYPO3>;
   ModuleStateStorage: typeof import('@typo3/backend/storage/module-state-storage').ModuleStateStorage;
   list_frame: Window;
-}
-
-// wildcard label provider, concrete modules,
-// including a map containing available labels,
-// is generated via lib/generate-label-types.js
-declare module '~labels/*' {
-  const provider: import('@typo3/backend/localization/label-provider').LabelProvider;
-  export default provider;
 }

@@ -14,7 +14,6 @@
 import { html, LitElement, type TemplateResult, nothing } from 'lit';
 import { customElement, property, query } from 'lit/decorators.js';
 import { until } from 'lit/directives/until.js';
-import { lll } from '@typo3/core/lit-helper';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import Persistent from '@typo3/backend/storage/persistent';
 import { ModuleUtility } from '@typo3/backend/module';
@@ -33,6 +32,9 @@ import type { DragTooltipMetadata } from '@typo3/backend/drag-tooltip';
 import type { DataTransferStringItem } from '@typo3/backend/tree/tree';
 import '@typo3/backend/viewport/content-navigation-toggle';
 import 'bootstrap'; // for data-bs-toggle="dropdown"
+import coreLabels from '~labels/core.core';
+import coreCommonLabels from '~labels/core.common';
+import listLabels from '~labels/core.mod_web_list';
 
 /**
  * This module defines the Custom Element for rendering the navigation component for an editable page tree
@@ -201,17 +203,17 @@ export class EditablePageTree extends PageTree {
 
     if (this.settings.displayDeleteConfirmation) {
       const modal = Modal.confirm(
-        TYPO3.lang['mess.delete.title'],
-        TYPO3.lang['mess.delete'].replace('%s', options.node.name),
+        coreLabels.get('mess.delete.title'),
+        coreLabels.get('mess.delete', [options.node.name]),
         Severity.warning, [
           {
-            text: TYPO3.lang['labels.cancel'] || 'Cancel',
+            text: coreLabels.get('labels.cancel'),
             active: true,
             btnClass: 'btn-default',
             name: 'cancel'
           },
           {
-            text: TYPO3.lang.delete || 'Delete',
+            text: coreCommonLabels.get('delete'),
             btnClass: 'btn-warning',
             name: 'delete'
           }
@@ -242,36 +244,36 @@ export class EditablePageTree extends PageTree {
     };
 
     let modalText = '';
+    const languageArguments = [node.name, target.name] as const;
     switch(position) {
       case TreeNodePositionEnum.BEFORE:
-        modalText = TYPO3.lang['mess.move_before'];
+        modalText = coreLabels.get('mess.move_before', languageArguments);
         break;
       case TreeNodePositionEnum.AFTER:
-        modalText = TYPO3.lang['mess.move_after'];
+        modalText = coreLabels.get('mess.move_after', languageArguments);
         break;
       default:
-        modalText = TYPO3.lang['mess.move_into'];
+        modalText = coreLabels.get('mess.move_into', languageArguments);
         break;
     }
-    modalText = modalText.replace('%s', node.name).replace('%s', target.name);
 
     const modal = Modal.confirm(
-      TYPO3.lang.move_page,
+      listLabels.get('move_page'),
       modalText,
       Severity.warning, [
         {
-          text: TYPO3.lang['labels.cancel'] || 'Cancel',
+          text: coreLabels.get('labels.cancel'),
           active: true,
           btnClass: 'btn-default',
           name: 'cancel'
         },
         {
-          text: TYPO3.lang['cm.copy'] || 'Copy',
+          text: coreLabels.get('cm.copy'),
           btnClass: 'btn-warning',
           name: 'copy'
         },
         {
-          text: TYPO3.lang['labels.move'] || 'Move',
+          text: coreLabels.get('labels.move'),
           btnClass: 'btn-warning',
           name: 'move'
         }
@@ -403,7 +405,7 @@ export class PageTreeNavigationComponent extends TreeModuleState(LitElement) {
       <div class="node-mount-point">
         <div class="node-mount-point__icon"><typo3-backend-icon identifier="actions-info-circle" size="small"></typo3-backend-icon></div>
         <div class="node-mount-point__text">${this.mountPointPath}</div>
-        <div class="node-mount-point__icon mountpoint-close" @click="${() => this.unsetTemporaryMountPoint()}" title="${lll('labels.temporaryPageTreeEntryPoints')}">
+        <div class="node-mount-point__icon mountpoint-close" @click="${() => this.unsetTemporaryMountPoint()}" title="${coreLabels.get('labels.temporaryPageTreeEntryPoints')}">
           <typo3-backend-icon identifier="actions-close" size="small"></typo3-backend-icon>
         </div>
       </div>
@@ -500,9 +502,9 @@ class PageTreeToolbar extends TreeToolbar {
         <div class="tree-toolbar__menu">
           <div class="tree-toolbar__search">
               <label for="toolbarSearch" class="visually-hidden">
-                ${lll('labels.label.searchString')}
+                ${coreLabels.get('labels.label.searchString')}
               </label>
-              <input type="search" autocomplete="off" id="toolbarSearch" class="form-control form-control-sm search-input" placeholder="${lll('tree.searchPageTree')}">
+              <input type="search" autocomplete="off" id="toolbarSearch" class="form-control form-control-sm search-input" placeholder="${coreLabels.get('tree.searchPageTree')}">
           </div>
           <div class="dropdown">
             <button
@@ -511,7 +513,7 @@ class PageTreeToolbar extends TreeToolbar {
               data-bs-toggle="dropdown"
               data-bs-boundary="window"
               aria-expanded="false"
-              aria-label="${lll('labels.openPageTreeOptionsMenu')}"
+              aria-label="${coreLabels.get('labels.openPageTreeOptionsMenu')}"
             >
               <typo3-backend-icon identifier="actions-menu-alternative" size="small"></typo3-backend-icon>
             </button>
@@ -523,7 +525,7 @@ class PageTreeToolbar extends TreeToolbar {
                       <typo3-backend-icon identifier="actions-refresh" size="small"></typo3-backend-icon>
                     </span>
                     <span class="dropdown-item-column dropdown-item-column-title">
-                      ${lll('labels.refresh')}
+                      ${coreLabels.get('labels.refresh')}
                     </span>
                   </span>
                 </button>
@@ -535,7 +537,7 @@ class PageTreeToolbar extends TreeToolbar {
                       <typo3-backend-icon identifier="apps-pagetree-category-collapse-all" size="small"></typo3-backend-icon>
                     </span>
                     <span class="dropdown-item-column dropdown-item-column-title">
-                      ${lll('labels.collapse')}
+                      ${coreLabels.get('labels.collapse')}
                     </span>
                   </span>
                 </button>
@@ -593,7 +595,7 @@ class PageTreeToolbar extends TreeToolbar {
                 <typo3-backend-icon identifier="${this.searchInTranslatedPages ? 'actions-check-square' : 'actions-selection'}" size="small"></typo3-backend-icon>
               </span>
               <span class="dropdown-item-column dropdown-item-column-title">
-                ${lll('tree.search_in_translated_pages')}
+                ${coreLabels.get('tree.search_in_translated_pages')}
               </span>
             </span>
           </button>
@@ -607,7 +609,7 @@ class PageTreeToolbar extends TreeToolbar {
                 <typo3-backend-icon identifier="${this.searchByFrontendUri ? 'actions-check-square' : 'actions-selection'}" size="small"></typo3-backend-icon>
               </span>
               <span class="dropdown-item-column dropdown-item-column-title">
-                ${lll('tree.search_by_frontend_uri')}
+                ${coreLabels.get('tree.search_by_frontend_uri')}
               </span>
             </span>
           </button>

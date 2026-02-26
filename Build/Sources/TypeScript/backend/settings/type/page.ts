@@ -13,10 +13,10 @@
 
 import { html, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { lll } from '@typo3/core/lit-helper';
 import { MessageUtility } from '@typo3/backend/utility/message-utility';
 import { BaseElement } from './base';
 import { default as Modal } from '@typo3/backend/modal';
+import labels from '~labels/backend.settingseditor';
 import '@typo3/backend/element/icon-element';
 
 export const componentName = 'typo3-backend-settings-type-page';
@@ -46,7 +46,7 @@ export class PageTypeElement extends BaseElement<number> {
               @click=${() => this.openElementBrowser()}
             >
               <typo3-backend-icon identifier="apps-pagetree-page" size="small"></typo3-backend-icon>
-              ${lll('settingseditor.type.page.button') || 'Select page'}
+              ${labels.get('settingseditor.type.page.button') || 'Select page'}
             </button>
           `
           : nothing
@@ -61,11 +61,15 @@ export class PageTypeElement extends BaseElement<number> {
 
   private openElementBrowser() {
     const mode = 'db';
-    const params = this.formid + '|||pages';
+    const queryParams = new URLSearchParams({
+      mode: mode,
+      fieldReference: this.formid,
+      allowedTypes: 'pages',
+    });
 
     const modal = Modal.advanced({
       type: Modal.types.iframe,
-      content: top.TYPO3.settings.Wizards.elementBrowserUrl + '&mode=' + mode + '&bparams=' + params,
+      content: top.TYPO3.settings.Wizards.elementBrowserUrl + '&' + queryParams.toString(),
       size: Modal.sizes.large,
     });
     window.addEventListener('message', this.elementBrowserListener);

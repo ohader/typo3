@@ -1,18 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			message: '#^Call to function is_array\(\) with non\-empty\-array\<int\<1, max\>, 1\> will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: ../../typo3/sysext/backend/Classes/Form/Element/BackendLayoutWizardElement.php
-
-		-
-			message: '#^Result of && is always true\.$#'
-			identifier: booleanAnd.alwaysTrue
-			count: 1
-			path: ../../typo3/sysext/backend/Classes/Form/Element/BackendLayoutWizardElement.php
-
-		-
 			message: '#^Strict comparison using \!\=\= between non\-empty\-array\<int\<1, max\>, 1\> and array\{\} will always evaluate to true\.$#'
 			identifier: notIdentical.alwaysTrue
 			count: 1
@@ -911,18 +899,6 @@ parameters:
 			identifier: notIdentical.alwaysTrue
 			count: 1
 			path: ../../typo3/sysext/install/Classes/ExtensionScanner/Php/Matcher/MethodArgumentUnusedMatcher.php
-
-		-
-			message: '#^Offset string on array\{\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: ../../typo3/sysext/install/Classes/Service/LanguagePackService.php
-
-		-
-			message: '#^Strict comparison using \=\=\= between '''' and ''excludeFromUpdates'' will always evaluate to false\.$#'
-			identifier: identical.alwaysFalse
-			count: 1
-			path: ../../typo3/sysext/install/Classes/Service/LanguagePackService.php
 
 		-
 			message: '#^Strict comparison using \!\=\= between object\|resource and null will always evaluate to true\.$#'

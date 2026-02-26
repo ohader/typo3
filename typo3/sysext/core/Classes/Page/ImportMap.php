@@ -149,7 +149,7 @@ class ImportMap
         } else {
             $this->policyRegistry?->appendMutationCollection(
                 new MutationCollection(
-                    new Mutation(MutationMode::Extend, Directive::ScriptSrc, HashValue::hash($json))
+                    new Mutation(MutationMode::Extend, Directive::ScriptSrcElem, HashValue::hash($json))
                 )
             );
         }
@@ -360,6 +360,7 @@ class ImportMap
                 $virtualName = substr($url, 8);
                 $resolved = $this->dispatchResolveVirtualJavaScriptImportEvent($virtualName);
                 if ($resolved === null) {
+                    unset($importMap['imports'][$specifier]);
                     continue;
                 }
             }

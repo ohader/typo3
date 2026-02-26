@@ -53,8 +53,15 @@ type FormEngineType = {
   formElement: HTMLFormElement,
   openedPopupWindow: Window | null,
   browserUrl: string,
-  doSaveFieldName: string,
 };
+
+const enum FormAction {
+  save = '_savedok',
+  saveAndClose = '_saveandclosedok',
+  saveAndView = '_savedokview',
+  saveAndNew = '_savedoknew',
+  duplicate = '_duplicatedoc',
+}
 
 type OnChangeFieldHandlerCallback = (data: object, e: Event) => void;
 type PreviewActionCallback = (targetName: string, previewUrl: string, $actionElement: JQuery, modal: ModalElement) => void;
@@ -126,7 +133,6 @@ export default (function() {
           btnClass: 'btn-' + Severity.getCssClass(Severity.warning),
           name: 'ok',
           trigger: () => {
-            FormEngine.disableDocHeaderButtons();
             FormEngine.closeModalsRecursive();
             saveDocumentWithoutValidation();
           }
@@ -155,11 +161,10 @@ export default (function() {
     consumeTypes: ['typo3.setUrl', 'typo3.beforeSetUrl', 'typo3.refresh'],
     Validation: FormEngineValidation,
     interactionRequestMap: InteractionRequestMap,
-    formName: TYPO3.settings.FormEngine.formName,
+    formName: 'editform',
     formElement: undefined,
     openedPopupWindow: null,
     browserUrl: '',
-    doSaveFieldName: ''
   };
 
   Object.defineProperty(
@@ -188,14 +193,35 @@ export default (function() {
    * Opens a popup window with the element browser (browser.php)
    *
    * @param {string} mode can be "db" or "file"
-   * @param {string} params additional params for the browser window
+   * @param {string} fieldReference form field name reference
+   * @param {string} allowedTypes allowed tables or file extensions
+   * @param {string} disallowedTypes disallowed file extensions (for file mode)
+   * @param {string} irreObjectId IRRE object identifier
    * @param {string} entryPoint the entry point, which should be expanded by default
    */
-  FormEngine.openPopupWindow = function(mode: string, params: string, entryPoint: string): ModalElement {
-    const queryParams: {mode: string, bparams: string, expandPage?: string, expandFolder?: string} = {
+  FormEngine.openPopupWindow = function(
+    mode: string,
+    fieldReference: string,
+    allowedTypes: string,
+    disallowedTypes: string,
+    irreObjectId: string,
+    entryPoint: string
+  ): ModalElement {
+    const queryParams: Record<string, string> = {
       mode: mode,
-      bparams: params
     };
+    if (fieldReference) {
+      queryParams.fieldReference = fieldReference;
+    }
+    if (allowedTypes) {
+      queryParams.allowedTypes = allowedTypes;
+    }
+    if (disallowedTypes) {
+      queryParams.disallowedFileExtensions = disallowedTypes;
+    }
+    if (irreObjectId) {
+      queryParams.irreObjectId = irreObjectId;
+    }
     if (entryPoint) {
       if (mode === 'db') {
         queryParams.expandPage = entryPoint;
@@ -458,10 +484,13 @@ export default (function() {
       e.stopPropagation();
 
       const mode = target.dataset.mode;
-      const params = target.dataset.params;
+      const fieldReference = target.dataset.fieldReference ?? '';
+      const allowedTypes = target.dataset.allowedTypes ?? '';
+      const disallowedTypes = target.dataset.disallowedTypes ?? '';
+      const irreObjectId = target.dataset.irreObjectId ?? '';
       const entryPoint = target.dataset.entryPoint;
 
-      FormEngine.openPopupWindow(mode, params, entryPoint);
+      FormEngine.openPopupWindow(mode, fieldReference, allowedTypes, disallowedTypes, irreObjectId, entryPoint);
     }).delegateTo(document, '.t3js-element-browser');
 
     new RegularEvent('click', (evt: Event, target: HTMLElement): void => {
@@ -474,19 +503,21 @@ export default (function() {
       FormEngine.processOnFieldChange(items, evt);
     }).delegateTo(document, '[data-formengine-field-change-event="change"]');
 
-    FormEngine.formElement.addEventListener('submit', function (e: SubmitEvent) {
+    FormEngine.formElement.addEventListener('submit', function(e: SubmitEvent) {
       const form = e.target as HTMLFormElement;
-      if (form.closeDoc?.value !== '0') {
-        return;
-      }
+      const submitterName = (e.submitter as HTMLInputElement | HTMLButtonElement | null)?.name ?? '';
+      const isSaveAction = submitterName === FormAction.save
+        || submitterName === FormAction.saveAndClose
+        || submitterName === FormAction.saveAndView
+        || submitterName === FormAction.saveAndNew
+        || form.querySelector(
+          'input[name="_savedok"], input[name="_saveandclosedok"], input[name="_savedokview"], input[name="_savedoknew"]'
+        ) !== null;
 
-      if (e.submitter !== null && (e.submitter.tagName === 'A' || e.submitter.hasAttribute('form')) && !e.defaultPrevented) {
-        const saveField = form.querySelector(selector`input[name="${FormEngine.doSaveFieldName}"]`) as HTMLInputElement|null;
-        if (saveField !== null) {
-          saveField.value = '1';
-        }
+      if (isSaveAction) {
+        addDeprecatedDoSaveField(form);
       }
-    });
+    }, { capture: true });
 
     window.addEventListener('message', FormEngine.handlePostMessage);
   };
@@ -577,7 +608,9 @@ export default (function() {
     const addOrUpdateCounter = (minCharacterCountLeft: string, event: Event) => {
       const parent = (event.currentTarget as HTMLInputElement).closest('.t3js-formengine-field-item');
       const counter = parent.querySelector('.t3js-charcounter-min');
-      const labelValue = coreCoreLabels.get('labels.remainingCharacters', minCharacterCountLeft);
+      const labelValue = coreCoreLabels.get('labels.remainingCharacters', {
+        '0': minCharacterCountLeft
+      });
       if (counter) {
         counter.querySelector('span').innerHTML = labelValue;
       } else {
@@ -838,11 +871,11 @@ export default (function() {
    */
   FormEngine.preventSaveIfHasErrors = function(): boolean {
     if ($('.has-error').length > 0) {
-      const title = TYPO3.lang['label.alert.save_with_error.title'] || 'You have errors in your form!';
-      const content = TYPO3.lang['label.alert.save_with_error.content'] || 'Please check the form, there is at least one error in your form.';
+      const title = backendAltDocLabels.get('label.alert.save_with_error.title');
+      const content = backendAltDocLabels.get('label.alert.save_with_error.content');
       const modal = Modal.confirm(title, content, Severity.error, [
         {
-          text: TYPO3.lang['buttons.alert.save_with_error.ok'] || 'OK',
+          text: backendAltDocLabels.get('buttons.alert.save_with_error.ok'),
           btnClass: 'btn-danger',
           name: 'ok'
         }
@@ -887,29 +920,6 @@ export default (function() {
   };
 
   /**
-   * Disables all doc header buttons to prevent unintended operations.
-   * Useful when showing modals that require page reload (e.g., refreshRequiredConfirm)
-   * to prevent operations (e.g. save) on slow connections before the page is actually reloaded.
-   */
-  FormEngine.disableDocHeaderButtons = function(): void {
-    const docHeaderBar = document.querySelector('.t3js-module-docheader-buttons');
-    if (!docHeaderBar) {
-      return;
-    }
-
-    // Disable all buttons and links in the doc header
-    docHeaderBar.querySelectorAll('button, a, input[type="submit"]').forEach((element: HTMLElement): void => {
-      if (element instanceof HTMLButtonElement || element instanceof HTMLInputElement) {
-        element.disabled = true;
-      } else if (element instanceof HTMLAnchorElement) {
-        // For anchor elements - use TYPO3 standard approach
-        element.classList.add('disabled');
-        element.setAttribute('aria-disabled', 'true');
-      }
-    });
-  };
-
-  /**
    * Enables all doc header buttons.
    * Called after FormEngine initialization is complete to restore button interactivity.
    */
@@ -946,7 +956,7 @@ export default (function() {
 
     const previewUrl = (event.target as HTMLAnchorElement).href;
     const isNew = ('isNew' in (event.target as HTMLAnchorElement).dataset);
-    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', '_savedokview').attr('value', '1');
+    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', FormAction.saveAndView).attr('value', '1');
     if (FormEngine.hasChange() || FormEngine.isNew()) {
       FormEngine.showPreviewModal(previewUrl, isNew, $actionElement, callback);
     } else {
@@ -1066,7 +1076,7 @@ export default (function() {
   FormEngine.newAction = function(event: Event, callback: NewActionCallback): void {
     callback = callback || FormEngine.newActionCallback;
 
-    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', '_savedoknew').attr('value', '1');
+    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', FormAction.saveAndNew).attr('value', '1');
     const isNew = ('isNew' in (event.target as HTMLElement).dataset);
     if (FormEngine.hasChange() || FormEngine.isNew()) {
       FormEngine.showNewModal(isNew, $actionElement, callback);
@@ -1154,7 +1164,7 @@ export default (function() {
   FormEngine.duplicateAction = function(event: Event, callback: DuplicateActionCallback): void {
     callback = callback || FormEngine.duplicateActionCallback;
 
-    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', '_duplicatedoc').attr('value', '1');
+    const $actionElement = $('<input />').attr('type', 'hidden').attr('name', FormAction.duplicate).attr('value', '1');
     const isNew = ('isNew' in (event.target as HTMLElement).dataset);
     if (FormEngine.hasChange() || FormEngine.isNew()) {
       FormEngine.showDuplicateModal(isNew, $actionElement, callback);
@@ -1263,7 +1273,7 @@ export default (function() {
    */
   FormEngine.showDeleteModal = function($anchorElement: JQuery, callback: DeleteActionCallback): void {
     const title = backendAltDocLabels.get('label.confirm.delete_record.title');
-    let content = backendAltDocLabels.get('label.confirm.delete_record.content');
+    let content = backendAltDocLabels.get('label.confirm.delete_record.content', [$anchorElement.data('recordInfo')]);
 
     if ($anchorElement.data('reference-count-message')) {
       content += '\n' + $anchorElement.data('reference-count-message');
@@ -1311,28 +1321,48 @@ export default (function() {
     FormEngine.formElement.submit();
   };
 
-  FormEngine.saveDocument = function(): void {
+  // @deprecated since TYPO3 v14, will be removed in v15. The doSave field is only kept for
+  // backwards compatibility with third-party code that reads it from POST data.
+  const addDeprecatedDoSaveField = (form: HTMLFormElement): void => {
+    if (form.querySelector('input[name="doSave"]') === null) {
+      const doSaveField = document.createElement('input');
+      doSaveField.type = 'hidden';
+      doSaveField.name = 'doSave';
+      doSaveField.value = '1';
+      form.append(doSaveField);
+    }
+  };
+
+  const submitFormWithAction = (name: string): void => {
     const currentlyFocussed = document.activeElement;
     if (currentlyFocussed instanceof HTMLInputElement || currentlyFocussed instanceof HTMLSelectElement || currentlyFocussed instanceof HTMLTextAreaElement) {
       // Blur currently focussed :input element to trigger FormEngine's internal data normalization
       currentlyFocussed.blur();
     }
 
-    const saveField = FormEngine.formElement.querySelector(selector`input[name="${FormEngine.doSaveFieldName}"]`) as HTMLInputElement|null;
-    if (saveField !== null) {
-      saveField.value = '1';
+    addDeprecatedDoSaveField(FormEngine.formElement);
+
+    // Try to find a matching submit button so the SubmitInterceptor can handle spinner
+    // and disable state. If no button exists, fall back to a hidden input to carry the action value.
+    const submitter = document.querySelector(selector`button[name="${name}"][form="${FormEngine.formElement.id}"]`) as HTMLButtonElement | null;
+    if (submitter !== null) {
+      FormEngine.formElement.requestSubmit(submitter);
+    } else {
+      const actionInput = document.createElement('input');
+      actionInput.type = 'hidden';
+      actionInput.name = name;
+      actionInput.value = '1';
+      FormEngine.formElement.append(actionInput);
+      FormEngine.formElement.requestSubmit();
     }
-    FormEngine.formElement.requestSubmit();
+  };
+
+  FormEngine.saveDocument = function(): void {
+    submitFormWithAction(FormAction.save);
   };
 
   FormEngine.saveAndCloseDocument = function(): void {
-    const saveAndCloseInput = document.createElement('input');
-    saveAndCloseInput.type = 'hidden';
-    saveAndCloseInput.name = '_saveandclosedok';
-    saveAndCloseInput.value = '1';
-    document.querySelector(selector`form[name="${FormEngine.formName}"]`).append(saveAndCloseInput);
-
-    FormEngine.saveDocument();
+    submitFormWithAction(FormAction.saveAndClose);
   };
 
   /**
@@ -1341,12 +1371,9 @@ export default (function() {
    * Sets some options and registers the DOMready handler to initialize further things
    *
    * @param {String} browserUrl
-   * @param {String} doSaveFieldName
    */
-  FormEngine.initialize = function(browserUrl: string, doSaveFieldName: string): void {
+  FormEngine.initialize = function(browserUrl: string): void {
     FormEngine.browserUrl = browserUrl;
-    // Add doSaveFieldName - fall back to do `doSave` for b/w compatibility
-    FormEngine.doSaveFieldName = doSaveFieldName || 'doSave';
 
     DocumentService.ready().then((): void => {
       FormEngine.initializeEvents();
@@ -1363,7 +1390,7 @@ export default (function() {
         e.preventDefault();
 
         FormEngine.saveDocument();
-      }, { scope: 'backend/form-engine', allowOnEditables: true, bindElement: FormEngine.formElement._savedok });
+      }, { scope: 'backend/form-engine', allowOnEditables: true });
       Hotkeys.register([Hotkeys.normalizedCtrlModifierKey, ModifierKeys.SHIFT, 's'], (e: KeyboardEvent): void => {
         e.preventDefault();
 

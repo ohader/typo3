@@ -13,7 +13,6 @@
 
 import { html, LitElement, type TemplateResult } from 'lit';
 import { customElement, query } from 'lit/decorators.js';
-import { lll } from '@typo3/core/lit-helper';
 import '@typo3/backend/element/icon-element';
 import { SeverityEnum } from '@typo3/backend/enum/severity';
 import '@typo3/backend/tree/tree-toolbar';
@@ -30,6 +29,8 @@ import { DataTransferTypes } from '@typo3/backend/enum/data-transfer-types';
 import type { TreeToolbar } from '@typo3/backend/tree/tree-toolbar';
 import type { DataTransferStringItem } from '@typo3/backend/tree/tree';
 import { UrlFactory } from '@typo3/core/factory/url-factory';
+import coreLabels from '~labels/core.core';
+import layoutLabels from '~labels/backend.layout';
 
 export const navigationComponentName: string = 'typo3-backend-navigation-component-filestoragetree';
 
@@ -63,10 +64,11 @@ export class EditableFileStorageTree extends FileStorageTree {
     if (operationConflicts.length > 0) {
       operationConflicts.forEach((operation: FileOperation) => {
         Notification.showMessage(
-          TYPO3.lang['drop.conflict'],
-          TYPO3.lang['mess.drop.conflict']
-            .replace('%s', operation.resource.name)
-            .replace('%s', decodeURIComponent(options.target.identifier)),
+          layoutLabels.get('drop.conflict'),
+          layoutLabels.get('mess.drop.conflict', [
+            operation.resource.name,
+            decodeURIComponent(options.target.identifier),
+          ]),
           SeverityEnum.error
         );
       });
@@ -161,10 +163,11 @@ export class EditableFileStorageTree extends FileStorageTree {
         if (operationConflicts.length > 0) {
           operationConflicts.forEach((operation: FileOperation) => {
             Notification.showMessage(
-              TYPO3.lang['drop.conflict'],
-              TYPO3.lang['mess.drop.conflict']
-                .replace('%s', operation.resource.name)
-                .replace('%s', decodeURIComponent(node.identifier)),
+              layoutLabels.get('drop.conflict'),
+              layoutLabels.get('mess.drop.conflict', [
+                operation.resource.name,
+                decodeURIComponent(node.identifier),
+              ]),
               SeverityEnum.error
             );
           });
@@ -294,7 +297,7 @@ export class FileStorageTreeNavigationComponent extends TreeModuleState(LitEleme
       rootlineUrl: top.TYPO3.settings.ajaxUrls.filestorage_tree_rootline,
       filterUrl: top.TYPO3.settings.ajaxUrls.filestorage_tree_filter,
       showIcons: true,
-      searchPlaceholder: lll('tree.searchFolderTree')
+      searchPlaceholder: coreLabels.get('tree.searchFolderTree')
     };
 
     return html`

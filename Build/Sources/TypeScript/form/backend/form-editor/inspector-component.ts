@@ -27,6 +27,7 @@ import {
   type PropertyGridEditorEntry,
   PropertyGridEditorUpdateEvent
 } from '@typo3/form/backend/form-editor/component/property-grid-editor';
+import '@typo3/rte-ckeditor/ckeditor5';
 
 import type { FormEditor } from '@typo3/form/backend/form-editor';
 import type {
@@ -299,10 +300,15 @@ function renderEditorDispatcher(
 /**
  * opens a popup window with the element browser
  */
-function openTypo3WinBrowser(mode: string, params: string): void {
+function openTypo3WinBrowser(mode: string, fieldReference: string, allowedTypes: string): void {
+  const queryParams = new URLSearchParams({
+    mode: mode,
+    fieldReference: fieldReference,
+    allowedTypes: allowedTypes,
+  });
   Modal.advanced({
     type: Modal.types.iframe,
-    content: TYPO3.settings.FormEditor.typo3WinBrowserUrl + '&mode=' + mode + '&bparams=' + params,
+    content: TYPO3.settings.FormEditor.typo3WinBrowserUrl + '&' + queryParams.toString(),
     size: Modal.sizes.large
   });
 }
@@ -1996,12 +2002,55 @@ export function renderTextareaEditor(
   renderDescription(editorConfiguration, editorHtml);
 
   const propertyData = getCurrentlySelectedFormElement().get(propertyPath);
-  $('textarea', $(editorHtml)).val(propertyData);
+
+  // Get DOM element from jQuery or HTMLElement
+  const editorElement = editorHtml instanceof HTMLElement ? editorHtml : editorHtml[0];
+  const textarea = editorElement.querySelector('textarea') as HTMLTextAreaElement;
+
+  if (!textarea) {
+    throw new Error('Textarea element not found in editor HTML');
+  }
+
+  textarea.value = propertyData as string;
+
+  const rteOptions = editorConfiguration.rteOptions || {};
+
+  if (editorConfiguration.enableRichtext === true && rteOptions && typeof rteOptions === 'object' && Object.keys(rteOptions).length !== 0) {
+    const wrapper = textarea.parentElement;
+    if (!wrapper) {
+      throw new Error('Textarea wrapper element not found');
+    }
+
+    const textareaId = textarea.id;
+    const rteId = textareaId ? textareaId + 'ckeditor5' : '';
+
+    const rteElement = document.createElement('typo3-rte-ckeditor-ckeditor5');
+    if (rteId) {
+      rteElement.id = rteId;
+    }
+
+    const optionsJson = JSON.stringify(rteOptions);
+    rteElement.setAttribute('options', optionsJson);
+
+    textarea.setAttribute('slot', 'textarea');
+    rteElement.appendChild(textarea);
+
+    wrapper.innerHTML = '';
+    wrapper.appendChild(rteElement);
+
+    (rteElement as any).options = rteOptions;
+  }
+
   validateCollectionElement(propertyPath, editorHtml);
 
-  $('textarea', $(editorHtml)).on('keyup paste', function(this: HTMLTextAreaElement) {
-    getCurrentlySelectedFormElement().set(propertyPath, $(this).val());
+  const eventNames = editorConfiguration.enableRichtext === true ? ['change'] : ['keyup', 'paste'];
+  const handleTextareaChange = (event: Event) => {
+    const target = event.target as HTMLTextAreaElement;
+    getCurrentlySelectedFormElement().set(propertyPath, target.value);
     validateCollectionElement(propertyPath, editorHtml);
+  };
+  eventNames.forEach(eventName => {
+    textarea.addEventListener(eventName, handleTextareaChange);
   });
 }
 
@@ -2067,7 +2116,7 @@ export function renderTypo3WinBrowserEditor(
       .find(getHelper().getDomElementDataAttribute('contentElementSelectorTarget', 'bracesWithKey'));
 
     insertTarget.attr(getHelper().getDomElementDataAttribute('contentElementSelectorTarget'), randomIdentifier);
-    openTypo3WinBrowser('db', randomIdentifier + '|||' + editorConfiguration.browsableType);
+    openTypo3WinBrowser('db', String(randomIdentifier), editorConfiguration.browsableType);
   });
 
   listenOnElementBrowser();

@@ -62,7 +62,10 @@ class RenameFile {
       const newFileName: string = fileNameField.value;
 
       if (fileExists && originalFileName !== newFileName) {
-        const description: string = labels.get('file_rename.exists.description', originalFileName, newFileName);
+        const description: string = labels.get('file_rename.exists.description', {
+          '0': originalFileName,
+          '1': newFileName,
+        });
 
         const modal = Modal.confirm(
           labels.get('file_rename.exists.title'),

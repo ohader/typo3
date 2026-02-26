@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Install;
 
 use Psr\Container\ContainerInterface;
-use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Configuration\ConfigurationManager;
 use TYPO3\CMS\Core\Configuration\Loader\YamlFileLoader;
 use TYPO3\CMS\Core\Configuration\SiteWriter;
@@ -30,11 +29,11 @@ use TYPO3\CMS\Core\Crypto\Random;
 use TYPO3\CMS\Core\DependencyInjection\ContainerBuilder;
 use TYPO3\CMS\Core\FormProtection\FormProtectionFactory;
 use TYPO3\CMS\Core\Http\MiddlewareDispatcher;
-use TYPO3\CMS\Core\Http\RequestFactory;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconRegistry;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Localization\Locales;
+use TYPO3\CMS\Core\Localization\TranslationDomainMapper;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Mail\Mailer;
 use TYPO3\CMS\Core\Middleware\NormalizedParamsAttribute as NormalizedParamsMiddleware;
@@ -48,7 +47,6 @@ use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Routing\BackendEntryPointResolver;
 use TYPO3\CMS\Core\Service\DatabaseUpgradeWizardsService;
 use TYPO3\CMS\Core\Service\SilentConfigurationUpgradeService;
-use TYPO3\CMS\Core\SystemResource\Publishing\SystemResourcePublisherInterface;
 use TYPO3\CMS\Core\TypoScript\AST\CommentAwareAstBuilder;
 use TYPO3\CMS\Core\TypoScript\AST\Traverser\AstTraverser;
 use TYPO3\CMS\Core\TypoScript\Tokenizer\LosslessTokenizer;
@@ -81,11 +79,11 @@ class ServiceProvider extends AbstractServiceProvider
             Authentication\AuthenticationService::class => self::getAuthenticationService(...),
             Http\Application::class => self::getApplication(...),
             Http\NotFoundRequestHandler::class => self::getNotFoundRequestHandler(...),
+            Factory\ImportMapFactory::class => self::getImportMapFactory(...),
             Service\ClearCacheService::class => self::getClearCacheService(...),
             Service\ClearTableService::class => self::getClearTableService(...),
             Service\CoreUpdateService::class => self::getCoreUpdateService(...),
             Service\CoreVersionService::class => self::getCoreVersionService(...),
-            Service\LanguagePackService::class => self::getLanguagePackService(...),
             Service\LateBootService::class => self::getLateBootService(...),
             Service\LoadTcaService::class => self::getLoadTcaService(...),
             Service\SilentTemplateFileUpgradeService::class => self::getSilentTemplateFileUpgradeService(...),
@@ -95,6 +93,7 @@ class ServiceProvider extends AbstractServiceProvider
             Service\SetupDatabaseService::class => self::getSetupDatabaseService(...),
             Middleware\Installer::class => self::getInstallerMiddleware(...),
             Middleware\Maintenance::class => self::getMaintenanceMiddleware(...),
+            Middleware\JavaScriptLanguageDomainProvider::class => self::getJavaScriptLanguageDomainProvider(...),
             Controller\EnvironmentController::class => self::getEnvironmentController(...),
             Controller\IconController::class => self::getIconController(...),
             Controller\InstallerController::class => self::getInstallerController(...),
@@ -103,7 +102,6 @@ class ServiceProvider extends AbstractServiceProvider
             Controller\MaintenanceController::class => self::getMaintenanceController(...),
             Controller\SettingsController::class => self::getSettingsController(...),
             Controller\UpgradeController::class => self::getUpgradeController(...),
-            Command\LanguagePackCommand::class => self::getLanguagePackCommand(...),
             Command\PasswordSetCommand::class => self::getPasswordGenerateCommand(...),
             Command\SetupCommand::class => self::getSetupCommand(...),
             Command\SetupDefaultBackendUserGroupsCommand::class => self::getSetupDefaultBackendUserGroupsCommand(...),
@@ -138,6 +136,7 @@ class ServiceProvider extends AbstractServiceProvider
         $dispatcher->lazy(ResponsePropagationMiddleware::class);
         $dispatcher->lazy(Middleware\Installer::class);
         $dispatcher->add($container->get(Middleware\Maintenance::class));
+        $dispatcher->add($container->get(Middleware\JavaScriptLanguageDomainProvider::class));
         $dispatcher->lazy(NormalizedParamsMiddleware::class);
 
         return self::new($container, Http\Application::class, [
@@ -149,6 +148,14 @@ class ServiceProvider extends AbstractServiceProvider
     public static function getNotFoundRequestHandler(ContainerInterface $container): Http\NotFoundRequestHandler
     {
         return new Http\NotFoundRequestHandler();
+    }
+
+    public static function getImportMapFactory(ContainerInterface $container): Factory\ImportMapFactory
+    {
+        return new Factory\ImportMapFactory(
+            $container->get(FailsafePackageManager::class),
+            $container->get(HashService::class),
+        );
     }
 
     public static function getClearCacheService(ContainerInterface $container): Service\ClearCacheService
@@ -176,16 +183,6 @@ class ServiceProvider extends AbstractServiceProvider
     public static function getCoreVersionService(ContainerInterface $container): Service\CoreVersionService
     {
         return new Service\CoreVersionService();
-    }
-
-    public static function getLanguagePackService(ContainerInterface $container): Service\LanguagePackService
-    {
-        return new Service\LanguagePackService(
-            $container->get(EventDispatcherInterface::class),
-            $container->get(RequestFactory::class),
-            $container->get(LogManager::class)->getLogger(Service\LanguagePackService::class),
-            $container->get(SystemResourcePublisherInterface::class),
-        );
     }
 
     public static function getLateBootService(ContainerInterface $container): Service\LateBootService
@@ -263,6 +260,14 @@ class ServiceProvider extends AbstractServiceProvider
         );
     }
 
+    public static function getJavaScriptLanguageDomainProvider(ContainerInterface $container): Middleware\JavaScriptLanguageDomainProvider
+    {
+        return new Middleware\JavaScriptLanguageDomainProvider(
+            $container->get(LanguageServiceFactory::class),
+            $container->get(TranslationDomainMapper::class),
+        );
+    }
+
     public static function getEnvironmentController(ContainerInterface $container): Controller\EnvironmentController
     {
         return new Controller\EnvironmentController(
@@ -289,6 +294,7 @@ class ServiceProvider extends AbstractServiceProvider
             $container->get(FormProtectionFactory::class),
             $container->get(SetupService::class),
             $container->get(SetupDatabaseService::class),
+            $container->get(Factory\ImportMapFactory::class),
             $container->get(HashService::class),
             $container->get(IconRegistry::class),
         );
@@ -297,10 +303,10 @@ class ServiceProvider extends AbstractServiceProvider
     public static function getLayoutController(ContainerInterface $container): Controller\LayoutController
     {
         return new Controller\LayoutController(
-            $container->get(FailsafePackageManager::class),
             $container->get(SilentConfigurationUpgradeService::class),
             $container->get(Service\SilentTemplateFileUpgradeService::class),
             $container->get(BackendEntryPointResolver::class),
+            $container->get(Factory\ImportMapFactory::class),
             $container->get(HashService::class),
             $container->get(IconRegistry::class),
         );
@@ -353,14 +359,6 @@ class ServiceProvider extends AbstractServiceProvider
         );
     }
 
-    public static function getLanguagePackCommand(ContainerInterface $container): Command\LanguagePackCommand
-    {
-        return new Command\LanguagePackCommand(
-            'language:update',
-            $container->get(Service\LateBootService::class)
-        );
-    }
-
     public static function getSetupCommand(ContainerInterface $container): Command\SetupCommand
     {
         return new Command\SetupCommand(
@@ -404,13 +402,6 @@ class ServiceProvider extends AbstractServiceProvider
 
     public static function configureCommands(ContainerInterface $container, CommandRegistry $commandRegistry): CommandRegistry
     {
-        $commandRegistry->addLazyCommand(
-            'language:update',
-            Command\LanguagePackCommand::class,
-            'Update the language files of all activated extensions',
-            false,
-            true
-        );
         $commandRegistry->addLazyCommand(
             'setup',
             Command\SetupCommand::class,

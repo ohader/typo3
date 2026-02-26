@@ -13,7 +13,9 @@
 
 import { html, LitElement, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import labels from '~labels/form.form_editor_javascript';
 import '@typo3/backend/element/icon-element';
+import { stripTags } from '../utility/string-utility';
 
 export interface Validator {
   identifier: string;
@@ -84,15 +86,15 @@ export class FormElementStageItem extends LitElement {
       </div>
       <div class="formeditor-element-body">
         <div class="formeditor-element-icon">
-          <typo3-backend-icon 
-            identifier="${this.elementIconIdentifier}" 
-            size="small" 
+          <typo3-backend-icon
+            identifier="${this.elementIconIdentifier}"
+            size="small"
             overlay="${this.isHidden ? 'overlay-hidden' : ''}">
           </typo3-backend-icon>
         </div>
         <div class="formeditor-element-info">
           <div class="formeditor-element-info-label">
-            <span>${this.elementLabel}</span>
+            <span>${stripTags(this.elementLabel)}</span>
             ${this.isRequired ? html`<span>*</span>` : nothing}
           </div>
           ${this.renderInfoContent()}
@@ -132,10 +134,10 @@ export class FormElementStageItem extends LitElement {
         <div class="btn-toolbar">
           ${this.renderToolbarNewElementButton()}
           <div class="btn-group btn-group-sm" role="group">
-            <a 
-              class="btn btn-default" 
-              href="#" 
-              title="${TYPO3.lang['formEditor.stage.toolbar.remove']}"
+            <a
+              class="btn btn-default"
+              href="#"
+              title="${labels.get('formEditor.stage.toolbar.remove')}"
               @click="${this.handleRemoveElement}">
               <typo3-backend-icon identifier="actions-edit-delete" size="small"></typo3-backend-icon>
             </a>
@@ -153,18 +155,18 @@ export class FormElementStageItem extends LitElement {
       return html`
         <div class="btn-group btn-group-sm" role="group">
           <div class="btn-group">
-            <button 
-              type="button" 
+            <button
+              type="button"
               class="btn btn-sm btn-default dropdown-toggle"
               popovertarget="toggle-menu-new-form-element"
               aria-expanded="false"
-              title="${TYPO3.lang['formEditor.stage.toolbar.new_element']}">
+              title="${labels.get('formEditor.stage.toolbar.new_element')}">
               <typo3-backend-icon identifier="actions-document-new" size="small"></typo3-backend-icon>
               <span class="visually-hidden">Toggle Dropdown</span>
             </button>
             <ul id="toggle-menu-new-form-element" class="dropdown-menu dropdown-menu-right" popover>
               <li data-no-sorting>
-                <a 
+                <a
                   href="#"
                   class="dropdown-item"
                   @click="${this.handleNewElementInside}">
@@ -173,13 +175,13 @@ export class FormElementStageItem extends LitElement {
                       <typo3-backend-icon identifier="actions-form-insert-in" size="small"></typo3-backend-icon>
                     </span>
                     <span class="dropdown-item-column dropdown-item-column-text">
-                      ${TYPO3.lang['formEditor.stage.toolbar.new_element.inside']}
+                      ${labels.get('formEditor.stage.toolbar.new_element.inside')}
                     </span>
                   </span>
                 </a>
               </li>
               <li data-no-sorting>
-                <a 
+                <a
                   href="#"
                   class="dropdown-item"
                   @click="${this.handleNewElementAfter}">
@@ -188,7 +190,7 @@ export class FormElementStageItem extends LitElement {
                       <typo3-backend-icon identifier="actions-form-insert-after" size="small"></typo3-backend-icon>
                     </span>
                     <span class="dropdown-item-column dropdown-item-column-text">
-                      ${TYPO3.lang['formEditor.stage.toolbar.new_element.after']}
+                      ${labels.get('formEditor.stage.toolbar.new_element.after')}
                     </span>
                   </span>
                 </a>
@@ -201,10 +203,10 @@ export class FormElementStageItem extends LitElement {
 
     return html`
       <div class="btn-group btn-group-sm" role="group">
-        <a 
-          class="btn btn-default" 
-          href="#" 
-          title="${TYPO3.lang['formEditor.stage.toolbar.new_element.after']}"
+        <a
+          class="btn btn-default"
+          href="#"
+          title="${labels.get('formEditor.stage.toolbar.new_element.after')}"
           @click="${this.handleNewElementAfter}">
           <typo3-backend-icon identifier="actions-document-new" size="small"></typo3-backend-icon>
         </a>
@@ -264,7 +266,7 @@ export class FormElementStageItem extends LitElement {
     if (this.content) {
       items.push(html`
         <div class="formeditor-element-info-text">
-          ${this.content}
+          ${stripTags(this.content)}
         </div>
       `);
     }

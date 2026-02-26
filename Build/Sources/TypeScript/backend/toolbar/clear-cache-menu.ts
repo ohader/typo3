@@ -17,6 +17,7 @@ import Notification from '../notification';
 import Viewport from '../viewport';
 import RegularEvent from '@typo3/core/event/regular-event';
 import type { AjaxResponse } from '@typo3/core/ajax/ajax-response';
+import cacheLabels from '~labels/core.cache';
 
 enum Identifiers {
   containerSelector = '#typo3-cms-backend-backend-toolbaritems-clearcachetoolbaritem',
@@ -41,10 +42,10 @@ class ClearCacheMenu {
   private readonly initializeEvents = (): void => {
     const toolbarItemContainer = document.querySelector(Identifiers.containerSelector);
 
-    new RegularEvent('click', (e: Event, menuItem: HTMLAnchorElement): void => {
+    new RegularEvent('click', (e: Event, menuItem: HTMLButtonElement): void => {
       e.preventDefault();
-      if (menuItem.href) {
-        this.clearCache(menuItem.href);
+      if (menuItem.dataset.endpoint) {
+        this.clearCache(menuItem.dataset.endpoint);
       }
     }).delegateTo(toolbarItemContainer, Identifiers.menuItemSelector);
   };
@@ -70,14 +71,16 @@ class ClearCacheMenu {
     (new AjaxRequest(ajaxUrl)).post({}).then(
       async (response: AjaxResponse): Promise<void> => {
         const data = await response.resolve();
-        if (data.success === true) {
-          Notification.success(data.title, data.message);
-        } else if (data.success === false) {
-          Notification.error(data.title, data.message);
-        }
+        Notification.success(
+          data.title,
+          data.message
+        );
       },
       (): void => {
-        Notification.error(TYPO3.lang['flushCaches.error'], TYPO3.lang['flushCaches.error.description']);
+        Notification.error(
+          cacheLabels.get('notification.error.title'),
+          cacheLabels.get('notification.error.message')
+        );
       },
     ).finally((): void => {
       toolbarItemContainer.querySelector(Identifiers.toolbarIconSelector).replaceWith(existingIcon);

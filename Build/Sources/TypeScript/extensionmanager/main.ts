@@ -20,11 +20,13 @@ import SecurityUtility from '@typo3/core/security-utility';
 import ExtensionManagerRepository from './repository';
 import ExtensionManagerUpdate from './update';
 import ExtensionManagerUploadForm from './upload-form';
+import './extension-toggle-button';
 import type { AjaxResponse } from '@typo3/core/ajax/ajax-response';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import DebounceEvent from '@typo3/core/event/debounce-event';
 import RegularEvent from '@typo3/core/event/regular-event';
 import SortableTable from '@typo3/backend/sortable-table';
+import labels from '~labels/extensionmanager.messages';
 import coreCommonLabels from '~labels/core.common';
 
 const securityUtility = new SecurityUtility();
@@ -71,8 +73,8 @@ class ExtensionManager {
           e.preventDefault();
 
           Modal.confirm(
-            TYPO3.lang['extensionList.removalConfirmation.title'],
-            TYPO3.lang['extensionList.removalConfirmation.question'],
+            labels.get('extensionList.removalConfirmation.title'),
+            labels.get('extensionList.removalConfirmation.question'),
             Severity.error,
             [
               {
@@ -83,7 +85,7 @@ class ExtensionManager {
                   Modal.dismiss();
                 },
               }, {
-                text: TYPO3.lang['button.remove'],
+                text: labels.get('button.remove'),
                 btnClass: 'btn-danger',
                 trigger: (): void => {
                   this.removeExtensionFromDisk(target);
@@ -98,8 +100,8 @@ class ExtensionManager {
           e.preventDefault();
 
           Modal.confirm(
-            TYPO3.lang['extensionList.databaseReload.title'],
-            TYPO3.lang['extensionList.databaseReload.message'],
+            labels.get('extensionList.databaseReload.title'),
+            labels.get('extensionList.databaseReload.message'),
             Severity.warning,
             [
               {
@@ -110,7 +112,7 @@ class ExtensionManager {
                   Modal.dismiss();
                 },
               }, {
-                text: TYPO3.lang['button.reimport'],
+                text: labels.get('button.reimport'),
                 btnClass: 'btn-warning',
                 trigger: (): void => {
                   const progressBar = document.createElement('typo3-backend-progress-bar');
@@ -130,12 +132,6 @@ class ExtensionManager {
 
       }
 
-      new RegularEvent('click', (): void => {
-        this.progressBar = document.createElement('typo3-backend-progress-bar');
-        document.body.appendChild(this.progressBar);
-        this.progressBar.start();
-      }).delegateTo(document, '.onClickMaskExtensionManager');
-
       new RegularEvent('click', (e: Event, target: HTMLAnchorElement): void => {
         e.preventDefault();
 
@@ -144,22 +140,6 @@ class ExtensionManager {
         this.progressBar.start();
         new AjaxRequest(target.href).get().then((response: AjaxResponse): Promise<void> => this.updateExtension(response));
       }).delegateTo(document, 'a[data-action=update-extension]');
-
-      new RegularEvent('change', (e: Event, target: HTMLInputElement): void => {
-        const actionButton = document.querySelector('.t3js-dependencies');
-
-        if (target.checked) {
-          actionButton.classList.remove('disabled');
-        } else {
-          actionButton.classList.add('disabled');
-        }
-      }).delegateTo(document, 'input[name=unlockDependencyIgnoreButton]');
-
-      new RegularEvent('click', (): void => {
-        this.progressBar = document.createElement('typo3-backend-progress-bar');
-        document.body.appendChild(this.progressBar);
-        this.progressBar.start();
-      }).delegateTo(document, '.t3-button-action-installdistribution');
 
       let searchField: HTMLInputElement;
       if ((searchField = document.querySelector(ExtensionManagerIdentifier.searchField)) !== null) {
@@ -274,7 +254,7 @@ class ExtensionManager {
     }
 
     Modal.confirm(
-      TYPO3.lang['extensionList.updateConfirmation.questionVersionComments'],
+      labels.get('extensionList.updateConfirmation.questionVersionComments'),
       form,
       Severity.notice,
       [
@@ -284,7 +264,7 @@ class ExtensionManager {
           btnClass: 'btn-default',
           trigger: (e: Event, modal: ModalElement): void => modal.hideModal(),
         }, {
-          text: TYPO3.lang['button.updateExtension'],
+          text: labels.get('button.updateExtension'),
           btnClass: 'btn-warning',
           trigger: (e: Event, modal: ModalElement): void => {
             const progressBar = document.createElement('typo3-backend-progress-bar');

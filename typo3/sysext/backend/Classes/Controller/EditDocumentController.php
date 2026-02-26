@@ -25,10 +25,9 @@ use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Breadcrumb\BreadcrumbFactory;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Backend\Controller\Event\AfterFormEnginePageInitializedEvent;
+use TYPO3\CMS\Backend\Controller\Event\AfterRecordOpenedEvent;
 use TYPO3\CMS\Backend\Controller\Event\BeforeFormEnginePageInitializedEvent;
-use TYPO3\CMS\Backend\Domain\Model\OpenDocument;
 use TYPO3\CMS\Backend\Domain\Repository\Localization\LocalizationRepository;
-use TYPO3\CMS\Backend\Domain\Repository\OpenDocumentRepository;
 use TYPO3\CMS\Backend\Dto\FormElementData;
 use TYPO3\CMS\Backend\Form\Exception\AccessDeniedException;
 use TYPO3\CMS\Backend\Form\Exception\DatabaseRecordException;
@@ -37,7 +36,10 @@ use TYPO3\CMS\Backend\Form\Exception\NoFieldsToRenderException;
 use TYPO3\CMS\Backend\Form\FormAction;
 use TYPO3\CMS\Backend\Form\FormDataCompiler;
 use TYPO3\CMS\Backend\Form\FormDataGroup\TcaDatabaseRecord;
-use TYPO3\CMS\Backend\Form\FormResultCompiler;
+use TYPO3\CMS\Backend\Form\FormResult;
+use TYPO3\CMS\Backend\Form\FormResultCollection;
+use TYPO3\CMS\Backend\Form\FormResultFactory;
+use TYPO3\CMS\Backend\Form\FormResultHandler;
 use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Module\ModuleInterface;
 use TYPO3\CMS\Backend\Module\ModuleProvider;
@@ -176,8 +178,6 @@ class EditDocumentController
      */
     protected int $numberOfErrors = 0;
 
-    protected FormResultCompiler $formResultCompiler;
-
     protected ?ModuleInterface $module = null;
 
     public function __construct(
@@ -193,8 +193,9 @@ class EditDocumentController
         protected readonly ModuleProvider $moduleProvider,
         private readonly FormDataCompiler $formDataCompiler,
         private readonly NodeFactory $nodeFactory,
+        private readonly FormResultFactory $formResultFactory,
+        private readonly FormResultHandler $formResultHandler,
         protected TcaSchemaFactory $tcaSchemaFactory,
-        protected readonly OpenDocumentRepository $openDocumentRepository,
         protected readonly LocalizationRepository $localizationRepository,
     ) {}
 
@@ -234,7 +235,6 @@ class EditDocumentController
         // Close document if a request for closing the document has been sent
         $requestAction = FormAction::createFromRequest($request);
         if ($requestAction->shouldHandleDocumentClosing()) {
-            $this->markOpenDocumentsAsRecentInSesssion();
             if ($response = $this->closeAndPossiblyRedirectAction($requestAction)) {
                 return $response;
             }
@@ -258,7 +258,7 @@ class EditDocumentController
         $queryParamsForGeneratingCurrentUrl = $queryParams;
         $queryParamsForGeneratingCurrentUrl['edit'] = $this->editconf;
         $queryParamsForGeneratingCurrentUrl['returnUrl'] = $this->retUrl;
-        if ($requestAction->shouldProcessData() && $requestAction->doSave()) {
+        if ($requestAction->shouldProcessData()) {
             // Unset default values since we don't need them anymore.
             unset($queryParamsForGeneratingCurrentUrl['defVals']);
         }
@@ -290,24 +290,20 @@ class EditDocumentController
         // Begin to show the edit form
         $this->setModuleContext($view);
         $this->pageRenderer->addInlineLanguageLabelFile('EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf');
-        $this->pageRenderer->addInlineLanguageLabelFile('EXT:backend/Resources/Private/Language/Wizards/localization.xlf');
         $this->pageRenderer->addInlineSetting('ShowItem', 'moduleUrl', (string)$this->uriBuilder->buildUriFromRoute('show_item'));
-        $this->formResultCompiler = GeneralUtility::makeInstance(FormResultCompiler::class);
 
         // Generate the URL to the current request with modified GET parameters
         // This is used in various places to "return to" in the form and for buttons etc.
         $currentEditingUrl = $this->uriBuilder->buildUriFromRoute('record_edit', $queryParamsForGeneratingCurrentUrl);
 
         // Creating the editing form, wrap it with buttons, document selector etc.
-        $editForm = $this->makeEditForm($request, $view, $currentEditingUrl);
-        if ($editForm) {
+        $formResults = $this->makeEditForm($request, $view, $currentEditingUrl);
+        if (count($formResults) > 0) {
             $this->firstEl = $this->elementsData !== [] ? reset($this->elementsData) : null;
             $lastEl = $this->elementsData !== [] ? end($this->elementsData) : null;
-            // Contains an array with key/value pairs of GET parameters needed to reach the
-            // current document displayed - used in the 'open documents' toolbar.
-            $storeArray = $this->compileStoreData($request, $queryParamsForGeneratingCurrentUrl);
-            $this->storeCurrentDocumentInOpenDocuments($storeArray);
-            $this->formResultCompiler->addCssFiles();
+            // Dispatch event for extensions to track open documents
+            $this->openCurrentDocuments();
+            $this->formResultHandler->addAssets($formResults);
             // Put together the various elements (buttons, selectors, form) into a table
             $body .= '
             <form
@@ -317,13 +313,12 @@ class EditDocumentController
                 name="editform"
                 id="EditDocumentController"
             >
-            ' . $editForm . '
+            ' . $formResults->getHtml() . '
             <input type="hidden" name="returnUrl" value="' . htmlspecialchars($this->retUrl) . '" />
             <input type="hidden" name="popViewId" value="' . htmlspecialchars((string)$lastEl?->viewId) . '" />
             <input type="hidden" name="closeDoc" value="0" />
-            <input type="hidden" name="doSave" value="0" />
             <input type="hidden" name="returnNewPageId" value="' . ($this->returnNewPageId ? 1 : 0) . '" />';
-            $body .= $this->formResultCompiler->printNeededJSFunctions();
+            $body .= implode(LF, $formResults->getHiddenFieldsHtml());
             $body .= '</form>';
         }
 
@@ -385,39 +380,6 @@ class EditDocumentController
         }
         // Change $this->editconf if versioning applies to any of the records
         return $this->fixWSversioningInEditConf($newConfiguration);
-    }
-
-    /**
-     * Store all currently edited records as open documents.
-     *
-     * Creates one document entry per record being edited.
-     */
-    protected function storeCurrentDocumentInOpenDocuments(array $storeArray): void
-    {
-        if ($this->elementsData === []) {
-            return;
-        }
-        foreach ($this->elementsData as $element) {
-            $recordUid = (string)$element->uid;
-
-            // Create OpenDocument object for this record
-            $document = new OpenDocument(
-                table: $element->table,
-                // Ensure to only have one "new" entry in the list
-                uid: str_starts_with($recordUid, 'NEW') ? 'NEW' : $recordUid,
-                title: $element->title,
-                parameters: $storeArray,
-                pid: $element->pid,
-                returnUrl: $this->returnUrl,
-            );
-
-            // Store to session (updates if already exists)
-            $this->openDocumentRepository->addOrUpdateOpenDocument($document, $this->getBackendUser());
-        }
-
-        // Update signal for UI
-        $openDocuments = $this->openDocumentRepository->findOpenDocumentsForUser($this->getBackendUser());
-        BackendUtility::setUpdateSignal('OpendocsController::updateNumber', count($openDocuments));
     }
 
     protected function setModuleContext(ModuleTemplate $view): void
@@ -546,7 +508,7 @@ class EditDocumentController
         }
 
         // Perform the saving operation with DataHandler:
-        if ($requestAction->doSave()) {
+        if ($requestAction->shouldProcessData()) {
             $dataHandler->process_datamap();
             $dataHandler->process_cmdmap();
 
@@ -622,7 +584,6 @@ class EditDocumentController
 
         // If a document is saved and a new one is created right after.
         if ($requestAction->savedoknew()) {
-            $this->markOpenDocumentsAsRecentInSesssion();
             // Find the current table
             reset($this->editconf);
             $nTable = (string)key($this->editconf);
@@ -653,7 +614,7 @@ class EditDocumentController
         }
 
         // Explicitly require a save operation
-        if ($requestAction->doSave()) {
+        if ($requestAction->shouldProcessData()) {
             $erroneousRecords = $dataHandler->printLogErrorMessages();
             $messages = [];
             $table = (string)key($this->editconf);
@@ -713,7 +674,6 @@ class EditDocumentController
 
         // If a document should be duplicated.
         if ($requestAction->duplicatedoc()) {
-            $this->markOpenDocumentsAsRecentInSesssion();
             // Find current table
             reset($this->editconf);
             $nTable = (string)key($this->editconf);
@@ -836,13 +796,12 @@ class EditDocumentController
     /**
      * Creates the editing form with FormEngine, based on the input from GPvars.
      *
-     * @return string HTML form elements wrapped in tables
+     * @return FormResultCollection Form result objects
      */
-    protected function makeEditForm(ServerRequestInterface $request, ModuleTemplate $view, UriInterface $currentRequestUrl): string
+    protected function makeEditForm(ServerRequestInterface $request, ModuleTemplate $view, UriInterface $currentRequestUrl): FormResultCollection
     {
         // Initialize variables
-        $editForm = '';
-        $beUser = $this->getBackendUser();
+        $formResults = new FormResultCollection();
         // Traverse the GPvar edit array tables
         foreach ($this->editconf as $table => $conf) {
             // Traverse the keys/comments of each table (keys can be a comma list of uids)
@@ -911,44 +870,35 @@ class EditDocumentController
                     $formData['renderType'] = 'outerWrapContainer';
                     $formResult = $this->nodeFactory->create($formData)->render();
 
-                    $html = $formResult['html'];
-
-                    $formResult['html'] = '';
-                    $formResult['doSaveFieldName'] = 'doSave';
-
-                    // @todo: Put all the stuff into FormEngine as final "compiler" class
-                    // @todo: This is done here for now to not rewrite addCssFiles()
-                    // @todo: and printNeededJSFunctions() now
-                    $this->formResultCompiler->mergeResult($formResult);
-
                     // Seems the pid is set as hidden field (again) at end?!
                     if ($command === 'new') {
-                        // @todo: looks ugly
-                        $html .= LF
-                            . '<input type="hidden"'
+                        $formResult['html'] .= '<input type="hidden"'
                             . ' name="data[' . htmlspecialchars($table) . '][' . htmlspecialchars($el->uid) . '][pid]"'
                             . ' value="' . $el->pid . '" />';
                     }
 
-                    $editForm .= $html;
+                    $formResult = $this->formResultFactory->create($formResult);
+                    $formResults->add($formResult);
                 } catch (NoFieldsToRenderException $e) {
                     $this->numberOfErrors++;
-                    $editForm .= $this->getInfobox(
-                        $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:noFieldsEditForm.message'),
-                        $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:noFieldsEditForm'),
-                    );
+                    $formResults->add(new FormResult(
+                        $this->getInfobox(
+                            $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:noFieldsEditForm.message'),
+                            $this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_alt_doc.xlf:noFieldsEditForm'),
+                        )
+                    ));
                 } catch (AccessDeniedException $e) {
                     $this->numberOfErrors++;
 
                     $message = $e->getMessage();
                     $title = $this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.noEditPermission');
-                    $editForm .= $this->getInfobox($message, $title);
+                    $formResults->add(new FormResult($this->getInfobox($message, $title)));
                 } catch (DatabaseRecordException | DatabaseRecordWorkspaceDeletePlaceholderException $e) {
-                    $editForm .= $this->getInfobox($e->getMessage());
+                    $formResults->add(new FormResult($this->getInfobox($e->getMessage())));
                 }
             }
         }
-        return $editForm;
+        return $formResults;
     }
 
     /**
@@ -1984,23 +1934,25 @@ class EditDocumentController
     }
 
     /**
-     * Close the current document(s).
+     * Close the currently open document(s) by dispatching the appropriate event.
+     * This is called when the user explicitly closes, or when transitioning to a new/duplicated record.
      */
-    protected function markOpenDocumentsAsRecentInSesssion(): void
+    /**
+     * Notify extensions that document(s) have been opened for editing.
+     * Dispatches one event per record being opened.
+     */
+    protected function openCurrentDocuments(): void
     {
-        foreach ($this->editconf as $table => $records) {
-            foreach ($records as $uid => $action) {
-                if ($action === 'new') {
-                    $this->openDocumentRepository->closeDocument($table, 'NEW', $this->getBackendUser());
-                } else {
-                    $this->openDocumentRepository->closeDocument($table, (string)$uid, $this->getBackendUser());
-                }
-            }
+        // Dispatch one event per record
+        foreach ($this->elementsData as $element) {
+            $this->eventDispatcher->dispatch(
+                new AfterRecordOpenedEvent(
+                    table: $element->table,
+                    uid: $element->uid,
+                    record: $element->record,
+                )
+            );
         }
-
-        // Update signal for UI
-        $openDocuments = $this->openDocumentRepository->findOpenDocumentsForUser($this->getBackendUser());
-        BackendUtility::setUpdateSignal('OpendocsController::updateNumber', count($openDocuments));
     }
 
     /**

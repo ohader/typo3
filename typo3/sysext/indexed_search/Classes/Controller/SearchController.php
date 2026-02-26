@@ -22,7 +22,9 @@ use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Exception\Page\RootLineException;
 use TYPO3\CMS\Core\Html\HtmlParser;
+use TYPO3\CMS\Core\Pagination\PaginationInterface;
 use TYPO3\CMS\Core\Pagination\SimplePagination;
+use TYPO3\CMS\Core\Pagination\SlidingWindowPagination;
 use TYPO3\CMS\Core\TypoScript\TypoScriptService;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -36,12 +38,14 @@ use TYPO3\CMS\Frontend\Typolink\LinkFactory;
 use TYPO3\CMS\Frontend\Typolink\LinkResult;
 use TYPO3\CMS\Frontend\Typolink\LinkResultInterface;
 use TYPO3\CMS\IndexedSearch\Domain\Repository\IndexSearchRepository;
+use TYPO3\CMS\IndexedSearch\Event\AfterSearchResultSetsAreGeneratedEvent;
 use TYPO3\CMS\IndexedSearch\Lexer;
 use TYPO3\CMS\IndexedSearch\Pagination\SlicePaginator;
 use TYPO3\CMS\IndexedSearch\Type\DefaultOperand;
 use TYPO3\CMS\IndexedSearch\Type\GroupOption;
 use TYPO3\CMS\IndexedSearch\Type\IndexingConfiguration;
 use TYPO3\CMS\IndexedSearch\Type\MediaType;
+use TYPO3\CMS\IndexedSearch\Type\PaginationType;
 use TYPO3\CMS\IndexedSearch\Type\SearchType;
 use TYPO3\CMS\IndexedSearch\Type\SectionType;
 use TYPO3\CMS\IndexedSearch\Utility\IndexedSearchUtility;
@@ -213,12 +217,27 @@ class SearchController extends ActionController
             $pageId = $this->request->getAttribute('frontend.page.information')->getId();
             $this->searchRepository->writeSearchStat($pageId, $this->searchWords ?: []);
         }
-        $this->view->assign('resultsets', $resultsets);
         $this->view->assign('searchParams', $searchData);
         $this->view->assign('firstRow', $this->firstRow);
         $this->view->assign('searchWords', array_map([$this, 'addOperatorLabel'], $this->searchWords));
-
+        $resultSets = $this->dispatchAfterSearchResultSetsAreGeneratedEvent($resultsets, $searchData, $this->searchWords);
+        $this->view->assign('resultsets', $resultSets);
         return $this->htmlResponse();
+    }
+
+    /**
+     * Dispatches an event for modifying complete search result sets after search execution.
+     *
+     * @param array<string|int, array<string, mixed>> $resultSets Search result sets keyed by free index UID
+     * @param array<string, mixed> $searchData Search input and resolved search configuration
+     * @param array<int, array<string, mixed>> $searchWords Parsed search words
+     * @return array<string|int, array<string, mixed>> Potentially modified search result sets
+     */
+    protected function dispatchAfterSearchResultSetsAreGeneratedEvent(array $resultSets, array $searchData, array $searchWords): array
+    {
+        $event = new AfterSearchResultSetsAreGeneratedEvent($resultSets, $searchData, $searchWords, $this->view, $this->request);
+        $this->eventDispatcher->dispatch($event);
+        return $event->getResultSets();
     }
 
     /****************************************
@@ -255,14 +274,7 @@ class SearchController extends ActionController
                 }
             }
 
-            $pointer = (int)($searchData['pointer'] ?? 0);
-            $paginator = new SlicePaginator(
-                $result['rows'],
-                $pointer + 1,
-                $resultData['count'],
-                $searchData['numberOfResults'],
-            );
-            $result['pagination'] = new SimplePagination($paginator);
+            $result['pagination'] = $this->buildPagination($searchData, $result['rows'], $resultData['count']);
         }
         // Print a message telling which words in which sections we searched for
         if (str_starts_with($searchData['sections'], 'rl')) {
@@ -1135,6 +1147,42 @@ class SearchController extends ActionController
             60
         );
         $this->settings['results.']['hrefInSummaryCropSignifier'] = $contentObjectRenderer->stdWrapValue('hrefInSummaryCropSignifier', $typoScriptArray ?? []);
+    }
+
+    /**
+     * Build pagination object based on the configured implementation.
+     *
+     * @param array<string, mixed> $searchData Search input and resolved search configuration
+     * @param array<int, array<string, mixed>> $rows Search result rows for the current page
+     */
+    protected function buildPagination(array $searchData, array $rows, int $count): PaginationInterface
+    {
+        $pointer = (int)($searchData['pointer'] ?? 0);
+        $paginator = new SlicePaginator(
+            $rows,
+            $pointer + 1,
+            $count,
+            $searchData['numberOfResults'],
+        );
+
+        return match ($this->getPaginationType()) {
+            PaginationType::SIMPLE => new SimplePagination($paginator),
+            PaginationType::SLIDING_WINDOW => new SlidingWindowPagination(
+                $paginator,
+                MathUtility::forceIntegerInRange(
+                    (int)($this->settings['page_links'] ?? 10),
+                    1,
+                    1000,
+                    10
+                )
+            ),
+        };
+    }
+
+    protected function getPaginationType(): PaginationType
+    {
+        return PaginationType::tryFrom((string)($this->settings['pagination_type'] ?? PaginationType::SIMPLE->value))
+            ?? PaginationType::SIMPLE;
     }
 
     /**

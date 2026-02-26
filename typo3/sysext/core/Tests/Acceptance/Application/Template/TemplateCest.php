@@ -48,7 +48,7 @@ final class TemplateCest
 
         $I->switchToMainFrame();
         // click on website root page
-        $I->clickWithLeftButton('//*[text()=\'styleguide TCA demo\']');
+        $I->clickWithLeftButton('//typo3-backend-navigation-component-pagetree//*[text()="styleguide TCA demo"]');
         $I->switchToContentFrame();
         $I->waitForElementVisible('.module-docheader-buttons .btn-group button.dropdown-toggle');
         $I->waitForElementNotVisible('typo3-backend-progress-bar', 120);
@@ -65,7 +65,7 @@ final class TemplateCest
     public function addANewSiteTemplate(ApplicationTester $I): void
     {
         $I->switchToMainFrame();
-        $I->clickWithLeftButton('//*[text()=\'styleguide TCA demo\']');
+        $I->clickWithLeftButton('//typo3-backend-navigation-component-pagetree//*[text()="styleguide TCA demo"]');
         $I->switchToContentFrame();
         $I->waitForElementVisible('.module-docheader-buttons .btn-group button.dropdown-toggle');
         $I->waitForElementNotVisible('typo3-backend-progress-bar', 120);
@@ -198,7 +198,7 @@ final class TemplateCest
     {
         $I->switchToMainFrame();
         $pageTree->openPath(['styleguide frontend demo', 'menu_sitemap_pages']);
-        $I->clickWithLeftButton('//*[text()=\'menu_sitemap_pages\']');
+        $I->clickWithLeftButton('//typo3-backend-navigation-component-pagetree//*[text()="menu_sitemap_pages"]');
         $I->switchToContentFrame();
         $I->waitForElementVisible('.module-docheader-buttons .btn-group button.dropdown-toggle');
         $I->waitForElementNotVisible('typo3-backend-progress-bar', 120);
@@ -239,7 +239,7 @@ final class TemplateCest
     public function searchInTypoScriptActive(ApplicationTester $I): void
     {
         $I->switchToMainFrame();
-        $I->clickWithLeftButton('//*[text()=\'styleguide TCA demo\']');
+        $I->clickWithLeftButton('//typo3-backend-navigation-component-pagetree//*[text()="styleguide TCA demo"]');
         $I->switchToContentFrame();
         $I->waitForElementVisible('.module-docheader-buttons .btn-group button.dropdown-toggle');
         $I->waitForElementNotVisible('typo3-backend-progress-bar', 120);
@@ -251,7 +251,7 @@ final class TemplateCest
         $I->amGoingTo('type "styles" into the search field and submit.');
         $I->fillField('#searchValue', 'styles');
         $I->waitForText('Setup');
-        $I->waitForText('1 search match(es)');
+        $I->waitForText('one match');
         $I->seeInSource('<span data-markjs="true" class="text-highlight">styles</span>');
     }
 }

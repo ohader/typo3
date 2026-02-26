@@ -50,19 +50,18 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
     }
 
     #[Test]
-    public function dispatchWithDeleteRecordsActionDoesNothingIfUserLacksDeletionPermissions(): void
+    public function deleteRecordsActionDoesNothingIfUserLacksDeletionPermissions(): void
     {
         $this->setUpBackendUser(2);
 
         $request = new ServerRequest('https://typo3-testing.local', 'POST');
-        $request = $request->withParsedBody(['action' => 'deleteRecords']);
 
         $expected = [
             'success' => false,
             'message' => LocalizationUtility::translate('flashmessage.delete.unauthorized', 'recycler'),
         ];
 
-        $actual = $this->subject->dispatch($request);
+        $actual = $this->subject->deleteRecordsAction($request);
 
         self::assertInstanceOf(JsonResponse::class, $actual);
         self::assertJsonStringEqualsJsonString(
@@ -74,27 +73,26 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
     /**
      * @return \Generator<string, array{int}>
      */
-    public static function dispatchWithDeleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequestDataProvider(): \Generator
+    public static function deleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequestDataProvider(): \Generator
     {
         yield 'admin' => [1];
         yield 'permitted editor with TSconfig' => [3];
     }
 
-    #[DataProvider('dispatchWithDeleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequestDataProvider')]
+    #[DataProvider('deleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequestDataProvider')]
     #[Test]
-    public function dispatchWithDeleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequest(int $backendUser): void
+    public function deleteRecordsActionDoesNothingIfNoRecordsAreProvidedInRequest(int $backendUser): void
     {
         $this->setUpBackendUser($backendUser);
 
         $request = new ServerRequest('https://typo3-testing.local', 'POST');
-        $request = $request->withParsedBody(['action' => 'deleteRecords']);
 
         $expected = [
             'success' => false,
             'message' => LocalizationUtility::translate('flashmessage.delete.norecordsselected', 'recycler'),
         ];
 
-        $actual = $this->subject->dispatch($request);
+        $actual = $this->subject->deleteRecordsAction($request);
 
         self::assertInstanceOf(JsonResponse::class, $actual);
         self::assertJsonStringEqualsJsonString(
@@ -103,12 +101,11 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
         );
     }
 
-    public static function dispatchWithDeleteRecordsActionDeletesGivenRecordsWherePermissionsAreGivenDataProvider(): \Generator
+    public static function deleteRecordsActionDeletesGivenRecordsWherePermissionsAreGivenDataProvider(): \Generator
     {
         yield 'admin' => [
             'backendUser' => 1,
             'records' => ['pages:4', 'pages:6', 'pages:7'],
-            // @todo response is misleading, actually 4, 5 (subpage of 4), 6, 6 were delete (= 4 records)
             'expectedResponse' => ['success' => true, 'message' => '3 records were deleted.'],
             'expectedDatabaseState' => [
                 'pages' => ['regular' => [1, 2], 'softDeleted' => [3]],
@@ -120,13 +117,11 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
             'records' => [
                 'pages:3',
                 'pages:4',
-                'pages:5', // subpage of 4 => already deleted when 4 is deleted
+                'pages:5', // subpage of 4 => already deleted when 4 is deleted, no-op but no error
                 'pages:6', // outside of configured mount points => no permission to delete
                 'pages:7', // perms_everybody = 0 => no permission to delete
             ],
-            'expectedResponse' => null,
-            // @todo recycler does not return reliable counts
-            // ['success' => false, 'message' => 'Could not delete 3 records.'],
+            'expectedResponse' => ['success' => true, 'message' => '3 records were deleted.'],
             'expectedDatabaseState' => [
                 'pages' => ['regular' => [1, 2], 'softDeleted' => [6, 7]],
             ],
@@ -135,7 +130,6 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
         yield 'editor with permissions on all records' => [
             'backendUser' => 3,
             'records' => ['pages:3', 'pages:4'],
-            // @todo response is misleading, actually 3, 4, 5 (subpage of 4) were delete (= 3 records)
             'expectedResponse' => ['success' => true, 'message' => '2 records were deleted.'],
             'expectedDatabaseState' => [
                 'pages' => ['regular' => [1, 2], 'softDeleted' => [6, 7]],
@@ -148,9 +142,9 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
      * @param array{success: bool, message: string} $expectedResponse
      * @param array<string, DatabaseState> $expectedDatabaseState
      */
-    #[DataProvider('dispatchWithDeleteRecordsActionDeletesGivenRecordsWherePermissionsAreGivenDataProvider')]
+    #[DataProvider('deleteRecordsActionDeletesGivenRecordsWherePermissionsAreGivenDataProvider')]
     #[Test]
-    public function dispatchWithDeleteRecordsActionDeletesGivenRecordsWherePermissionsAreGiven(
+    public function deleteRecordsActionDeletesGivenRecordsWherePermissionsAreGiven(
         int $backendUser,
         array $records,
         ?array $expectedResponse,
@@ -160,11 +154,10 @@ final class RecyclerAjaxControllerTest extends FunctionalTestCase
 
         $request = new ServerRequest('https://typo3-testing.local', 'POST');
         $request = $request->withParsedBody([
-            'action' => 'deleteRecords',
             'records' => $records,
         ]);
 
-        $actual = $this->subject->dispatch($request);
+        $actual = $this->subject->deleteRecordsAction($request);
 
         self::assertInstanceOf(JsonResponse::class, $actual);
         if ($expectedResponse !== null) {

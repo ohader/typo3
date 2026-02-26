@@ -464,6 +464,7 @@ module.exports = function (grunt) {
     esbuild: Object.fromEntries(Object.entries({
       core: [
         'autosize',
+        { name: 'intl-messageformat', bundle: true },
         'cropperjs',
         { name: 'css-tree', bundle: true },
         'dompurify',
@@ -471,7 +472,7 @@ module.exports = function (grunt) {
         { name: 'flatpickr/dist/l10n', src: 'node_modules/flatpickr/dist/esm/l10n/index.js', bundle: true },
         'interactjs',
         'jquery',
-        { name: 'luxon', src: 'node_modules/luxon/build/es6/luxon.js' },
+        'luxon',
         'marked',
         'shortcut-buttons-flatpickr',
         { name: 'sortablejs', src: 'node_modules/sortablejs/modular/sortable.complete.esm.js' },
