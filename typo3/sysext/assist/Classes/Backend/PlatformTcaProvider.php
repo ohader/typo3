@@ -28,7 +28,7 @@ use TYPO3\CMS\Assist\Service\PackageService;
  */
 final readonly class PlatformTcaProvider
 {
-    private const LLL_PREFIX = 'LLL:EXT:assist/Resources/Private/Language/locallang_siteconfiguration_tca.xlf:site_assist_platform.';
+    private const LABEL_PREFIX = 'assist.siteconfiguration_tca:site_assist_platform.';
 
     /**
      * Parameter names that have dedicated XLF labels.
@@ -91,7 +91,7 @@ final readonly class PlatformTcaProvider
             'ctrl' => [
                 'label' => 'name',
                 'type' => 'package',
-                'title' => self::LLL_PREFIX . 'ctrl.title',
+                'title' => self::LABEL_PREFIX . 'ctrl.title',
                 'typeicon_classes' => [
                     'default' => 'mimetypes-x-content-domain',
                 ],
@@ -106,7 +106,7 @@ final readonly class PlatformTcaProvider
     {
         return [
             'enabled' => [
-                'label' => self::LLL_PREFIX . 'enabled',
+                'label' => self::LABEL_PREFIX . 'enabled',
                 'config' => [
                     'type' => 'check',
                     'renderType' => 'checkboxToggle',
@@ -114,7 +114,7 @@ final readonly class PlatformTcaProvider
                 ],
             ],
             'name' => [
-                'label' => self::LLL_PREFIX . 'name',
+                'label' => self::LABEL_PREFIX . 'name',
                 'config' => [
                     'type' => 'input',
                     'required' => true,
@@ -122,7 +122,7 @@ final readonly class PlatformTcaProvider
                 ],
             ],
             'package' => [
-                'label' => self::LLL_PREFIX . 'package',
+                'label' => self::LABEL_PREFIX . 'package',
                 'config' => [
                     'type' => 'select',
                     'renderType' => 'selectSingle',
@@ -195,7 +195,7 @@ final readonly class PlatformTcaProvider
     {
         $name = $param['name'];
         $label = in_array($name, self::KNOWN_LABELS, true)
-            ? self::LLL_PREFIX . $name
+            ? self::LABEL_PREFIX . $name
             : $this->humanizeParameterName($name);
 
         if ($param['type'] === 'bool') {

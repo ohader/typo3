@@ -115,7 +115,7 @@ final class ItemProvider extends AbstractProvider
         return [
             'assistAi' => [
                 'type' => 'submenu',
-                'label' => 'LLL:EXT:assist/Resources/Private/Language/locallang_db.xlf:contextMenu.aiAssistants',
+                'label' => 'assist.db:contextMenu.aiAssistants',
                 'iconIdentifier' => 'module-assist',
                 'callbackAction' => 'openSubmenu',
                 'childItems' => $childItems,

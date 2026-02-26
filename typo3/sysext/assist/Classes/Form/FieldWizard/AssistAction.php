@@ -34,9 +34,7 @@ class AssistAction extends AbstractNode
         $table = $this->data['tableName'];
         $uid = $this->data['databaseRow']['uid'] ?? 0;
         $fieldName = $this->data['fieldName'];
-        $label = $this->getLanguageService()->sL(
-            'LLL:EXT:assist/Resources/Private/Language/locallang_db.xlf:fieldWizard.assistAction.button'
-        );
+        $label = $this->getLanguageService()->sL('assist.db:fieldWizard.assistAction.button');
 
         $triggerResource = htmlspecialchars(
             json_encode([

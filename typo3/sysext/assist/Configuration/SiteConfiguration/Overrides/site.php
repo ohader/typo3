@@ -1,7 +1,7 @@
 <?php
 
 $GLOBALS['SiteConfiguration']['site']['columns']['assistDefault'] = [
-    'label' => 'LLL:EXT:assist/Resources/Private/Language/locallang_siteconfiguration_tca.xlf:site.assistDefault',
+    'label' => 'assist.siteconfiguration_tca:site.assistDefault',
     'config' => [
         'type' => 'check',
         'renderType' => 'checkboxToggle',
@@ -10,7 +10,7 @@ $GLOBALS['SiteConfiguration']['site']['columns']['assistDefault'] = [
     ],
 ];
 $GLOBALS['SiteConfiguration']['site']['columns']['assistPlatforms'] = [
-    'label' => 'LLL:EXT:assist/Resources/Private/Language/locallang_siteconfiguration_tca.xlf:site.assistPlatforms',
+    'label' => 'assist.siteconfiguration_tca:site.assistPlatforms',
     'config' => [
         'type' => 'inline',
         'foreign_table' => 'site_assist_platform',
@@ -25,7 +25,7 @@ $GLOBALS['SiteConfiguration']['site']['columns']['assistPlatforms'] = [
 ];
 
 $GLOBALS['SiteConfiguration']['site']['types']['0']['showitem'] .= ',
-    --div--;LLL:EXT:assist/Resources/Private/Language/locallang_siteconfiguration_tca.xlf:site.tab.assist, --palette--;;assist, assistPlatforms';
+    --div--;assist.siteconfiguration_tca:site.tab.assist, --palette--;;assist, assistPlatforms';
 
 $GLOBALS['SiteConfiguration']['site']['palettes']['assist'] = [
     'showitem' => 'assistDefault',
