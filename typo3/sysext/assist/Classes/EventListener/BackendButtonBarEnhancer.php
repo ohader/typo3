@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\PageRenderer;
 
 /**
@@ -55,46 +56,34 @@ final readonly class BackendButtonBarEnhancer
 
         $buttons = $event->getButtons();
         $nextButtonGroup = $this->resolveHighestButtonGroup(ButtonBar::BUTTON_POSITION_LEFT, $buttons) + 1;
-        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton();
+        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton($assistants);
         $event->setButtons($buttons);
     }
 
-    private function buildAssistButton(): ButtonInterface
+    /**
+     * @param list<Assistant> $assistants
+     */
+    private function buildAssistButton(array $assistants): ButtonInterface
     {
         $assistButton = $this->componentFactory->createDropDownButton()
             ->setLabel('Ask AI')
             ->setTitle('Ask AI')
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-wand-sparkles', IconSize::SMALL));
-        // @todo resolve from assistant registry
+
         // @todo forward current call context
-        $assistButton->addItem(
-            $this->componentFactory->createDropDownItem()
-                ->setLabel('Generate Meta Description')
-                ->setHref('#')
-                ->setAttributes([
-                    'class' => 't3js-assist-trigger-item',
-                    'data-assist-template' => 'meta',
-                ])
-        );
-        $assistButton->addItem(
-            $this->componentFactory->createDropDownItem()
-                ->setLabel('Generate Media')
-                ->setHref('#')
-                ->setAttributes([
-                    'class' => 't3js-assist-trigger-item',
-                    'data-assist-template' => 'media',
-                ])
-        );
-        $assistButton->addItem(
-            $this->componentFactory->createDropDownItem()
-                ->setLabel('Generate Image Alternative Text')
-                ->setHref('#')
-                ->setAttributes([
-                    'class' => 't3js-assist-trigger-item',
-                    'data-assist-template' => 'alt',
-                ])
-        );
+        // data-assist-template :== meta|media|alt
+        foreach ($assistants as $assistant) {
+            $assistButton->addItem(
+                $this->componentFactory->createDropDownItem()
+                    ->setLabel($this->getLanguageService()->sL($assistant->labelFile . ':default'))
+                    ->setHref('#')
+                    ->setAttributes([
+                        'class' => 't3js-assist-trigger-item',
+                        'data-assist-template' => 'meta',
+                    ])
+            );
+        }
         return $assistButton;
     }
 
@@ -110,5 +99,10 @@ final readonly class BackendButtonBarEnhancer
     private function resolveAssistantsMatchingContext(Route $route): array
     {
         return $this->assistantRegistry->getAssistantsByTriggerRoute($route->getPath());
+    }
+
+    private function getLanguageService(): LanguageService
+    {
+        return $GLOBALS['LANG'];
     }
 }
