@@ -30,7 +30,7 @@ final readonly class BackendAssetEnhancer
     public function __invoke(BeforeBackendPageRenderEvent $event): void
     {
         $event->javaScriptRenderer->addJavaScriptModuleInstruction(
-            JavaScriptModuleInstruction::create('@typo3/assist/sidebar/assist-chat-panel.js')
+            JavaScriptModuleInstruction::create('@typo3/assist/element/chat-element.js')
         );
     }
 }

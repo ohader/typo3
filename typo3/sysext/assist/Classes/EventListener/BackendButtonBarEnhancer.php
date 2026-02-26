@@ -27,6 +27,7 @@ use TYPO3\CMS\Backend\Template\Components\ModifyButtonBarEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
+use TYPO3\CMS\Core\Page\PageRenderer;
 
 /**
  * Adds assist buttons to the backend button bar.
@@ -36,6 +37,7 @@ final readonly class BackendButtonBarEnhancer
 {
     public function __construct(
         private IconFactory $iconFactory,
+        private PageRenderer $pageRenderer,
         private ComponentFactory $componentFactory,
         private AssistantRegistry $assistantRegistry,
     ) {}
@@ -49,20 +51,51 @@ final readonly class BackendButtonBarEnhancer
             return;
         }
 
+        $this->pageRenderer->loadJavaScriptModule('@typo3/assist/element/action-button.js');
+
         $buttons = $event->getButtons();
         $nextButtonGroup = $this->resolveHighestButtonGroup(ButtonBar::BUTTON_POSITION_LEFT, $buttons) + 1;
-        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton($nextButtonGroup);
+        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton();
         $event->setButtons($buttons);
     }
 
     private function buildAssistButton(): ButtonInterface
     {
-        return $this->componentFactory->createGenericButton()
-            ->setTag('a')
-            ->setClasses('bnt btn-sm')
+        $assistButton = $this->componentFactory->createDropDownButton()
             ->setLabel('Ask AI')
+            ->setTitle('Ask AI')
             ->setShowLabelText(true)
-            ->setIcon($this->iconFactory->getIcon('module-assist', IconSize::SMALL));
+            ->setIcon($this->iconFactory->getIcon('actions-wand-sparkles', IconSize::SMALL));
+        // @todo resolve from assistant registry
+        // @todo forward current call context
+        $assistButton->addItem(
+            $this->componentFactory->createDropDownItem()
+                ->setLabel('Generate Meta Description')
+                ->setHref('#')
+                ->setAttributes([
+                    'class' => 't3js-assist-trigger-item',
+                    'data-assist-template' => 'meta',
+                ])
+        );
+        $assistButton->addItem(
+            $this->componentFactory->createDropDownItem()
+                ->setLabel('Generate Media')
+                ->setHref('#')
+                ->setAttributes([
+                    'class' => 't3js-assist-trigger-item',
+                    'data-assist-template' => 'media',
+                ])
+        );
+        $assistButton->addItem(
+            $this->componentFactory->createDropDownItem()
+                ->setLabel('Generate Image Alternative Text')
+                ->setHref('#')
+                ->setAttributes([
+                    'class' => 't3js-assist-trigger-item',
+                    'data-assist-template' => 'alt',
+                ])
+        );
+        return $assistButton;
     }
 
     private function resolveHighestButtonGroup(string $position, array $buttons): int

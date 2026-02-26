@@ -1,7 +1,3 @@
-<?php
-
-declare(strict_types=1);
-
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,8 +10,4 @@ declare(strict_types=1);
  *
  * The TYPO3 project - inspiring people to share!
  */
-
-use TYPO3\CMS\Core\Imaging\IconProvider\SvgIconProvider;
-
-return [
-];
+class e{openAssistant(s,o,t){const n=t.assistantModule??"";n&&import(n+".js").then(({default:a})=>{a.invokeFromContextMenu(s,o,t)})}}var i=new e;export{e as ContextMenuActions,i as default};

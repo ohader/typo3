@@ -34,9 +34,11 @@ import type { AssistContext, TcaResource } from '@typo3/assist/sidebar/assist-ch
  *   trigger-component="resource-edit"
  *   label="Assist"
  * ></typo3-assist-action>
+ *
+ * @deprecated use action-button.ts instead
  */
 @customElement('typo3-assist-action')
-export class AssistActionElement extends LitElement {
+export class ActionElement extends LitElement {
   @property({
     attribute: 'trigger-resource',
     converter: {
@@ -170,6 +172,6 @@ export class AssistActionElement extends LitElement {
 
 declare global {
   interface HTMLElementTagNameMap {
-    'typo3-assist-action': AssistActionElement;
+    'typo3-assist-action': ActionElement;
   }
 }

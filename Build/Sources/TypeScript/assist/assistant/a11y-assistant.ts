@@ -12,21 +12,10 @@
  */
 
 import type { AssistantContextMenuInvokable } from '@typo3/assist/context-menu-actions';
-import type { A11yCheckDialogElement } from '@typo3/assist/element/a11y-check-dialog-element';
 
 export class A11yAssistant implements AssistantContextMenuInvokable {
   invokeFromContextMenu(table: string, uid: number, dataset: DOMStringMap): void {
     console.log(dataset);
-    import('@typo3/assist/element/a11y-check-dialog-element').then(
-      (): void => {
-        let dialog = document.querySelector<A11yCheckDialogElement>('typo3-assist-a11y-check-dialog');
-        if (dialog === null) {
-          dialog = document.createElement('typo3-assist-a11y-check-dialog') as A11yCheckDialogElement;
-          document.body.appendChild(dialog);
-        }
-        dialog.open = true;
-      }
-    );
   }
 }
 
