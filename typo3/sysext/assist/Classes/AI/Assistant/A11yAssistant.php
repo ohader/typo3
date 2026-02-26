@@ -31,7 +31,7 @@ use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
     triggerResources: ['pages'],
     triggerComponents: ['page-tree', 'context-menu'],
     triggerRoutes: ['/module/web/layout'],
-    labelFile: 'LLL:EXT:assist/Resources/Private/Language/Assistants/typo3-assist-a11y.xlf',
+    labelDomain: 'assist.assistants.a11y',
     javaScriptModule: '@typo3/assist/assistant/a11y-assistant',
 )]
 final readonly class A11yAssistant implements AssistantInterface

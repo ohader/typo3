@@ -37,7 +37,7 @@ final readonly class Assistant
         public AssistantTrigger $trigger,
         public string $packageName,
         public string $absolutePackagePath,
-        public string $labelFile = '',
+        public string $labelDomain = '',
         public string $javaScriptModule = '',
     ) {}
 
@@ -67,7 +67,7 @@ final readonly class Assistant
             trigger: AssistantTrigger::createFromConfiguration($configuration['trigger'] ?? []),
             packageName: $configuration['packageName'] ?? '',
             absolutePackagePath: $configuration['absolutePackagePath'] ?? '',
-            labelFile: $configuration['labelFile'] ?? '',
+            labelDomain: $configuration['labelDomain'] ?? '',
             javaScriptModule: $configuration['javaScriptModule'] ?? '',
         );
     }

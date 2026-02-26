@@ -105,8 +105,8 @@ final class ItemProvider extends AbstractProvider
         foreach ($this->assistantRegistry->getAssistantsByTriggerComponent('context-menu') as $assistant) {
             $childItems[$assistant->identifier] = [
                 'type' => 'item',
-                'label' => $assistant->labelFile !== ''
-                    ? $this->languageService->sL($assistant->labelFile . ':default')
+                'label' => $assistant->labelDomain !== ''
+                    ? $this->languageService->sL($assistant->labelDomain . ':default')
                     : $assistant->identifier,
                 'iconIdentifier' => 'module-assist',
                 'callbackAction' => 'openAssistant',

@@ -76,7 +76,7 @@ final readonly class BackendButtonBarEnhancer
         foreach ($assistants as $assistant) {
             $assistButton->addItem(
                 $this->componentFactory->createDropDownItem()
-                    ->setLabel($this->getLanguageService()->sL($assistant->labelFile . ':default'))
+                    ->setLabel($this->getLanguageService()->sL($assistant->labelDomain . ':default'))
                     ->setHref('#')
                     ->setAttributes([
                         'class' => 't3js-assist-trigger-item',

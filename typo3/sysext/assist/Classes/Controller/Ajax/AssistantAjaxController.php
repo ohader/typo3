@@ -67,7 +67,7 @@ final readonly class AssistantAjaxController
         return new JsonResponse(array_values(array_map(
             static fn(Assistant $assistant): array => [
                 'identifier' => $assistant->identifier,
-                'label' => $assistant->labelFile,
+                'label' => $assistant->labelDomain,
             ],
             $assistants,
         )));

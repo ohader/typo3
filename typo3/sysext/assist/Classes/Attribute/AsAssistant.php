@@ -38,7 +38,7 @@ final readonly class AsAssistant
         public array $triggerResources = [],
         public array $triggerComponents = [],
         public array $triggerRoutes = [],
-        public string $labelFile = '',
+        public string $labelDomain = '',
         public string $javaScriptModule = '',
     ) {}
 }

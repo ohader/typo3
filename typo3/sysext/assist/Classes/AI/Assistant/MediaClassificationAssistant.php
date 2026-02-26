@@ -37,7 +37,7 @@ use TYPO3\CMS\Core\Resource\StorageRepository;
     triggerResources: ['sys_file'],
     triggerComponents: ['file-upload'],
     triggerRoutes: ['/module/file/list'],
-    labelFile: 'LLL:EXT:assist/Resources/Private/Language/Assistants/typo3-assist-media-classification.xlf',
+    labelDomain: 'assist.assistants.media_classification',
 )]
 final readonly class MediaClassificationAssistant implements AssistantInterface
 {
