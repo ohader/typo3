@@ -17,17 +17,21 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Command;
 
-use Symfony\AI\Platform\Message\Message;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Question\ConfirmationQuestion as ConsoleConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
-use TYPO3\CMS\Assist\AI\Message\AgentInput;
-use TYPO3\CMS\Assist\AI\Message\AgentOutput;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
+use TYPO3\CMS\Assist\AI\Assistant\Question\ConfirmationQuestion;
+use TYPO3\CMS\Assist\AI\Assistant\Question\OptionsQuestion;
+use TYPO3\CMS\Assist\AI\Assistant\Question\QuestionInterface;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
@@ -104,7 +108,8 @@ final class ChatCommand extends Command
             return Command::FAILURE;
         }
 
-        $agentInput = new AgentInput($platformModel);
+        $handler = $this->assistantOrchestrator->buildHandler($assistant);
+        $progressUuid = null;
 
         /** @var QuestionHelper $questionHelper */
         $questionHelper = $this->getHelper('question');
@@ -132,23 +137,22 @@ final class ChatCommand extends Command
                 readline_add_history($userText);
             }
 
-            $agentInput->add(Message::ofUser($userText));
-            $agentOutput = new AgentOutput();
+            $headers = $progressUuid !== null
+                ? ['x-typo3-assist-progress' => $progressUuid]
+                : [];
+            $request = new AssistantRequest(['message' => $userText], $headers);
 
+            $response = null;
             try {
-                $this->withSpinner($output, 'Thinking…', function () use ($assistant, $agentInput, $agentOutput): void {
-                    $this->assistantOrchestrator->process($assistant, $agentInput, $agentOutput);
+                $this->withSpinner($output, 'Processing…', function () use ($handler, $request, &$response): void {
+                    $response = $handler->handleClientRequest($request);
                 });
 
-                $results = $agentOutput->getResultBag()->getResults();
-                $result = $results[0] ?? null;
-                if ($result !== null) {
-                    $content = $result->getContent();
-                    $output->writeln('');
-                    $output->writeln($content);
-                    $output->writeln('');
-                    $agentInput->add(Message::ofAssistant($content));
+                if ($response->progress !== null) {
+                    $progressUuid = (string)$response->progress->uuid;
                 }
+
+                $this->printAssistantResponse($response, $input, $output);
             } catch (\Throwable $e) {
                 $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
             }
@@ -156,5 +160,63 @@ final class ChatCommand extends Command
 
         $output->writeln('Chat session ended.');
         return Command::SUCCESS;
+    }
+
+    private function printAssistantResponse(
+        AssistantResponse $response,
+        InputInterface $input,
+        OutputInterface $output,
+    ): void {
+        if ($response->progress !== null) {
+            $output->writeln(sprintf('<comment>Progress: %s</comment>', $response->progress->uuid));
+        }
+
+        if ($response->steps !== []) {
+            $output->writeln('<info>Steps:</info>');
+            foreach ($response->steps as $step) {
+                $subCount = count($step->subs);
+                $done = $step->done ? '<info>✓</info>' : '·';
+                $sub = $subCount > 0 ? sprintf(' <comment>[%d sub-steps]</comment>', $subCount) : '';
+                $output->writeln(sprintf('  %s %s%s', $done, $step->description, $sub));
+            }
+        }
+
+        foreach ($response->results as $item) {
+            if ($item instanceof QuestionInterface) {
+                $this->askAndPrintQuestion($item, $input, $output);
+            } else {
+                $content = $item->getContent();
+                if (is_string($content) && $content !== '') {
+                    $output->writeln('');
+                    $output->writeln($content);
+                }
+            }
+        }
+
+        $output->writeln('');
+    }
+
+    private function askAndPrintQuestion(
+        QuestionInterface $question,
+        InputInterface $input,
+        OutputInterface $output,
+    ): void {
+        /** @var QuestionHelper $helper */
+        $helper = $this->getHelper('question');
+
+        if ($question instanceof ConfirmationQuestion) {
+            $consoleQuestion = new ConsoleConfirmationQuestion(
+                sprintf('%s [%s/%s] ', $question->text, $question->acceptLabel, $question->declineLabel),
+                true,
+            );
+            $answer = $helper->ask($input, $output, $consoleQuestion);
+            $output->writeln($answer ? $question->acceptLabel : $question->declineLabel);
+        } elseif ($question instanceof OptionsQuestion) {
+            $consoleQuestion = new ChoiceQuestion($question->text, $question->options);
+            $answer = $helper->ask($input, $output, $consoleQuestion);
+            $output->writeln((string)$answer);
+        } else {
+            $output->writeln($question->getText());
+        }
     }
 }
