@@ -24,7 +24,7 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 /**
  * @internal
  */
-trait AssertJsonContentType
+trait AssertJsonContentTypeTrait
 {
     private function assertJsonContentType(ServerRequestInterface $request): ?ResponseInterface
     {

@@ -33,7 +33,7 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 #[AsController]
 final readonly class AssistantAjaxController
 {
-    use AssertJsonContentType;
+    use AssertJsonContentTypeTrait;
 
     public function __construct(
         private AssistantRegistry $assistantRegistry,

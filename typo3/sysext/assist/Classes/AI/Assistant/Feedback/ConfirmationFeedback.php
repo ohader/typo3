@@ -15,25 +15,15 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Assistant\Question;
+namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
-final readonly class OptionsQuestion implements QuestionInterface
+final readonly class ConfirmationFeedback implements FeedbackInterface
 {
-    /**
-     * @param list<string> $options
-     */
     public function __construct(
         public string $text,
-        public array $options,
-    ) {
-        $count = count($options);
-        if ($count < 2 || $count > 4) {
-            throw new \InvalidArgumentException(
-                'OptionsQuestion requires between 2 and 4 options, ' . $count . ' given.',
-                1740000001,
-            );
-        }
-    }
+        public string $acceptLabel = 'Yes',
+        public string $declineLabel = 'No',
+    ) {}
 
     public function getText(): string
     {
@@ -43,9 +33,10 @@ final readonly class OptionsQuestion implements QuestionInterface
     public function jsonSerialize(): array
     {
         return [
-            'type' => 'options',
+            'type' => 'confirmation',
             'text' => $this->text,
-            'options' => $this->options,
+            'acceptLabel' => $this->acceptLabel,
+            'declineLabel' => $this->declineLabel,
         ];
     }
 }

@@ -15,15 +15,15 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Assistant\Question;
+namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
-final readonly class ConfirmationQuestion implements QuestionInterface
+final readonly class OptionItem implements FeedbackInterface
 {
     public function __construct(
         public string $text,
-        public string $acceptLabel = 'Yes',
-        public string $declineLabel = 'No',
-    ) {}
+        public ?string $details = null,
+    ) {
+    }
 
     public function getText(): string
     {
@@ -33,10 +33,8 @@ final readonly class ConfirmationQuestion implements QuestionInterface
     public function jsonSerialize(): array
     {
         return [
-            'type' => 'confirmation',
             'text' => $this->text,
-            'acceptLabel' => $this->acceptLabel,
-            'declineLabel' => $this->declineLabel,
+            'details' => $this->details,
         ];
     }
 }

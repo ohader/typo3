@@ -18,7 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Symfony\AI\Platform\Result\ResultInterface;
-use TYPO3\CMS\Assist\AI\Assistant\Question\QuestionInterface;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\FeedbackInterface;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\Step;
 use TYPO3\CMS\Core\Http\JsonResponse;
@@ -26,7 +26,7 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 final readonly class AssistantResponse
 {
     /**
-     * @param list<ResultInterface|QuestionInterface> $results
+     * @param list<ResultInterface|FeedbackInterface> $results
      * @param list<Step> $steps
      */
     public function __construct(
@@ -39,8 +39,8 @@ final readonly class AssistantResponse
     {
         return new JsonResponse([
             'results' => array_map(
-                static fn(ResultInterface|QuestionInterface $item): mixed
-                    => $item instanceof QuestionInterface ? $item : $item->getContent(),
+                static fn(ResultInterface|FeedbackInterface $item): mixed
+                    => $item instanceof FeedbackInterface ? $item : $item->getContent(),
                 $this->results,
             ),
             'steps' => $this->steps,

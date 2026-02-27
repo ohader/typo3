@@ -29,9 +29,9 @@ use Symfony\Component\Console\Question\Question;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
-use TYPO3\CMS\Assist\AI\Assistant\Question\ConfirmationQuestion;
-use TYPO3\CMS\Assist\AI\Assistant\Question\OptionsQuestion;
-use TYPO3\CMS\Assist\AI\Assistant\Question\QuestionInterface;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\FeedbackInterface;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
@@ -182,7 +182,7 @@ final class ChatCommand extends Command
         }
 
         foreach ($response->results as $item) {
-            if ($item instanceof QuestionInterface) {
+            if ($item instanceof FeedbackInterface) {
                 $this->askAndPrintQuestion($item, $input, $output);
             } else {
                 $content = $item->getContent();
@@ -197,21 +197,21 @@ final class ChatCommand extends Command
     }
 
     private function askAndPrintQuestion(
-        QuestionInterface $question,
+        FeedbackInterface $question,
         InputInterface $input,
         OutputInterface $output,
     ): void {
         /** @var QuestionHelper $helper */
         $helper = $this->getHelper('question');
 
-        if ($question instanceof ConfirmationQuestion) {
+        if ($question instanceof ConfirmationFeedback) {
             $consoleQuestion = new ConsoleConfirmationQuestion(
                 sprintf('%s [%s/%s] ', $question->text, $question->acceptLabel, $question->declineLabel),
                 true,
             );
             $answer = $helper->ask($input, $output, $consoleQuestion);
             $output->writeln($answer ? $question->acceptLabel : $question->declineLabel);
-        } elseif ($question instanceof OptionsQuestion) {
+        } elseif ($question instanceof OptionsFeedback) {
             $consoleQuestion = new ChoiceQuestion($question->text, $question->options);
             $answer = $helper->ask($input, $output, $consoleQuestion);
             $output->writeln((string)$answer);
