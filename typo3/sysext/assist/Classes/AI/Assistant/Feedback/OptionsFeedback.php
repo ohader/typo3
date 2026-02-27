@@ -23,6 +23,7 @@ final readonly class OptionsFeedback implements FeedbackInterface
      * @param list<OptionItem> $options
      */
     public function __construct(
+        public string $key,
         public string $text,
         public array $options,
     ) {
@@ -44,6 +45,7 @@ final readonly class OptionsFeedback implements FeedbackInterface
     {
         return [
             'type' => 'options',
+            'key' => $this->key,
             'text' => $this->text,
             'options' => $this->options,
         ];

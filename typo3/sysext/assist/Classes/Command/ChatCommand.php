@@ -181,7 +181,7 @@ final class ChatCommand extends Command
             }
         }
 
-        foreach ($response->results as $item) {
+        foreach ($response->feedback as $item) {
             if ($item instanceof FeedbackInterface) {
                 $this->askAndPrintQuestion($item, $input, $output);
             } else {

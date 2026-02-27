@@ -19,7 +19,9 @@ namespace TYPO3\CMS\Assist\AI\Message;
 
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Message\MessageInterface;
+use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\Domain\Model\Progress;
 
 interface AgentInputInterface
 {
@@ -28,4 +30,8 @@ interface AgentInputInterface
     public function add(MessageInterface $message): void;
 
     public function getMessageBag(): MessageBag;
+
+    public function getProgress(): ?Progress;
+
+    public function getSequencePointer(): ?SequencePointer;
 }

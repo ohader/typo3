@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use Symfony\AI\Platform\Result\ResultInterface;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\FeedbackInterface;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\Step;
@@ -26,11 +25,11 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 final readonly class AssistantResponse
 {
     /**
-     * @param list<ResultInterface|FeedbackInterface> $results
+     * @param list<FeedbackInterface> $feedback
      * @param list<Step> $steps
      */
     public function __construct(
-        public array $results = [],
+        public array $feedback = [],
         public array $steps = [],
         public ?Progress $progress = null,
     ) {}
@@ -38,11 +37,7 @@ final readonly class AssistantResponse
     public function toResponse(): JsonResponse
     {
         return new JsonResponse([
-            'results' => array_map(
-                static fn(ResultInterface|FeedbackInterface $item): mixed
-                    => $item instanceof FeedbackInterface ? $item : $item->getContent(),
-                $this->results,
-            ),
+            'feedback' => $this->feedback,
             'steps' => $this->steps,
             'progress' => $this->progress !== null
                 ? ['uuid' => (string)$this->progress->uuid]

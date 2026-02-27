@@ -20,10 +20,10 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 final readonly class OptionItem implements FeedbackInterface
 {
     public function __construct(
+        public string $identifier,
         public string $text,
         public ?string $details = null,
-    ) {
-    }
+    ) {}
 
     public function getText(): string
     {
@@ -33,6 +33,7 @@ final readonly class OptionItem implements FeedbackInterface
     public function jsonSerialize(): array
     {
         return [
+            'identifier' => $this->identifier,
             'text' => $this->text,
             'details' => $this->details,
         ];
