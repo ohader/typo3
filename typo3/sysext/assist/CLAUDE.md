@@ -90,7 +90,8 @@ Tests/Functional/
 | `AI\Agent\ProgressRecorderInterface` | Abstraction for persisting submitted/received progress items. `@internal` |
 | `AI\Agent\ProgressRecorder` | Concrete `ProgressRecorderInterface` implementation backed by `ProgressRepository`. `@internal` |
 | `AI\Assistant\AssistantRequest` | `final readonly` value object built from a PSR-7 request: `$params` (decoded JSON body) + `$headers` (all `x-typo3-*` request headers). Created via `AssistantRequest::fromServerRequest()`. |
-| `AI\Assistant\AssistantResponse` | `final readonly` value object returned by `handleClientRequest()`. Holds `$results`, `$steps`, and `?$progress`. Call `->toResponse()` to get a `JsonResponse` with keys `results`/`steps`/`progress`. |
+| `AI\Assistant\AssistantResponse` | `final readonly` value object returned by `handleClientRequest()`. Holds `$feedback`, `$steps`, and `?$progress`. Call `->toResponse()` to get a `JsonResponse` with keys `feedback`/`steps`/`progress`. |
+| `AI\Assistant\Feedback\ResultFeedbackConverter` | Converts a Symfony AI `ResultInterface` to a `FeedbackInterface`: `TextResult` → `MessageFeedback`; `ChoiceResult` with 2–4 items → `OptionsFeedback`; all others → `MessageFeedback` via `json_encode`. |
 | `AI\Assistant\AssistantOrchestrator` | Resolves assistant handler, applies tool policy, delegates to `AgentService`. `@internal` |
 | `AI\Platform\PlatformResolver` | Site config → `Platform` domain objects. Determines `Availability` based on package presence + enabled flag. |
 | `AI\Platform\PlatformConnector` | `Platform` → `PlatformBridge`. Extracts PSR-4 namespace from composer metadata, dispatches `BeforeBuildPlatformBridgeEvent`, constructs bridge. `@internal` |
@@ -132,29 +133,34 @@ Absent on the first request; present on all continuation requests.
 
 ```json
 {
-  "results":  [ ... ],
+  "feedback": [ ... ],
   "steps":    [ ... ],
   "progress": { "uuid": "<uuid>" } | null
 }
 ```
 
-- `results`: `ResultInterface` items → `getContent()`; `QuestionInterface` items → `jsonSerialize()`
+- `feedback`: `FeedbackInterface` items, each with a `type` discriminator: `"message"` `{text}`, `"options"` `{text, options[]}`, `"confirmation"` `{text, acceptLabel, declineLabel}`. Produced by `ResultFeedbackConverter` from Symfony AI results.
 - `steps`: `Step` objects (each `JsonSerializable`); shape: `{identifier, description, subject, subs[], done}`
 - `progress`: present only when a persisted `Progress` record is attached; contains just the UUID
 
 ### Multi-step progress flow
 
 ```
-1st call  (no x-typo3-assist-progress header)
-  → handleClientRequest calls initializeProgress()
-  → returns AssistantResponse(steps: $planSteps, progress: null)
-  → client receives task plan, UUID comes later from agent-call ProgressRecorder
+No progress header, no message param
+  → initializeProgress()  — returns task plan as steps; feedback is empty
 
-Nth call  (x-typo3-assist-progress: <uuid>)
-  → handleClientRequest calls continueProgress()
-  → loads Progress from ProgressRepository, deserializes steps from request body
-  → returns AssistantResponse(steps: $updatedSteps, progress: $progress)
-  → client receives updated steps + echoes back the UUID
+No progress header, message param present
+  → startConversation()   — resolves model via ConfigurationResolver,
+                            builds AgentInput(model, UserMessage),
+                            calls AssistantOrchestrator::process(),
+                            converts each result via ResultFeedbackConverter,
+                            returns AssistantResponse(feedback: [...])
+
+x-typo3-assist-progress: <uuid> header present
+  → continueProgress()    — loads Progress from ProgressRepository,
+                            deserializes steps from request body,
+                            if message present: delegates to startConversation()
+                            returns AssistantResponse(steps, progress, feedback)
 ```
 
 The progress UUID is **persisted by `ProgressRecorder`** during the agent call (`AgentService::call()`), not by `handleClientRequest()` directly. `handleClientRequest()` only reads and returns it.

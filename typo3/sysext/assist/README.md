@@ -26,15 +26,15 @@ Every `handleClientRequest()` implementation returns an `AssistantResponse` valu
 
 ```json
 {
-  "results": [...],
-  "steps":   [...],
+  "feedback": [...],
+  "steps":    [...],
   "progress": { "uuid": "<uuid>" } | null
 }
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `results` | array | AI result values. `ResultInterface` items serialized via `getContent()`; `QuestionInterface` items via `jsonSerialize()` |
+| `feedback` | array | `FeedbackInterface` items serialized via `jsonSerialize()`. Each item has a `type` discriminator: `"message"` (plain text), `"options"` (2–4 selectable choices), `"confirmation"` (accept/decline). Converted from Symfony AI `ResultInterface` via `ResultFeedbackConverter`. |
 | `steps` | array | `Step` objects (each implements `JsonSerializable`). Describes the task plan or current state |
 | `progress` | object \| null | `{"uuid": "<uuid>"}` when a `Progress` record is attached; `null` otherwise |
 
@@ -43,27 +43,30 @@ Every `handleClientRequest()` implementation returns an `AssistantResponse` valu
 Some assistants (e.g. `MediaClassificationAssistant`) use a progress session to track work across multiple requests:
 
 ```
-Client                                    Server
-  |                                         |
-  |-- POST /gate-client-request ----------->|
-  |   body: {identifier: "...", ...}        |  no x-typo3-assist-progress header
-  |   (no progress header)                  |
-  |                                         |-- initializeProgress()
-  |<-- {results:[], steps:[...], ----------|   returns steps (task plan)
-  |     progress: null}                     |
-  |                                         |
-  |   [client stores progress UUID          |
-  |    obtained from the agent call]        |
-  |                                         |
-  |-- POST /gate-client-request ----------->|
-  |   x-typo3-assist-progress: <uuid>       |  progress header present
+Client                                     Server
+  |                                          |
+  |-- POST /gate-client-request ------------>|
+  |   body: {identifier: "..."}             |  no progress header, no message
+  |                                          |-- initializeProgress()
+  |<-- {feedback:[], steps:[...], ----------|   returns task plan
+  |     progress: null}                      |
+  |                                          |
+  |-- POST /gate-client-request ------------>|
+  |   body: {identifier: "...",             |  no progress header, message present
+  |          message: "..."}                |
+  |                                          |-- startConversation()
+  |<-- {feedback:[...], steps:[], ---------+|   calls AI, converts results
+  |     progress: null}                      |   to FeedbackInterface items
+  |                                          |
+  |-- POST /gate-client-request ------------>|
+  |   x-typo3-assist-progress: <uuid>        |  progress header present
   |   body: {identifier: "...",             |
-  |          steps: [...]}                  |
-  |                                         |-- continueProgress()
-  |<-- {results:[], steps:[...], ----------|   loads Progress from DB,
-  |     progress: {uuid: "<uuid>"}}         |   returns updated steps
-  |                                         |
-  |   [repeat until done]                   |
+  |          message: "...", steps: [...]}  |
+  |                                          |-- continueProgress()
+  |<-- {feedback:[...], steps:[...], ------+|   loads Progress from DB,
+  |     progress: {uuid: "<uuid>"}}          |   calls startConversation() if message present
+  |                                          |
+  |   [repeat until done]                    |
 ```
 
 **Steps** are serialized `Step` objects with fields: `identifier`, `description`, `subject`, `subs` (nested steps), `done`.
