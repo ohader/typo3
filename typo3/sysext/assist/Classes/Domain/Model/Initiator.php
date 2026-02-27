@@ -18,6 +18,8 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Domain\Model;
 
 /**
+ * Reflects a progress initiator.
+ *
  * @internal
  */
 final readonly class Initiator

@@ -82,7 +82,7 @@ final readonly class BackendButtonBarEnhancer
                     ->setHref('#')
                     ->setAttributes([
                         'class' => 't3js-assist-trigger-item',
-                        ...$this->dataSetService->forAssistant($assistant)
+                        ...$this->dataSetService->forAssistant($assistant),
                     ])
             );
         }
