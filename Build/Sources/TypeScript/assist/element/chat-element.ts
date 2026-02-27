@@ -14,8 +14,7 @@
 import { customElement, property, state } from 'lit/decorators.js';
 import { html, LitElement, nothing, type TemplateResult } from 'lit';
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
-import labels from '~labels/assist.elements';
-
+import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import '@typo3/assist/element/options-element';
 
 export interface AssistChatProperties {
@@ -33,6 +32,57 @@ interface AssistChatStep {
   done: boolean;
 }
 
+interface MessageFeedbackItem {
+  type: 'message';
+  text: string;
+}
+
+interface ConfirmationFeedbackItem {
+  type: 'confirmation';
+  text: string;
+  acceptLabel: string;
+  declineLabel: string;
+}
+
+interface OptionItemData {
+  identifier: string;
+  text: string;
+  details?: string | null;
+}
+
+interface OptionsFeedbackItem {
+  type: 'options';
+  key: string;
+  text: string;
+  options: OptionItemData[];
+}
+
+type AssistFeedbackItem = MessageFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem;
+
+interface AssistantServerResponse {
+  feedback: AssistFeedbackItem[];
+  steps: AssistChatStep[];
+  progress: { uuid: string } | null;
+}
+
+interface ResourceSubjectData {
+  kind: 'resource';
+  type: 'file' | 'folder';
+  storage: number;
+  path: string;
+}
+
+interface TcaSubjectData {
+  kind: 'tca';
+  tableName: string;
+  uid: number;
+  propertyName: string;
+  flexFormPath: string[] | null;
+  types: string[] | null;
+}
+
+type SubjectData = ResourceSubjectData | TcaSubjectData;
+
 /**
  * Module: @typo3/assist/element/chat-element
  */
@@ -47,13 +97,21 @@ export class ChatElement extends LitElement {
   @property({ type: Object }) labels: LabelProvider<any>;
 
   @state() steps: AssistChatStep[] = [];
+  @state() feedback: AssistFeedbackItem[] = [];
+  @state() isLoading: boolean = false;
+  @state() private progressUuid: string | null = null;
+  @state() private userMessages: string[] = [];
 
-  private readonly mediaBasePath: string = '/typo3/sysext/assist/Resources/Public/Demo/';
-  private readonly imagePlaceholderA: string = this.mediaBasePath + 'banner_ultrawide.jpg';
-  private readonly imagePlaceholderB: string = this.mediaBasePath + 'detail_stress.jpg';
-  private readonly imagePlaceholderC: string = this.mediaBasePath + 'photo_sim.jpg';
-  private readonly videoPlaceholderA: string = this.mediaBasePath + 'moving_test.mp4';
-  private readonly videoPlaceholderB: string = this.mediaBasePath + 'moving_test.mp4';
+  private get parsedSubject(): SubjectData | null {
+    if (!this.subject) {
+      return null;
+    }
+    try {
+      return JSON.parse(this.subject) as SubjectData;
+    } catch {
+      return null;
+    }
+  }
 
   override createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
@@ -65,14 +123,6 @@ export class ChatElement extends LitElement {
   }
 
   protected override render(): TemplateResult {
-    const template = this.resolveTemplate();
-
-    const optionsA = [
-      { text: 'neutral / informative', details: 'Discover current spring trends, styling ideas, and practical tips for updating your wardrobe. Learn what to wear this season and how to combine outfits effortlessly.' },
-      { text: 'more SEO/keyword-focused', details: 'Explore the Spring 2025 fashion trends, outfit ideas, and styling tips. Find inspiration for modern looks and build a versatile wardrobe for the new season.' },
-      { text: 'more marketing/click-oriented', details: 'Refresh your wardrobe this spring. Get outfit inspiration, trending colors, and easy styling tips to create modern looks for work, leisure, and everyday wear.' }
-    ];
-
     return html`
       <div class="assist-chat-container">
         <div class="assist-chat-header">
@@ -99,274 +149,18 @@ export class ChatElement extends LitElement {
           ${this.renderSteps()}
         </div>
         <div class="assist-chat">
-
-          <!-- Generate Meta Description -->
-          ${template === 'meta' ? html`
-          <div class="assist-chat__response">
-            <ul class="assist-chat__quick-actions">
-              <li><a href="#" class="assist-chat__quick-action">Improve readability</a></li>
-              <li><a href="#" class="assist-chat__quick-action">Suggest internal links</a></li>
-            </ul>
-          </div>
-
-          <div class="assist-chat__user-input">
-            <p class="assist-chat__user-input-bubble">Improve meta description</p>
-          </div>
-
-          <div class="assist-chat__response">
-            <p class="assist-chat__text">
-              The current meta description is either missing or too generic. Search engines will likely rewrite it, which can reduce click-through rate.
-            </p>
-
-            <typo3-assist-options-element
-              text="I created a few alternative meta descriptions you can choose from:"
-              .options=${optionsA}
-            ></typo3-assist-options-element>
-
-            <p class="assist-chat__text">
-              You can modify the description directly.<br />
-              Tell me what you want to change (length, tone, keywords, audience).
-            </p>
-          </div>
-
-          <div class="assist-chat__user-input">
-            <p class="assist-chat__user-input-bubble">
-              make it more about sustainable materials and less fashion magazine style
-            </p>
-          </div>
-
-          <div class="assist-chat__response">
-            <p class="assist-chat__text">
-              Understood. I adjusted the description to emphasize sustainability and reduced the editorial tone.
-            </p>
-
-            <div class="assist-chat__options">
-              <article class="panel panel-default assist-chat__option">
-                <div class="panel-body assist-chat__option-text">
-                  Discover spring outfits made with sustainable materials and environmentally conscious production. Learn how to update your wardrobe with durable, modern clothing choices for everyday wear.
-                </div>
-                <div class="panel-footer assist-chat__option-actions">
-                  <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                </div>
-              </article>
-            </div>
-          </div>
-
-          ${this.renderThinking()}
-
+          ${this.renderFeedback()}
+          ${this.renderUserMessages()}
+          ${this.isLoading ? this.renderThinking() : nothing}
           ${this.renderInput()}
-          ` : ''}
-
-          <!-- Generate Media -->
-          ${template === 'media' ? html`
-          <div class="assist-chat__user-input">
-            <p class="assist-chat__user-input-bubble">Generate media</p>
-          </div>
-
-          <div class="assist-chat__response">
-            <p class="assist-chat__text">
-              I can help you enrich this page with media. I’ll look for suitable assets based on your content.
-            </p>
-
-            <p class="assist-chat__text">
-              I generated image suggestions for this page. Please choose the ones you want to use.
-            </p>
-
-            <div class="row g-3 assist-chat__media-row assist-chat__media-row--images">
-              <div class="col-12 col-md-6 col-xl-4">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Team meeting in modern office</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame">
-                      <img class="assist-chat__media-thumbnail" src="${this.imagePlaceholderA}" alt="Banner ultrawide" />
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                    <button
-                      type="button"
-                      class="assist-chat__option-action btn btn-default"
-                    >
-                      <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-                    </button>
-                  </div>
-                </article>
-              </div>
-
-              <div class="col-12 col-md-6 col-xl-4">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Person working on laptop with analytics dashboard</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame">
-                      <img class="assist-chat__media-thumbnail" src="${this.imagePlaceholderB}" alt="Detail stress" />
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                    <button
-                      type="button"
-                      class="assist-chat__option-action btn btn-default"
-                    >
-                      <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-                    </button>
-                  </div>
-                </article>
-              </div>
-
-              <div class="col-12 col-md-6 col-xl-4">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Close-up of hands typing on keyboard</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame">
-                      <img class="assist-chat__media-thumbnail" src="${this.imagePlaceholderC}" alt="Photo sim" />
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                    <button
-                      type="button"
-                      class="assist-chat__option-action btn btn-default"
-                    >
-                      <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-                    </button>
-                  </div>
-                </article>
-              </div>
-            </div>
-
-            <p class="assist-chat__text">
-              You can select one or multiple images. I will insert them into suitable positions in the content.
-            </p>
-          </div>
-
-          <div class="assist-chat__user-input">
-            <p class="assist-chat__user-input-bubble">I would rather use videos.</p>
-          </div>
-
-          <div class="assist-chat__response">
-            <p class="assist-chat__text">
-              No problem — I’ll look for suitable video material instead.
-            </p>
-
-            <p class="assist-chat__text">
-              I found videos that match the topic of this page.
-            </p>
-
-            <div class="row g-3 assist-chat__media-row assist-chat__media-row--videos">
-              <div class="col-12 col-lg-6">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Video 1</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame assist-chat__media-frame--video">
-                      <video class="assist-chat__media-video" src="${this.videoPlaceholderA}" controls></video>
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                  </div>
-                </article>
-              </div>
-
-              <div class="col-12 col-lg-6">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Video 2</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame assist-chat__media-frame--video">
-                      <video class="assist-chat__media-video" src="${this.videoPlaceholderB}" controls></video>
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                  </div>
-                </article>
-              </div>
-            </div>
-          </div>
-
-          ${this.renderInput()}
-          ` : ''}
-
-          <!-- Generate Image Alternative Text -->
-          ${template === 'alt' ? html`
-          <div class="assist-chat__user-input">
-            <p class="assist-chat__user-input-bubble">Generate image alternative text</p>
-          </div>
-
-          <div class="assist-chat__response">
-            <p class="assist-chat__text">
-              Please review the generated alternative texts.
-            </p>
-
-            <p class="assist-chat__text">
-              Image 1 of 51
-            </p>
-
-            <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-              <div class="panel-heading">
-                <h3 class="h5 assist-chat__option-title">imagename.jpg</h3>
-              </div>
-              <div class="panel-body assist-chat__option-text">
-                <div class="assist-chat__alt-media">
-                  <div class="assist-chat__media-frame">
-                    <img class="assist-chat__media-thumbnail" src="${this.imagePlaceholderC}" alt="Banner ultrawide" />
-                  </div>
-                </div>
-                <div class="assist-chat__alt-text">
-                  <p class="assist-chat__option-alt-text">
-                    Current alt text:<br>
-                    "A person sitting at a desk working on a laptop, with a cup of coffee and a plant next to them."
-                  </p>
-                  <div class="assist-chat__options">
-                    <article class="panel panel-default assist-chat__option">
-                      <div class="panel-body assist-chat__option-text">
-                        A person working on a laptop at a desk
-                      </div>
-                      <div class="panel-footer assist-chat__option-actions">
-                        <button type="button" class="assist-chat__option-action btn btn-default">Replace</button>
-                      </div>
-                    </article>
-
-                    <article class="panel panel-default assist-chat__option">
-                      <div class="panel-body assist-chat__option-text">
-                        Office workspace with laptop and notebook
-                      </div>
-                      <div class="panel-footer assist-chat__option-actions">
-                        <button type="button" class="assist-chat__option-action btn btn-default">Replace</button>
-                      </div>
-                    </article>
-
-                    <article class="panel panel-default assist-chat__option">
-                      <div class="panel-body assist-chat__option-text">
-                        Close view of hands typing on a keyboard
-                      </div>
-                      <div class="panel-footer assist-chat__option-actions">
-                        <button type="button" class="assist-chat__option-action btn btn-default">Replace</button>
-                      </div>
-                    </article>
-                  </div>
-
-                </div>
-              </div>
-            </article>
-          </div>
-
-          ${this.renderInput()}
-          ` : ''}
-
         </div>
       </div>
     `;
   }
+
+  private readonly handleModalShown = (): void => {
+    this.sendRequest('');
+  };
 
   private scrollToBottom(): void {
     requestAnimationFrame((): void => {
@@ -378,18 +172,64 @@ export class ChatElement extends LitElement {
     });
   }
 
-  private readonly handleModalShown = (): void => {
-    this.scrollToBottom();
-  };
-
   private handleCloseClick(): void {
     this.closest('typo3-backend-modal')?.hideModal();
   }
 
+  private handleSend(): void {
+    const input = this.querySelector<HTMLInputElement>('.assist-chat__text-input');
+    const text = input?.value.trim() ?? '';
+    if (!text) {
+      return;
+    }
+    input!.value = '';
+    this.sendRequest(text);
+  }
+
+  private async sendRequest(message: string, params: Record<string, string> = {}): Promise<void> {
+    this.isLoading = true;
+    if (message !== '') {
+      this.userMessages = [...this.userMessages, message];
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.progressUuid) {
+      headers['x-typo3-assist-progress'] = this.progressUuid;
+    }
+
+    try {
+      const body: Record<string, unknown> = { identifier: this.assistant };
+      if (Object.keys(params).length > 0) {
+        Object.assign(body, params);
+      } else if (message !== '') {
+        body.message = message;
+      }
+
+      const response = await new AjaxRequest(
+        TYPO3.settings.ajaxUrls.assist_gate_client_request
+      ).post(body, { headers });
+      const data: AssistantServerResponse = await response.resolve();
+      this.steps = data.steps ?? [];
+      this.feedback = [...this.feedback, ...data.feedback];
+      if (data.progress?.uuid) {
+        this.progressUuid = data.progress.uuid;
+      }
+    } finally {
+      this.isLoading = false;
+      this.scrollToBottom();
+    }
+  }
+
   private renderSubjectContext(): TemplateResult {
+    const s = this.parsedSubject;
+    const label = s === null
+      ? (this.subject ?? '')
+      : s.kind === 'resource' ? s.path : `${s.tableName}:${s.uid} — ${s.propertyName}`;
     return html`
       <p class="assist-chat-header__context text-variant">
-        ${this.subject}
+        ${label}
       </p>
     `;
   }
@@ -440,19 +280,61 @@ export class ChatElement extends LitElement {
   private renderInput(): TemplateResult {
     return html`
       <div class="assist-chat__input">
-        <input type="text" class="form-control" id="inputFormControlPlaceholder" placeholder="Tell me what you want to change about the meta description…" autofocus>
-        <button type="button" class="btn btn-primary assist-chat__input-button">
+        <input
+          type="text"
+          class="form-control assist-chat__text-input"
+          placeholder="Tell me what you want to change…"
+          autofocus
+          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.handleSend()}
+        >
+        <button type="button" class="btn btn-primary assist-chat__input-button" @click=${this.handleSend}>
           <typo3-backend-icon identifier="actions-arrow-up-alt"></typo3-backend-icon>
         </button>
       </div>
     `;
   }
 
-  private resolveTemplate(): 'meta' | 'media' | 'alt' {
-    if (this.template === 'media' || this.template === 'alt') {
-      return this.template;
+  private renderFeedback(): TemplateResult {
+    return html`${this.feedback.map(item => this.renderFeedbackItem(item))}`;
+  }
+
+  private renderFeedbackItem(item: AssistFeedbackItem): TemplateResult {
+    if (item.type === 'message') {
+      return html`
+        <div class="assist-chat__response">
+          <p class="assist-chat__text">${item.text}</p>
+        </div>
+      `;
     }
-    return 'meta';
+    if (item.type === 'confirmation') {
+      return html`
+        <div class="assist-chat__response">
+          <p class="assist-chat__text">${item.text}</p>
+          <div class="assist-chat__confirmation-actions">
+            <button type="button" class="btn btn-primary" @click=${() => this.sendRequest(item.acceptLabel)}>${item.acceptLabel}</button>
+            <button type="button" class="btn btn-default" @click=${() => this.sendRequest(item.declineLabel)}>${item.declineLabel}</button>
+          </div>
+        </div>
+      `;
+    }
+    return html`
+      <div class="assist-chat__response">
+        <typo3-assist-options-element
+          key=${item.key}
+          text=${item.text}
+          .options=${item.options}
+          @typo3-assist-option-accept=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+        ></typo3-assist-options-element>
+      </div>
+    `;
+  }
+
+  private renderUserMessages(): TemplateResult {
+    return html`${this.userMessages.map(text => html`
+      <div class="assist-chat__user-input">
+        <p class="assist-chat__user-input-bubble">${text}</p>
+      </div>
+    `)}`;
   }
 }
 
