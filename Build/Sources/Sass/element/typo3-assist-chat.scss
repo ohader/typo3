@@ -11,6 +11,43 @@
     }
 }
 
+typo3-assist-options-element {
+    display: flex;
+    flex-direction: column;
+    gap: var(--typo3-spacing);
+
+    .assist-chat__options {
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+    }
+
+    .assist-chat__options {
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+    }
+
+    .assist-chat__option,
+    .assist-chat__option-title,
+    .assist-chat__option-text {
+        margin: 0;
+    }
+
+    .assist-chat__option-text {
+        display: flex;
+        gap: var(--typo3-spacing);
+
+        @media (max-width: 767px) {
+            flex-direction: column;
+        }
+    }
+
+    .assist-chat__option-actions {
+        padding-top: 0;
+    }
+}
+
 typo3-assist-chat-element {
     --typo3-spacing: 1.25rem;
     display: block;
@@ -101,31 +138,6 @@ typo3-assist-chat-element {
 
     .assist-chat__text {
         margin: 0;
-    }
-
-    .assist-chat__options {
-        display: flex;
-        flex-direction: column;
-        gap: var(--typo3-spacing);
-    }
-
-    .assist-chat__option,
-    .assist-chat__option-title,
-    .assist-chat__option-text {
-        margin: 0;
-    }
-
-    .assist-chat__option-text {
-        display: flex;
-        gap: var(--typo3-spacing);
-
-        @media (max-width: 767px) {
-            flex-direction: column;
-        }
-    }
-
-    .assist-chat__option-actions {
-        padding-top: 0;
     }
 
     .assist-chat__media-row {
