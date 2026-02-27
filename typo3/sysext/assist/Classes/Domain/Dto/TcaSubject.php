@@ -26,8 +26,8 @@ final readonly class TcaSubject implements SubjectInterface
      * @param string $tableName Name of the table
      * @param int $uid UID/Identifier of the record
      * @param string $propertyName Property/Field name in the record
-     * @param null|list<string> $flexFormPath (optional) FlexForm path to the field
-     * @param null|list<string> $types (optional) Type values of the record
+     * @param list<string>|null $flexFormPath (optional) FlexForm path to the field
+     * @param list<string>|null $types (optional) Type values of the record
      */
     public function __construct(
         public string $tableName,
@@ -35,8 +35,7 @@ final readonly class TcaSubject implements SubjectInterface
         public string $propertyName,
         public ?array $flexFormPath = null,
         public ?array $types = null,
-    ) {
-    }
+    ) {}
 
     public function jsonSerialize(): array
     {
@@ -49,15 +48,20 @@ final readonly class TcaSubject implements SubjectInterface
         ];
     }
 
+    public static function fromString(string $value): static
+    {
+        $data = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+        return new static(
+            tableName: (string)$data['tableName'],
+            uid: (int)$data['uid'],
+            propertyName: (string)$data['propertyName'],
+            flexFormPath: isset($data['flexFormPath']) ? array_map('strval', $data['flexFormPath']) : null,
+            types: isset($data['types']) ? array_map('strval', $data['types']) : null,
+        );
+    }
+
     public function __toString(): string
     {
-        return sprintf(
-            '%s:%s%s:%s%s',
-            $this->tableName,
-            $this->uid,
-            $this->types !== [] ? '@' . implode(',', $this->types) : '',
-            $this->propertyName,
-            $this->flexFormPath !== [] ? ':' . implode('/', $this->flexFormPath) : '',
-        );
+        return json_encode(['kind' => 'tca'] + $this->jsonSerialize(), JSON_THROW_ON_ERROR);
     }
 }

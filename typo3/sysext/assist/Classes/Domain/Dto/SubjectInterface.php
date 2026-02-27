@@ -22,4 +22,5 @@ namespace TYPO3\CMS\Assist\Domain\Dto;
  */
 interface SubjectInterface extends \JsonSerializable, \Stringable
 {
+    public static function fromString(string $value): static;
 }

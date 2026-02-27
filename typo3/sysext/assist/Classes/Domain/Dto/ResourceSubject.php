@@ -28,8 +28,7 @@ final readonly class ResourceSubject implements SubjectInterface
         public ResourceType $type,
         public int $storage,
         public string $path,
-    ) {
-    }
+    ) {}
 
     public function jsonSerialize(): array
     {
@@ -40,8 +39,18 @@ final readonly class ResourceSubject implements SubjectInterface
         ];
     }
 
+    public static function fromString(string $value): static
+    {
+        $data = json_decode($value, true, flags: JSON_THROW_ON_ERROR);
+        return new static(
+            type: ResourceType::from($data['type']),
+            storage: (int)$data['storage'],
+            path: (string)$data['path'],
+        );
+    }
+
     public function __toString(): string
     {
-        return sprintf('%s@%d:%s', $this->type->value, $this->storage, $this->path);
+        return json_encode(['kind' => 'resource'] + $this->jsonSerialize(), JSON_THROW_ON_ERROR);
     }
 }
