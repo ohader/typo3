@@ -15,7 +15,7 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Functional;
+namespace TYPO3\CMS\Assist\Tests\Functional\Numb;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -27,9 +27,10 @@ use Symfony\AI\Platform\Tool\Tool;
 use TYPO3\CMS\Assist\AI\Platform\PlatformBridge;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
+use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
-class NumbTest extends FunctionalTestCase
+class NumbPlatformTest extends FunctionalTestCase
 {
     use AssistBasedTestTrait;
 
@@ -41,7 +42,7 @@ class NumbTest extends FunctionalTestCase
     public function setUp(): void
     {
         parent::setUp();
-        $this->importCSVDataSet(__DIR__ . '/Fixtures/pages.csv');
+        $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration(
             'PlatformBridgeTest',
             1,
@@ -113,7 +114,7 @@ class NumbTest extends FunctionalTestCase
     #[Test]
     public function canSendImageToPlatform(): void
     {
-        // 1×1 red pixel PNG — no filesystem dependency
+        // 1×1 white pixel PNG — no filesystem dependency
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI6QAAAABJRU5ErkJggg==');
         $image = new Image($png, 'image/png');
 

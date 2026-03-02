@@ -24,6 +24,7 @@ trait AssistBasedTestTrait
     use SiteBasedTestTrait;
     private const ASSIST_MODEL_NUMB_ENCORE = 'numb-encore';
     private const ASSIST_PLATFORM_NUMB_ENCORE = 'assist-platform-numb-encore';
+    private const ASSIST_PACKAGE_NUMB_ENCORE = 'typo3/symfony-ai-numb-platform';
 
     private function buildAssistSiteConfiguration(
         string $identifier,
