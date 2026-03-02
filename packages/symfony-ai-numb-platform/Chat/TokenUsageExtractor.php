@@ -18,10 +18,13 @@ final class TokenUsageExtractor implements TokenUsageExtractorInterface
             return null;
         }
 
+        $inputTokens = $usage['input_tokens'] ?? null;
+        $outputTokens = $usage['output_tokens'] ?? null;
+
         return new TokenUsage(
-            promptTokens: $usage['prompt_tokens'] ?? null,
-            completionTokens: $usage['completion_tokens'] ?? null,
-            totalTokens: $usage['total_tokens'] ?? null,
+            promptTokens: $inputTokens,
+            completionTokens: $outputTokens,
+            totalTokens: $inputTokens !== null && $outputTokens !== null ? $inputTokens + $outputTokens : null,
         );
     }
 }

@@ -27,14 +27,20 @@ final class ResultConverter implements ResultConverterInterface
     public function convert(RawResultInterface $result, array $options = []): ResultInterface
     {
         $data = $result->getData();
-        $choice = $data['choices'][0] ?? [];
-        $message = $choice['message'] ?? [];
+        $contentItems = $data['content'] ?? [];
 
-        if (isset($message['tool_calls']) && [] !== $message['tool_calls']) {
-            return $this->createToolCallResult($message['tool_calls']);
+        $toolUseItems = array_values(array_filter($contentItems, static fn($item) => ($item['type'] ?? '') === 'tool_use'));
+        if ($toolUseItems !== []) {
+            return $this->createToolCallResult($toolUseItems);
         }
 
-        return new TextResult($message['content'] ?? '');
+        foreach ($contentItems as $item) {
+            if (($item['type'] ?? '') === 'text') {
+                return new TextResult($item['text'] ?? '');
+            }
+        }
+
+        return new TextResult('');
     }
 
     public function getTokenUsageExtractor(): ?TokenUsageExtractorInterface
@@ -50,7 +56,7 @@ final class ResultConverter implements ResultConverterInterface
         $calls = [];
 
         foreach ($toolCalls as $toolCall) {
-            $arguments = $toolCall['function']['arguments'] ?? '{}';
+            $arguments = $toolCall['input'] ?? [];
 
             if (\is_string($arguments)) {
                 $arguments = json_decode($arguments, true, flags: \JSON_THROW_ON_ERROR);
@@ -58,7 +64,7 @@ final class ResultConverter implements ResultConverterInterface
 
             $calls[] = new ToolCall(
                 id: $toolCall['id'],
-                name: $toolCall['function']['name'],
+                name: $toolCall['name'],
                 arguments: $arguments,
             );
         }
