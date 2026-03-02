@@ -37,7 +37,7 @@ export class OptionsElement extends LitElement {
   @property({ type: String, reflect: true }) type = 'list';
   @property({ type: String }) key: string = '';
   @property({ type: String }) text: string = '';
-  @property({ type: Array }) options: OptionItem[] = [];
+  @property({ type: Array }) items: OptionItem[] = [];
 
   override createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
@@ -54,16 +54,16 @@ export class OptionsElement extends LitElement {
     return html`
       <p class="assist-chat__text">${this.text}</p>
       <div class="assist-chat__options">
-        ${this.options.map((option, index) => html`
+        ${this.items.map((item, index) => html`
           <article class="panel panel-default assist-chat__option">
             <div class="panel-heading">
-              <h3 class="h5 assist-chat__option-title">Option ${this.indexToChar(index)} - ${option.text}</h3>
+              <h3 class="h5 assist-chat__option-title">Option ${this.indexToChar(index)} - ${item.text}</h3>
             </div>
-            ${option.details ? html`
-              <div class="panel-body assist-chat__option-text">${option.details}</div>
+            ${item.details ? html`
+              <div class="panel-body assist-chat__option-text">${item.details}</div>
             ` : nothing}
             <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default" @click=${() => this.handleAccept(option)}>${labels.get('button.accept')}</button>
+              <button type="button" class="assist-chat__option-action btn btn-default" @click=${() => this.handleSelection(item)}>${labels.get('button.accept')}</button>
             </div>
           </article>
         `)}
@@ -188,9 +188,9 @@ export class OptionsElement extends LitElement {
      */
   }
 
-  private handleAccept(option: OptionItem): void {
-    this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string }>('typo3-assist-option-accept', {
-      detail: { key: this.key, identifier: option.identifier, text: option.text },
+  private handleSelection(item: OptionItem): void {
+    this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string }>('typo3-assist-option-select', {
+      detail: { key: this.key, identifier: item.identifier, text: item.text },
       bubbles: true,
     }));
   }

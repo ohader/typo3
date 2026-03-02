@@ -11,6 +11,22 @@
     }
 }
 
+typo3-assist-quick-actions-element {
+    display: flex;
+    flex-direction: column;
+    gap: var(--typo3-spacing);
+
+    .assist-chat__quick-actions {
+        margin: 0;
+        padding-left: var(--typo3-spacing);
+    }
+
+    .assist-chat__quick-action {
+        color: inherit;
+        text-decoration: underline;
+    }
+}
+
 typo3-assist-options-element {
     display: flex;
     flex-direction: column;
@@ -106,16 +122,6 @@ typo3-assist-chat-element {
         min-height: 0;
         overflow-y: auto;
         padding: var(--typo3-spacing);
-    }
-
-    .assist-chat__quick-actions {
-        margin: 0;
-        padding-left: var(--typo3-spacing);
-    }
-
-    .assist-chat__quick-action {
-        color: inherit;
-        text-decoration: underline;
     }
 
     .assist-chat__user-input {

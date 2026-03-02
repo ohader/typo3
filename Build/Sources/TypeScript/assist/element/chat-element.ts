@@ -16,6 +16,7 @@ import { html, LitElement, nothing, type TemplateResult } from 'lit';
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import '@typo3/assist/element/options-element';
+import '@typo3/assist/element/quick-actions-element';
 
 export interface AssistChatProperties {
   module: string,
@@ -149,6 +150,13 @@ export class ChatElement extends LitElement {
           ${this.renderSteps()}
         </div>
         <div class="assist-chat">
+          <div class="assist-chat__response">
+            <typo3-assist-quick-actions-element
+              .items=${[{ identifier:'i',text:'Improve readability' }]}
+              @typo3-assist-quick-actions-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}>
+            </typo3-assist-quick-actions-element>
+          </div>
+
           ${this.renderFeedback()}
           ${this.renderUserMessages()}
           ${this.isLoading ? this.renderThinking() : nothing}
@@ -323,7 +331,7 @@ export class ChatElement extends LitElement {
           key=${item.key}
           text=${item.text}
           .options=${item.options}
-          @typo3-assist-option-accept=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+          @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
         ></typo3-assist-options-element>
       </div>
     `;
