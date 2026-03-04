@@ -19,7 +19,7 @@ import '@typo3/assist/element/options-element';
 import '@typo3/assist/element/quick-actions-element';
 
 export interface AssistChatProperties {
-  module: string,
+  additionalModule?: string;
   subject: string;
   assistant: string;
   labelDomain: string;
@@ -92,7 +92,6 @@ export class ChatElement extends LitElement {
   // @todo remove `template` occurrences
   @property({ type: String, reflect: true }) template: string = 'meta';
 
-  @property({ type: String, reflect: true }) module: string;
   @property({ type: String, reflect: true }) subject: string;
   @property({ type: String, reflect: true }) assistant: string;
   @property({ type: Object }) labels: LabelProvider<any>;

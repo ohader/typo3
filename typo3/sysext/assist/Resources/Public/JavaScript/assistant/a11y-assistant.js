@@ -10,9 +10,4 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-
-export class A11yAssistant {
-  // Loaded as a side-effect when the A11y assistant is opened.
-}
-
-export default new A11yAssistant();
+class s{}var a=new s;export{s as A11yAssistant,a as default};

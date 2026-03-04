@@ -11,28 +11,32 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-export interface AssistantContextMenuInvokable {
-  invokeFromContextMenu(table: string, uid: number, dataset: DOMStringMap): void;
-}
+import { openAssistModal } from '@typo3/assist/assistant-trigger';
+import type { AssistChatProperties } from '@typo3/assist/element/chat-element';
 
 /**
  * Callback module for context menu items registered by EXT:assist.
  *
  * Invoked by the TYPO3 context menu when the user clicks an assistant entry.
- * Dynamically imports the assistant's module and delegates to its `invokeFromContextMenu()` method.
+ * Opens the central chat widget, optionally loading the assistant's additional module as a side-effect.
  */
 export class ContextMenuActions {
   openAssistant(table: string, uid: number, dataset: DOMStringMap): void {
-    // @todo divert to corresponding backend module view (if non-inline)
-    const assistantModule = dataset.assistantModule ?? '';
-    if (!assistantModule) {
-      return;
-    }
-    import(assistantModule + '.js').then(
-      ({ default: actions }: { default: AssistantContextMenuInvokable }): void => {
-        actions.invokeFromContextMenu(table, uid, dataset);
-      }
-    );
+    const subject = JSON.stringify({
+      kind: 'tca',
+      tableName: table,
+      uid,
+      propertyName: '',
+      flexFormPath: null,
+      types: null,
+    });
+    const properties: AssistChatProperties = {
+      additionalModule: dataset.assistantModule ?? '',
+      subject,
+      assistant: dataset.assistantIdentifier ?? '',
+      labelDomain: dataset.assistantLabelDomain ?? '',
+    };
+    void openAssistModal(properties);
   }
 }
 

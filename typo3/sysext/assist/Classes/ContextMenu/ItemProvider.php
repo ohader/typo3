@@ -95,7 +95,8 @@ final class ItemProvider extends AbstractProvider
         return [
             'data-callback-module' => '@typo3/assist/context-menu-actions',
             'data-assistant-identifier' => $assistant->identifier,
-            'data-assistant-module' => $assistant->javaScriptModule ?: null,
+            'data-assistant-label-domain' => $assistant->labelDomain,
+            'data-assistant-module' => $assistant->additionalModule ?: null,
         ];
     }
 

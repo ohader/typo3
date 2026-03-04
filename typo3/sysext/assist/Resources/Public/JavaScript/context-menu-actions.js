@@ -10,4 +10,4 @@
  *
  * The TYPO3 project - inspiring people to share!
  */
-class e{openAssistant(s,o,t){const n=t.assistantModule??"";n&&import(n+".js").then(({default:a})=>{a.invokeFromContextMenu(s,o,t)})}}var i=new e;export{e as ContextMenuActions,i as default};
+import{openAssistModal as i}from"@typo3/assist/assistant-trigger.js";class s{openAssistant(n,e,t){const a=JSON.stringify({kind:"tca",tableName:n,uid:e,propertyName:"",flexFormPath:null,types:null}),o={additionalModule:t.assistantModule??"",subject:a,assistant:t.assistantIdentifier??"",labelDomain:t.assistantLabelDomain??""};i(o)}}var l=new s;export{s as ContextMenuActions,l as default};

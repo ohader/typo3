@@ -32,7 +32,7 @@ final readonly class DataSetService
         $attrs = [
             'data-assistant-identifier' => $assistant->identifier,
             'data-assistant-label-domain' => $assistant->labelDomain,
-            'data-assistant-module' => $assistant->javaScriptModule,
+            'data-assistant-module' => $assistant->additionalModule,
         ];
         if ($subject !== null) {
             $attrs['data-assistant-subject'] = (string)$subject;

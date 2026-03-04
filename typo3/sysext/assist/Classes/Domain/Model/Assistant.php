@@ -38,7 +38,7 @@ final readonly class Assistant
         public string $packageName,
         public string $absolutePackagePath,
         public string $labelDomain = '',
-        public string $javaScriptModule = '',
+        public string $additionalModule = '',
     ) {}
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
@@ -68,7 +68,7 @@ final readonly class Assistant
             packageName: $configuration['packageName'] ?? '',
             absolutePackagePath: $configuration['absolutePackagePath'] ?? '',
             labelDomain: $configuration['labelDomain'] ?? '',
-            javaScriptModule: $configuration['javaScriptModule'] ?? '',
+            additionalModule: $configuration['additionalModule'] ?? '',
         );
     }
 

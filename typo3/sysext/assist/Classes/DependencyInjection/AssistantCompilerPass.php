@@ -49,7 +49,7 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
                         'routes' => json_decode($attributes['triggerRoutes'], true),
                     ],
                     'labelDomain' => $attributes['labelDomain'] ?? '',
-                    'javaScriptModule' => $attributes['javaScriptModule'] ?? '',
+                    'additionalModule' => $attributes['additionalModule'] ?? '',
                 ];
             }
         }

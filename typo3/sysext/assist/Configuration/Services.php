@@ -26,7 +26,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
                 'triggerComponents' => json_encode($attribute->triggerComponents),
                 'triggerRoutes' => json_encode($attribute->triggerRoutes),
                 'labelDomain' => $attribute->labelDomain,
-                'javaScriptModule' => $attribute->javaScriptModule,
+                'additionalModule' => $attribute->additionalModule,
             ]);
         }
     );

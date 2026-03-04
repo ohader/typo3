@@ -25,7 +25,10 @@ const templateTitles: Record<AssistTemplate, string> = {
 };
 */
 
-const openAssistModal = async (properties: AssistChatProperties): Promise<void> => {
+export const openAssistModal = async (properties: AssistChatProperties): Promise<void> => {
+  if (properties.additionalModule) {
+    void import(properties.additionalModule + '.js');
+  }
   await import('@typo3/assist/element/chat-element');
   const { default: labels }: { default: LabelProvider<any> } = await import('~labels/' + properties.labelDomain);
   Modal.advanced({
@@ -35,7 +38,6 @@ const openAssistModal = async (properties: AssistChatProperties): Promise<void> 
     size: Sizes.large,
     position: Positions.bottom,
     content: html`<typo3-assist-chat-element
-      .module=${properties.module}
       .subject=${properties.subject}
       .assistant=${properties.assistant}
       .labels=${labels}
@@ -59,7 +61,7 @@ document.addEventListener('click', (event: Event): void => {
   }
   event.preventDefault();
   const properties = {
-    module: triggerItem.dataset.assistantModule,
+    additionalModule: triggerItem.dataset.assistantModule,
     subject: triggerItem.dataset.assistantSubject,
     assistant: triggerItem.dataset.assistantIdentifier,
     labelDomain: triggerItem.dataset.assistantLabelDomain,
