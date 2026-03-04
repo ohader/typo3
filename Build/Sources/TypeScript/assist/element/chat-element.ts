@@ -15,6 +15,8 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { html, LitElement, nothing, type TemplateResult } from 'lit';
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
+import { markdown } from '@typo3/core/directive/markdown';
+import '@typo3/assist/element/list-element';
 import '@typo3/assist/element/options-element';
 import '@typo3/assist/element/quick-actions-element';
 
@@ -33,8 +35,13 @@ interface AssistChatStep {
   done: boolean;
 }
 
-interface MessageFeedbackItem {
-  type: 'message';
+interface TextFeedbackItem {
+  type: 'text';
+  text: string;
+}
+
+interface MarkdownFeedbackItem {
+  type: 'markdown';
   text: string;
 }
 
@@ -58,7 +65,12 @@ interface OptionsFeedbackItem {
   options: OptionItemData[];
 }
 
-type AssistFeedbackItem = MessageFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem;
+interface ListFeedbackItem {
+  type: 'list';
+  items: string[];
+}
+
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -105,6 +117,9 @@ export class ChatElement extends LitElement {
   @state() private progressUuid: string | null = null;
   @state() private messages: ChatEntry[] = [];
 
+  private historyIndex = -1;
+  private draft = '';
+
   private get parsedSubject(): SubjectData | null {
     if (!this.subject) {
       return null;
@@ -114,6 +129,13 @@ export class ChatElement extends LitElement {
     } catch {
       return null;
     }
+  }
+
+  private get userHistory(): string[] {
+    return this.messages
+      .filter((m): m is { kind: 'user'; text: string } => m.kind === 'user')
+      .map(m => m.text)
+      .reverse();
   }
 
   override createRenderRoot(): HTMLElement | DocumentFragment {
@@ -171,6 +193,30 @@ export class ChatElement extends LitElement {
     this.sendRequest('');
   };
 
+  private readonly handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.key === 'Enter') {
+      this.handleSend();
+      return;
+    }
+    const input = this.querySelector<HTMLInputElement>('.assist-chat__text-input');
+    if (!input) { return; }
+    const history = this.userHistory;
+    if (e.key === 'ArrowUp') {
+      if (history.length === 0) { return; }
+      e.preventDefault();
+      if (this.historyIndex === -1) {
+        this.draft = input.value;
+      }
+      this.historyIndex = Math.min(this.historyIndex + 1, history.length - 1);
+      input.value = history[this.historyIndex];
+    } else if (e.key === 'ArrowDown') {
+      if (this.historyIndex === -1) { return; }
+      e.preventDefault();
+      this.historyIndex--;
+      input.value = this.historyIndex === -1 ? this.draft : history[this.historyIndex];
+    }
+  };
+
   private scrollToBottom(): void {
     requestAnimationFrame((): void => {
       const chatBody = this.querySelector<HTMLElement>('.assist-chat');
@@ -192,6 +238,8 @@ export class ChatElement extends LitElement {
       return;
     }
     input!.value = '';
+    this.historyIndex = -1;
+    this.draft = '';
     this.sendRequest(text);
   }
 
@@ -295,7 +343,7 @@ export class ChatElement extends LitElement {
           class="form-control assist-chat__text-input"
           placeholder="Tell me what you want to change…"
           autofocus
-          @keydown=${(e: KeyboardEvent) => e.key === 'Enter' && this.handleSend()}
+          @keydown=${this.handleKeyDown}
         >
         <button type="button" class="btn btn-primary assist-chat__input-button" @click=${this.handleSend}>
           <typo3-backend-icon identifier="actions-arrow-up-alt"></typo3-backend-icon>
@@ -313,10 +361,17 @@ export class ChatElement extends LitElement {
   }
 
   private renderFeedbackItem(item: AssistFeedbackItem): TemplateResult {
-    if (item.type === 'message') {
+    if (item.type === 'text') {
       return html`
         <div class="assist-chat__response">
           <p class="assist-chat__text">${item.text}</p>
+        </div>
+      `;
+    }
+    if (item.type === 'markdown') {
+      return html`
+        <div class="assist-chat__response assist-chat__response--markdown">
+          ${markdown(item.text, 'default')}
         </div>
       `;
     }
@@ -328,6 +383,13 @@ export class ChatElement extends LitElement {
             <button type="button" class="btn btn-primary" @click=${() => this.sendRequest(item.acceptLabel)}>${item.acceptLabel}</button>
             <button type="button" class="btn btn-default" @click=${() => this.sendRequest(item.declineLabel)}>${item.declineLabel}</button>
           </div>
+        </div>
+      `;
+    }
+    if (item.type === 'list') {
+      return html`
+        <div class="assist-chat__response">
+          <typo3-assist-list-element .items=${item.items}></typo3-assist-list-element>
         </div>
       `;
     }

@@ -17,20 +17,21 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
-final readonly class MessageFeedback implements FeedbackInterface
+final readonly class ListFeedback implements FeedbackInterface
 {
-    public function __construct(public string $text) {}
+    /** @param list<string> $items */
+    public function __construct(public array $items) {}
 
     public function getText(): string
     {
-        return $this->text;
+        return implode("\n", $this->items);
     }
 
     public function jsonSerialize(): array
     {
         return [
-            'type' => 'message',
-            'text' => $this->text,
+            'type' => 'list',
+            'items' => $this->items,
         ];
     }
 }

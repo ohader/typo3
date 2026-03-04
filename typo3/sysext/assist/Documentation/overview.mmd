@@ -52,11 +52,26 @@ graph LR
 
     subgraph Feedback["AI/Assistant/Feedback/"]
       FBIF[/"FeedbackInterface\n«interface»"/]
-      MF["MessageFeedback"]
+      MF["TextFeedback"]
+      MFM["MarkdownFeedback"]
+      LF["ListFeedback"]
       OF["OptionsFeedback"]
       CF["ConfirmationFeedback"]
       OI["OptionItem"]
-      RFC["ResultFeedbackConverter"]
+      RFC["ResultConverter"]
+    end
+
+    subgraph AIType["AI/Assistant/Type/"]
+      TYIF[/"TypeInterface\n«interface»"/]
+      AGIF[/"AggregateInterface\n«interface»"/]
+      TTY["TextType"]
+      BTY["BinaryType"]
+      STY["SubjectType"]
+      MTY["MarkdownType"]
+      STTY["StructureType"]
+      OAG["OptionsAggregate"]
+      UAG["UnionAggregate"]
+      LAG["ListAggregate"]
     end
 
     subgraph AIAgent["AI/Agent/"]
@@ -85,17 +100,6 @@ graph LR
       FMC["FilteredModelCatalog\n«AbstractModelCatalog»"]
       MCT["ModelCatalog\n«AbstractModelCatalog»"]
       PD["PlatformDetails"]
-    end
-
-    subgraph AIFmt["AI/Format/"]
-      OFIF[/"OutputFormatInterface\n«interface»"/]
-      FMM["Message"]
-      FMB["Binary"]
-      FMS["Subject"]
-      FMST["Structure"]
-      FMI["ItemList"]
-      FMO["Options"]
-      UNT["UnionType"]
     end
 
     subgraph AITool["AI/Tool/"]

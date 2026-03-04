@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\AI\Agent;
 
 use Symfony\AI\Agent\InputProcessorInterface;
 use Symfony\AI\Agent\OutputProcessorInterface;
+use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
@@ -52,6 +53,18 @@ final readonly class AgentCallRequest
     ) {
         $this->inputProcessors = $inputProcessors;
         $this->outputProcessors = $outputProcessors;
+    }
+
+    public function withSystemMessage(string $prompt): self
+    {
+        return new self(
+            model: $this->model,
+            messageBag: $this->messageBag->withSystemMessage(Message::forSystem($prompt)),
+            inputProcessors: $this->inputProcessors,
+            outputProcessors: $this->outputProcessors,
+            progress: $this->progress,
+            sequencePointer: $this->sequencePointer,
+        );
     }
 
     /**

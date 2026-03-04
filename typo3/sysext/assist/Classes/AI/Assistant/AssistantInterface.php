@@ -31,7 +31,14 @@ interface AssistantInterface
     public function getToolPolicy(): ?ToolPolicy;
 
     /**
-     * Prepare the agent call. The assistant decides messages, tools, and system prompts.
+     * Return the system prompt for this assistant, or null if no system message is needed.
+     * Applied automatically by {@see AssistantOrchestrator} before the agent call.
+     */
+    public function getSystemPrompt(): ?string;
+
+    /**
+     * Prepare the agent call. The assistant decides messages and tools.
+     * System prompts are declared via {@see getSystemPrompt()}.
      *
      * Return null if no remote call is needed (e.g. canned response written directly to $output).
      */

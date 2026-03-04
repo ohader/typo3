@@ -15,21 +15,18 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
  * @internal
  */
-final readonly class Binary implements OutputFormatInterface
+final readonly class StructureType implements TypeInterface
 {
-    public function __construct(
-        public string $data,
-        public ?string $mimeType = null,
-    ) {}
+    public function __construct(public array $value) {}
 
     public static function getType(): string
     {
-        return 'binary';
+        return 'structure';
     }
 
     public static function toJsonSchema(): array
@@ -37,17 +34,19 @@ final readonly class Binary implements OutputFormatInterface
         return [
             'type' => 'object',
             'properties' => [
-                'type' => ['type' => 'string', 'const' => 'binary'],
-                'data' => ['type' => 'string', 'contentEncoding' => 'base64'],
-                'mimeType' => ['type' => 'string'],
+                'type' => ['type' => 'string', 'const' => 'structure'],
+                'value' => [
+                    'type' => 'object',
+                    '$comment' => 'Structured JSON of the actual arbitrary data.'
+                ],
             ],
-            'required' => ['type', 'data'],
+            'required' => ['type', 'value'],
             'additionalProperties' => false,
         ];
     }
 
     public static function fromJson(array $json): static
     {
-        return new static($json['data'], $json['mimeType'] ?? null);
+        return new static($json['value']);
     }
 }

@@ -15,47 +15,39 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Unit\AI\Format;
+namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\AI\Format\Subject;
+use TYPO3\CMS\Assist\AI\Assistant\Type\StructureType;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
-final class SubjectTest extends UnitTestCase
+final class StructureTypeTest extends UnitTestCase
 {
     #[Test]
-    public function getTypeReturnsSubject(): void
+    public function getTypeReturnsStructure(): void
     {
-        self::assertSame('subject', Subject::getType());
+        self::assertSame('structure', StructureType::getType());
     }
 
     #[Test]
     public function toJsonSchemaReturnsExpectedStructure(): void
     {
-        $schema = Subject::toJsonSchema();
+        $schema = StructureType::toJsonSchema();
 
         self::assertSame('object', $schema['type']);
-        self::assertSame('subject', $schema['properties']['type']['const']);
-        self::assertSame('string', $schema['properties']['value']['type']);
+        self::assertSame('structure', $schema['properties']['type']['const']);
+        self::assertSame('object', $schema['properties']['value']['type']);
         self::assertSame(['type', 'value'], $schema['required']);
         self::assertFalse($schema['additionalProperties']);
     }
 
     #[Test]
-    public function toJsonSchemaValuePropertyHasDescription(): void
-    {
-        $schema = Subject::toJsonSchema();
-
-        self::assertArrayHasKey('description', $schema['properties']['value']);
-    }
-
-    #[Test]
     public function fromJsonCreatesInstanceWithValue(): void
     {
-        $encoded = '{"table":"pages","uid":1,"field":"title"}';
-        $subject = Subject::fromJson(['type' => 'subject', 'value' => $encoded]);
+        $data = ['city' => 'Berlin', 'country' => 'Germany', 'population' => 3645000];
+        $structure = StructureType::fromJson(['type' => 'structure', 'value' => $data]);
 
-        self::assertInstanceOf(Subject::class, $subject);
-        self::assertSame($encoded, $subject->value);
+        self::assertInstanceOf(StructureType::class, $structure);
+        self::assertSame($data, $structure->value);
     }
 }

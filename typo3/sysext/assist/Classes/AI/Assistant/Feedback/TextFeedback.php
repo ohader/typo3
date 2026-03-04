@@ -15,18 +15,22 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
-/**
- * @internal
- */
-interface OutputFormatInterface
+final readonly class TextFeedback implements FeedbackInterface
 {
-    public static function getType(): string;
+    public function __construct(public string $text) {}
 
-    /** Returns the JSON schema array describing this format */
-    public static function toJsonSchema(): array;
+    public function getText(): string
+    {
+        return $this->text;
+    }
 
-    /** Constructs an instance from a decoded JSON array */
-    public static function fromJson(array $json): static;
+    public function jsonSerialize(): array
+    {
+        return [
+            'type' => 'text',
+            'text' => $this->text,
+        ];
+    }
 }

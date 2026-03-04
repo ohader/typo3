@@ -15,32 +15,44 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
  * Composite descriptor/result for a selection of at least two typed options.
+ * Only options of the same (singular) type are allowed.
  *
  * @internal
  */
-final readonly class Options
+final readonly class OptionsAggregate implements AggregateInterface
 {
     /**
-     * @param string|UnionType $itemType Class-string implementing OutputFormatInterface, or a UnionType
-     * @param list<OutputFormatInterface> $items Populated after parse()
+     * @param class-string<TypeInterface>|UnionAggregate $itemType Class-string implementing StaticTypeInterface, or a UnionAggregate
+     * @param AggregateInterface[] $items Populated after parse()
      */
     public function __construct(
-        private string|UnionType $itemType,
+        private string|UnionAggregate $itemType,
         public array $items = [],
     ) {}
 
+    public static function of(string|UnionAggregate $itemType): self
+    {
+        return new self($itemType);
+    }
+
+    public function getDiscriminator(): string
+    {
+        return 'options';
+    }
+
     public function toJsonSchema(): array
     {
-        $itemsSchema = $this->itemType instanceof UnionType
-            ? $this->itemType->toJsonSchema()
-            : ($this->itemType)::toJsonSchema();
+        $itemsSchema = $this->isStaticType()
+            ? ($this->itemType)::toJsonSchema()
+            : $this->itemType->toJsonSchema();
 
         return [
             'type' => 'object',
+            '$comment' => 'Use this type when presenting a list of options the user can choose from.',
             'properties' => [
                 'type' => ['type' => 'string', 'const' => 'options'],
                 'items' => [
@@ -54,15 +66,20 @@ final readonly class Options
         ];
     }
 
-    public function parse(array $json): self
+    public function parse(array $json): static
     {
         $parsedItems = array_map(
-            fn(array $item) => $this->itemType instanceof UnionType
+            fn(array $item) => $this->itemType instanceof UnionAggregate
                 ? $this->itemType->parse($item)
                 : ($this->itemType)::fromJson($item),
             $json['items'],
         );
 
-        return new self($this->itemType, $parsedItems);
+        return new static($this->itemType, $parsedItems);
+    }
+
+    private function isStaticType(): bool
+    {
+        return is_string($this->itemType) && is_a($this->itemType, TypeInterface::class, true);
     }
 }

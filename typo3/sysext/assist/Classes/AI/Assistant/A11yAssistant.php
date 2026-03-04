@@ -36,6 +36,11 @@ use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 )]
 final readonly class A11yAssistant implements AssistantInterface
 {
+    public function getSystemPrompt(): ?string
+    {
+        return null;
+    }
+
     public function getToolPolicy(): ?ToolPolicy
     {
         return null;

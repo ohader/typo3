@@ -15,12 +15,12 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
  * @internal
  */
-final readonly class Subject implements OutputFormatInterface
+final readonly class SubjectType implements TypeInterface
 {
     public function __construct(public string $value) {}
 
@@ -38,6 +38,8 @@ final readonly class Subject implements OutputFormatInterface
                 'value' => [
                     'type' => 'string',
                     'description' => 'JSON-encoded TYPO3 subject: TCA record field or FAL resource',
+                    // @todo provide examples
+                    'examples' => [],
                 ],
             ],
             'required' => ['type', 'value'],

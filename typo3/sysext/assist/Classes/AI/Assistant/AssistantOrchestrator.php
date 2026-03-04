@@ -49,7 +49,12 @@ final readonly class AssistantOrchestrator
             return;
         }
 
-        $request = $this->applyToolPolicy($handler, $assistant, $input, $request);
+        $systemPrompt = $handler->getSystemPrompt();
+        if ($systemPrompt !== null) {
+            $request = $request->withSystemMessage($systemPrompt);
+        }
+
+        $request = $this->withToolPolicy($handler, $assistant, $input, $request);
 
         $result = $this->agentService->call($request);
         $output->add($result);
@@ -73,7 +78,7 @@ final readonly class AssistantOrchestrator
         );
     }
 
-    private function applyToolPolicy(
+    private function withToolPolicy(
         AssistantInterface $handler,
         Assistant $assistant,
         AgentInputInterface $input,

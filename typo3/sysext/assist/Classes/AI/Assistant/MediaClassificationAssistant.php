@@ -22,10 +22,10 @@ use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
-use TYPO3\CMS\Assist\AI\Assistant\Feedback\MessageFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
-use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultFeedbackConverter;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
@@ -66,9 +66,24 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         private AssistantOrchestrator $orchestrator,
         private AssistantRegistry $assistantRegistry,
         private ConfigurationResolver $configurationResolver,
-        private ResultFeedbackConverter $resultFeedbackConverter,
+        private ResultConverter $resultConverter,
         private ConnectionPool $connectionPool,
     ) {}
+
+    public function getSystemPrompt(): ?string
+    {
+        return implode("\n", [
+            'You are a TYPO3 CMS media classification assistant.',
+            'Your task is to analyse images and generate metadata in the requested language.',
+            'For each image produce a title (short), description (one sentence), and alternative text (screen-reader caption).',
+            '',
+            'Respond only in JSON matching this schema:',
+            Type\UnionAggregate::of(
+                Type\TextType::class,
+                Type\ListAggregate::of(Type\StructureType::class),
+            ),
+        ]);
+    }
 
     public function getToolPolicy(): ?ToolPolicy
     {
@@ -89,10 +104,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
-        $progressHeader = $request->headers['x-typo3-assist-progress'] ?? '';
+        $progressUuid = $request->getProgressUuid();
 
-        if ($progressHeader !== '') {
-            return $this->continueProgress($progressHeader, $request);
+        if ($progressUuid !== null) {
+            return $this->continueProgress($progressUuid, $request);
         }
 
         if (isset($request->params['language']) || isset($request->params['message'])) {
@@ -116,7 +131,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 declineLabel: 'Cancel',
             )];
         } else {
-            $feedback = [new MessageFeedback('All image files are already fully classified.')];
+            $feedback = [new TextFeedback('All image files are already fully classified.')];
         }
 
         return new AssistantResponse(steps: $steps, feedback: $feedback);
@@ -126,12 +141,12 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     {
         $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-media-classification');
         if ($model === null) {
-            return new AssistantResponse(feedback: [new MessageFeedback('No model configured for this assistant.')]);
+            return new AssistantResponse(feedback: [new TextFeedback('No model configured for this assistant.')]);
         }
 
         $languageUid = $this->resolveLanguageUid($request);
         if ($languageUid === null) {
-            return new AssistantResponse(feedback: [new MessageFeedback('Unable to determine language to process.')]);
+            return new AssistantResponse(feedback: [new TextFeedback('Unable to determine language to process.')]);
         }
 
         $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
@@ -143,7 +158,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         );
 
         $progress = new Progress(
-            uuid: Uuid::v7(),
+            uuid: Uuid::v4(),
             model: $model,
             initiator: new Initiator(type: 'assistant', subject: 'typo3-assist-media-classification'),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
@@ -159,7 +174,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = array_map(
-            fn($result) => $this->resultFeedbackConverter->convert($result),
+            fn($result) => $this->resultConverter->convert($result),
             $output->getResultBag()->getResults(),
         );
 
@@ -282,9 +297,9 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return array_values($steps);
     }
 
-    private function continueProgress(string $uuid, AssistantRequest $request): AssistantResponse
+    private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse
     {
-        $progress = $this->progressRepository->findByUuid(Uuid::fromString($uuid));
+        $progress = $this->progressRepository->findByUuid($uuid);
         if ($progress === null) {
             return new AssistantResponse();
         }
@@ -318,7 +333,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = array_map(
-            fn($result) => $this->resultFeedbackConverter->convert($result),
+            fn($result) => $this->resultConverter->convert($result),
             $output->getResultBag()->getResults(),
         );
 

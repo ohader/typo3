@@ -15,17 +15,35 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Unit\AI\Format;
+namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\AI\Format\Binary;
-use TYPO3\CMS\Assist\AI\Format\ItemList;
-use TYPO3\CMS\Assist\AI\Format\Message;
-use TYPO3\CMS\Assist\AI\Format\UnionType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\BinaryType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\ListAggregate;
+use TYPO3\CMS\Assist\AI\Assistant\Type\TextType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\UnionAggregate;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
-final class ItemListTest extends UnitTestCase
+final class ListAggregateTest extends UnitTestCase
 {
+    // -------------------------------------------------------------------------
+    // of() factory
+    // -------------------------------------------------------------------------
+
+    #[Test]
+    public function ofReturnsItemAggregateTypeInstance(): void
+    {
+        self::assertInstanceOf(ListAggregate::class, ListAggregate::of(TextType::class));
+    }
+
+    #[Test]
+    public function ofWithClassStringCreatesDescriptorWithEmptyItems(): void
+    {
+        $descriptor = ListAggregate::of(TextType::class);
+
+        self::assertSame([], $descriptor->items);
+    }
+
     // -------------------------------------------------------------------------
     // toJsonSchema
     // -------------------------------------------------------------------------
@@ -33,7 +51,7 @@ final class ItemListTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaHasListTypeDiscriminator(): void
     {
-        $schema = (new ItemList(Message::class))->toJsonSchema();
+        $schema = (new ListAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame('list', $schema['properties']['type']['const']);
     }
@@ -41,17 +59,17 @@ final class ItemListTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaWithClassStringUsesAtomicSchema(): void
     {
-        $schema = (new ItemList(Message::class))->toJsonSchema();
+        $schema = (new ListAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame('array', $schema['properties']['items']['type']);
-        self::assertSame(Message::toJsonSchema(), $schema['properties']['items']['items']);
+        self::assertSame(TextType::toJsonSchema(), $schema['properties']['items']['items']);
     }
 
     #[Test]
     public function toJsonSchemaWithUnionTypeUsesOneOfSchema(): void
     {
-        $union = UnionType::of(Message::class, Binary::class);
-        $schema = (new ItemList($union))->toJsonSchema();
+        $union = UnionAggregate::of(TextType::class, BinaryType::class);
+        $schema = (new ListAggregate($union))->toJsonSchema();
 
         self::assertArrayHasKey('oneOf', $schema['properties']['items']['items']);
         self::assertCount(2, $schema['properties']['items']['items']['oneOf']);
@@ -60,7 +78,7 @@ final class ItemListTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaDoesNotIncludeMinItems(): void
     {
-        $schema = (new ItemList(Message::class))->toJsonSchema();
+        $schema = (new ListAggregate(TextType::class))->toJsonSchema();
 
         self::assertArrayNotHasKey('minItems', $schema['properties']['items']);
     }
@@ -70,50 +88,50 @@ final class ItemListTest extends UnitTestCase
     // -------------------------------------------------------------------------
 
     #[Test]
-    public function parseWithClassStringReturnsItemListInstance(): void
+    public function parseWithClassStringReturnsItemAggregateTypeInstance(): void
     {
-        $result = (new ItemList(Message::class))->parse([
+        $result = (new ListAggregate(TextType::class))->parse([
             'type' => 'list',
-            'items' => [['type' => 'message', 'value' => 'hello']],
+            'items' => [['type' => 'text', 'value' => 'hello']],
         ]);
 
-        self::assertInstanceOf(ItemList::class, $result);
+        self::assertInstanceOf(ListAggregate::class, $result);
     }
 
     #[Test]
     public function parseWithClassStringPopulatesTypedItems(): void
     {
-        $result = (new ItemList(Message::class))->parse([
+        $result = (new ListAggregate(TextType::class))->parse([
             'type' => 'list',
             'items' => [
-                ['type' => 'message', 'value' => 'first'],
-                ['type' => 'message', 'value' => 'second'],
+                ['type' => 'text', 'value' => 'first'],
+                ['type' => 'text', 'value' => 'second'],
             ],
         ]);
 
         self::assertCount(2, $result->items);
-        self::assertInstanceOf(Message::class, $result->items[0]);
+        self::assertInstanceOf(TextType::class, $result->items[0]);
         self::assertSame('first', $result->items[0]->value);
-        self::assertInstanceOf(Message::class, $result->items[1]);
+        self::assertInstanceOf(TextType::class, $result->items[1]);
         self::assertSame('second', $result->items[1]->value);
     }
 
     #[Test]
     public function parseWithUnionTypeDispatchesToCorrectTypes(): void
     {
-        $result = (new ItemList(UnionType::of(Message::class, Binary::class)))->parse([
+        $result = (new ListAggregate(UnionAggregate::of(TextType::class, BinaryType::class)))->parse([
             'type' => 'list',
             'items' => [
-                ['type' => 'message', 'value' => 'hello'],
+                ['type' => 'text', 'value' => 'hello'],
                 ['type' => 'binary', 'data' => 'abc='],
-                ['type' => 'message', 'value' => 'world'],
+                ['type' => 'text', 'value' => 'world'],
             ],
         ]);
 
         self::assertCount(3, $result->items);
-        self::assertInstanceOf(Message::class, $result->items[0]);
-        self::assertInstanceOf(Binary::class, $result->items[1]);
-        self::assertInstanceOf(Message::class, $result->items[2]);
+        self::assertInstanceOf(TextType::class, $result->items[0]);
+        self::assertInstanceOf(BinaryType::class, $result->items[1]);
+        self::assertInstanceOf(TextType::class, $result->items[2]);
         self::assertSame('hello', $result->items[0]->value);
         self::assertNull($result->items[1]->mimeType);
     }
@@ -121,19 +139,19 @@ final class ItemListTest extends UnitTestCase
     #[Test]
     public function parseWithEmptyItemsReturnsEmptyList(): void
     {
-        $result = (new ItemList(Message::class))->parse(['type' => 'list', 'items' => []]);
+        $result = (new ListAggregate(TextType::class))->parse(['type' => 'list', 'items' => []]);
 
-        self::assertInstanceOf(ItemList::class, $result);
+        self::assertInstanceOf(ListAggregate::class, $result);
         self::assertSame([], $result->items);
     }
 
     #[Test]
     public function parseDoesNotMutateDescriptor(): void
     {
-        $descriptor = new ItemList(Message::class);
+        $descriptor = new ListAggregate(TextType::class);
         $descriptor->parse([
             'type' => 'list',
-            'items' => [['type' => 'message', 'value' => 'x']],
+            'items' => [['type' => 'text', 'value' => 'x']],
         ]);
 
         self::assertEmpty($descriptor->items);

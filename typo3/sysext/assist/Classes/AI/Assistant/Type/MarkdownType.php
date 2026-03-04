@@ -15,27 +15,36 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
  * @internal
  */
-final readonly class Structure implements OutputFormatInterface
+final readonly class MarkdownType implements TypeInterface
 {
-    public function __construct(public array $value) {}
+    public function __construct(public string $value) {}
 
     public static function getType(): string
     {
-        return 'structure';
+        return 'markdown';
     }
 
     public static function toJsonSchema(): array
     {
         return [
             'type' => 'object',
+            '$comment' => 'Use this type to provide rich text content.',
             'properties' => [
-                'type' => ['type' => 'string', 'const' => 'structure'],
-                'value' => ['type' => 'object'],
+                'type' => [
+                    'type' => 'string',
+                    'const' => 'markdown',
+                ],
+                'value' => [
+                    'type' => 'string',
+                    '$comment' => 'Only these Markdown types are allowed: ' .
+                        'bold, italic, links, list items, headlines, inline code, code blocks, tables. ' .
+                        'Any other types are not allowed.',
+                ],
             ],
             'required' => ['type', 'value'],
             'additionalProperties' => false,

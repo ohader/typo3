@@ -15,17 +15,35 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Unit\AI\Format;
+namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\AI\Format\Binary;
-use TYPO3\CMS\Assist\AI\Format\Message;
-use TYPO3\CMS\Assist\AI\Format\Options;
-use TYPO3\CMS\Assist\AI\Format\UnionType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\BinaryType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate;
+use TYPO3\CMS\Assist\AI\Assistant\Type\TextType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\UnionAggregate;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
-final class OptionsTest extends UnitTestCase
+final class OptionsAggregateTest extends UnitTestCase
 {
+    // -------------------------------------------------------------------------
+    // of() factory
+    // -------------------------------------------------------------------------
+
+    #[Test]
+    public function ofReturnsOptionsAggregateInstance(): void
+    {
+        self::assertInstanceOf(OptionsAggregate::class, OptionsAggregate::of(TextType::class));
+    }
+
+    #[Test]
+    public function ofWithClassStringCreatesDescriptorWithEmptyItems(): void
+    {
+        $descriptor = OptionsAggregate::of(TextType::class);
+
+        self::assertSame([], $descriptor->items);
+    }
+
     // -------------------------------------------------------------------------
     // toJsonSchema
     // -------------------------------------------------------------------------
@@ -33,7 +51,7 @@ final class OptionsTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaHasOptionsTypeDiscriminator(): void
     {
-        $schema = (new Options(Message::class))->toJsonSchema();
+        $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame('options', $schema['properties']['type']['const']);
     }
@@ -41,7 +59,7 @@ final class OptionsTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaEnforcesMinItemsOfTwo(): void
     {
-        $schema = (new Options(Message::class))->toJsonSchema();
+        $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame(2, $schema['properties']['items']['minItems']);
     }
@@ -49,17 +67,17 @@ final class OptionsTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaWithClassStringUsesAtomicSchema(): void
     {
-        $schema = (new Options(Message::class))->toJsonSchema();
+        $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame('array', $schema['properties']['items']['type']);
-        self::assertSame(Message::toJsonSchema(), $schema['properties']['items']['items']);
+        self::assertSame(TextType::toJsonSchema(), $schema['properties']['items']['items']);
     }
 
     #[Test]
-    public function toJsonSchemaWithUnionTypeUsesOneOfSchema(): void
+    public function toJsonSchemaWithUnionAggregateUsesOneOfSchema(): void
     {
-        $union = UnionType::of(Message::class, Binary::class);
-        $schema = (new Options($union))->toJsonSchema();
+        $union = UnionAggregate::of(TextType::class, BinaryType::class);
+        $schema = (new OptionsAggregate($union))->toJsonSchema();
 
         self::assertArrayHasKey('oneOf', $schema['properties']['items']['items']);
         self::assertCount(2, $schema['properties']['items']['items']['oneOf']);
@@ -68,7 +86,7 @@ final class OptionsTest extends UnitTestCase
     #[Test]
     public function toJsonSchemaHasRequiredTypeAndItems(): void
     {
-        $schema = (new Options(Message::class))->toJsonSchema();
+        $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
         self::assertSame(['type', 'items'], $schema['required']);
     }
@@ -78,64 +96,64 @@ final class OptionsTest extends UnitTestCase
     // -------------------------------------------------------------------------
 
     #[Test]
-    public function parseWithClassStringReturnsOptionsInstance(): void
+    public function parseWithClassStringReturnsOptionsAggregateInstance(): void
     {
-        $result = (new Options(Message::class))->parse([
+        $result = (new OptionsAggregate(TextType::class))->parse([
             'type' => 'options',
             'items' => [
-                ['type' => 'message', 'value' => 'Yes'],
-                ['type' => 'message', 'value' => 'No'],
+                ['type' => 'text', 'value' => 'Yes'],
+                ['type' => 'text', 'value' => 'No'],
             ],
         ]);
 
-        self::assertInstanceOf(Options::class, $result);
+        self::assertInstanceOf(OptionsAggregate::class, $result);
     }
 
     #[Test]
     public function parseWithClassStringPopulatesTypedItems(): void
     {
-        $result = (new Options(Message::class))->parse([
+        $result = (new OptionsAggregate(TextType::class))->parse([
             'type' => 'options',
             'items' => [
-                ['type' => 'message', 'value' => 'Yes'],
-                ['type' => 'message', 'value' => 'No'],
-                ['type' => 'message', 'value' => 'Maybe'],
+                ['type' => 'text', 'value' => 'Yes'],
+                ['type' => 'text', 'value' => 'No'],
+                ['type' => 'text', 'value' => 'Maybe'],
             ],
         ]);
 
         self::assertCount(3, $result->items);
-        self::assertInstanceOf(Message::class, $result->items[0]);
+        self::assertInstanceOf(TextType::class, $result->items[0]);
         self::assertSame('Yes', $result->items[0]->value);
         self::assertSame('No', $result->items[1]->value);
         self::assertSame('Maybe', $result->items[2]->value);
     }
 
     #[Test]
-    public function parseWithUnionTypeDispatchesToCorrectTypes(): void
+    public function parseWithUnionAggregateDispatchesToCorrectTypes(): void
     {
-        $result = (new Options(UnionType::of(Message::class, Binary::class)))->parse([
+        $result = (new OptionsAggregate(UnionAggregate::of(TextType::class, BinaryType::class)))->parse([
             'type' => 'options',
             'items' => [
-                ['type' => 'message', 'value' => 'Text option'],
+                ['type' => 'text', 'value' => 'Text option'],
                 ['type' => 'binary', 'data' => 'abc=', 'mimeType' => 'image/png'],
             ],
         ]);
 
         self::assertCount(2, $result->items);
-        self::assertInstanceOf(Message::class, $result->items[0]);
-        self::assertInstanceOf(Binary::class, $result->items[1]);
+        self::assertInstanceOf(TextType::class, $result->items[0]);
+        self::assertInstanceOf(BinaryType::class, $result->items[1]);
         self::assertSame('image/png', $result->items[1]->mimeType);
     }
 
     #[Test]
     public function parseDoesNotMutateDescriptor(): void
     {
-        $descriptor = new Options(Message::class);
+        $descriptor = new OptionsAggregate(TextType::class);
         $descriptor->parse([
             'type' => 'options',
             'items' => [
-                ['type' => 'message', 'value' => 'A'],
-                ['type' => 'message', 'value' => 'B'],
+                ['type' => 'text', 'value' => 'A'],
+                ['type' => 'text', 'value' => 'B'],
             ],
         ]);
 

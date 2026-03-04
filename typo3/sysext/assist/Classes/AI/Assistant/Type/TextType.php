@@ -15,27 +15,34 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\AI\Format;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
  * @internal
  */
-final readonly class Message implements OutputFormatInterface
+final readonly class TextType implements TypeInterface
 {
     public function __construct(public string $value) {}
 
     public static function getType(): string
     {
-        return 'message';
+        return 'text';
     }
 
     public static function toJsonSchema(): array
     {
         return [
             'type' => 'object',
+            '$comment' => 'Use this type to provide plain text content.',
             'properties' => [
-                'type' => ['type' => 'string', 'const' => 'message'],
-                'value' => ['type' => 'string'],
+                'type' => [
+                    'type' => 'string',
+                    'const' => 'text',
+                ],
+                'value' => [
+                    'type' => 'string',
+                    '$comment' => 'Only plain text is allowed.',
+                ],
             ],
             'required' => ['type', 'value'],
             'additionalProperties' => false,

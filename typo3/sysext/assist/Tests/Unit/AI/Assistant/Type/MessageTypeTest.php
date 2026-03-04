@@ -15,27 +15,27 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Tests\Unit\AI\Format;
+namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 
 use PHPUnit\Framework\Attributes\Test;
-use TYPO3\CMS\Assist\AI\Format\Message;
+use TYPO3\CMS\Assist\AI\Assistant\Type\TextType;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
 
-final class MessageTest extends UnitTestCase
+final class MessageTypeTest extends UnitTestCase
 {
     #[Test]
     public function getTypeReturnsMessage(): void
     {
-        self::assertSame('message', Message::getType());
+        self::assertSame('text', TextType::getType());
     }
 
     #[Test]
     public function toJsonSchemaReturnsExpectedStructure(): void
     {
-        $schema = Message::toJsonSchema();
+        $schema = TextType::toJsonSchema();
 
         self::assertSame('object', $schema['type']);
-        self::assertSame('message', $schema['properties']['type']['const']);
+        self::assertSame('text', $schema['properties']['type']['const']);
         self::assertSame('string', $schema['properties']['value']['type']);
         self::assertSame(['type', 'value'], $schema['required']);
         self::assertFalse($schema['additionalProperties']);
@@ -44,9 +44,9 @@ final class MessageTest extends UnitTestCase
     #[Test]
     public function fromJsonCreatesInstanceWithValue(): void
     {
-        $message = Message::fromJson(['type' => 'message', 'value' => 'hello world']);
+        $message = TextType::fromJson(['type' => 'text', 'value' => 'hello world']);
 
-        self::assertInstanceOf(Message::class, $message);
+        self::assertInstanceOf(TextType::class, $message);
         self::assertSame('hello world', $message->value);
     }
 }

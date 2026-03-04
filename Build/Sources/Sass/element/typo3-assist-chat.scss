@@ -140,6 +140,14 @@ typo3-assist-chat-element {
         display: flex;
         flex-direction: column;
         gap: var(--typo3-spacing);
+
+        /** @todo table styling */
+        table,
+        th,
+        td {
+            border-collapse: collapse;
+            border: 1px solid black;
+        }
     }
 
     .assist-chat__text {

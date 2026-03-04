@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\Uid\Uuid;
 
 final readonly class AssistantRequest
 {
@@ -36,5 +37,13 @@ final readonly class AssistantRequest
             }
         }
         return new self($params, $headers);
+    }
+
+    public function getProgressUuid(): ?Uuid
+    {
+        if (empty($this->headers['x-typo3-assist-progress'])) {
+            return null;
+        }
+        return Uuid::fromString($this->headers['x-typo3-assist-progress']);
     }
 }
