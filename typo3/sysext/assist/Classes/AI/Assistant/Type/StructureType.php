@@ -37,7 +37,7 @@ final readonly class StructureType implements TypeInterface
                 'type' => ['type' => 'string', 'const' => 'structure'],
                 'value' => [
                     'type' => 'object',
-                    '$comment' => 'Structured JSON of the actual arbitrary data.'
+                    '$comment' => 'Structured JSON of the actual arbitrary data.',
                 ],
             ],
             'required' => ['type', 'value'],
