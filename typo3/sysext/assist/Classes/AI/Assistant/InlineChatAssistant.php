@@ -126,6 +126,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
             uuid: Uuid::v4(),
             model: $model,
             initiator: new Initiator(type: 'assistant', subject: 'typo3-assist-inline-chat'),
+            userId: (int)($GLOBALS['BE_USER']->user['uid'] ?? 0),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
         );
         $this->progressRepository->add($progress);
@@ -162,8 +163,6 @@ final readonly class InlineChatAssistant implements AssistantInterface
         if ($newMessage !== '') {
             $this->progressRepository->append(
                 uuid: $progress->uuid,
-                model: $progress->model,
-                initiator: $progress->initiator,
                 item: new ProgressItem(ProgressItemType::submitted, $newMessage),
             );
             $messages[] = Message::ofUser($newMessage);

@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\Domain\Model;
 
+use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 
 /**
@@ -25,13 +26,16 @@ use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 final readonly class ProgressItem
 {
     public \DateTimeImmutable $timestamp;
+    public Uuid $uuid;
 
     public function __construct(
         public ProgressItemType $type,
         public mixed $payload,
         ?\DateTimeImmutable $timestamp = null,
+        ?Uuid $uuid = null,
     ) {
         $this->timestamp = $timestamp ?? new \DateTimeImmutable();
+        $this->uuid = $uuid ?? Uuid::v4();
     }
 
     /**
@@ -43,6 +47,7 @@ final readonly class ProgressItem
             type: ProgressItemType::from($row['type']),
             payload: $row['payload'],
             timestamp: new \DateTimeImmutable($row['timestamp']),
+            uuid: Uuid::fromString($row['uuid']),
         );
     }
 }

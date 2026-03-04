@@ -73,6 +73,20 @@ Client                                     Server
 
 The progress `uuid` in the response body comes from the persisted `Progress` domain object. The UUID for a new session is recorded by `ProgressRecorder` during the agent call (not by `handleClientRequest` directly).
 
+### Progress domain object
+
+`Progress` is a `final readonly` value object stored in `sys_assist_progress`. It groups all items belonging to one conversation session.
+
+| Field | DB column | Description |
+|-------|-----------|-------------|
+| `Uuid $uuid` | `uuid` | Session identifier; used as the value of the `x-typo3-assist-progress` header |
+| `PlatformModel $model` | `model` | The `model@platform` string identifying which model handles the session |
+| `Initiator $initiator` | `initiator` | JSON-serialized type/subject pair identifying the assistant that started the session |
+| `int $userId` | `user_id` | UID of the backend user who started the session (`0` for CLI or unauthenticated contexts) |
+| `list<ProgressItem> $items` | *(child table)* | Ordered submitted/received messages, stored in `sys_assist_progress_item` |
+
+`Progress::fromRows()` hydrates the object from a `sys_assist_progress` row and its associated `sys_assist_progress_item` rows. `ProgressRepository::add()` persists the parent row; individual items are appended via `ProgressRepository::append()`.
+
 ## Configuration
 
 ### Platform Configuration

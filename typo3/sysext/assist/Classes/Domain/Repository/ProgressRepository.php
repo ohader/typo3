@@ -19,8 +19,6 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
-use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
-use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Core\Database\Connection;
@@ -35,13 +33,14 @@ use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 final readonly class ProgressRepository
 {
     private const TABLE_NAME = 'sys_assist_progress';
+    private const ITEMS_TABLE = 'sys_assist_progress_item';
 
     public function __construct(private ConnectionPool $pool) {}
 
     public function findByUuid(Uuid $uuid): ?Progress
     {
         $queryBuilder = $this->getQueryBuilder();
-        $result = $queryBuilder
+        $parentRow = $queryBuilder
             ->select('*')
             ->from(self::TABLE_NAME)
             ->where(
@@ -50,43 +49,65 @@ final readonly class ProgressRepository
                     $queryBuilder->createNamedParameter((string)$uuid)
                 )
             )
-            ->orderBy('sequence', 'ASC')
-            ->executeQuery();
-        $rows = $result->fetchAllAssociative();
-        if ($rows === []) {
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if ($parentRow === false) {
             return null;
         }
-        return Progress::fromRows($rows);
+
+        $itemsQueryBuilder = $this->getItemsQueryBuilder();
+        $itemRows = $itemsQueryBuilder
+            ->select('*')
+            ->from(self::ITEMS_TABLE)
+            ->where(
+                $itemsQueryBuilder->expr()->eq(
+                    'progress',
+                    $itemsQueryBuilder->createNamedParameter((string)$uuid)
+                )
+            )
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        return Progress::fromRows($parentRow, $itemRows);
     }
 
     /**
-     * @todo check whether it is required
      * @todo does not check whether sequence exists already -> would fail on DB side
      */
     public function add(Progress $progress): void
     {
-        foreach ($progress->items as $sequence => $item) {
-            $this->assign($progress->uuid, $progress->model, $progress->initiator, $sequence, $item);
-        }
-    }
-
-    public function append(Uuid $uuid, PlatformModel $model, Initiator $initiator, ProgressItem $item): int
-    {
-        $sequence = $this->nextSequence($uuid);
-        $this->assign($uuid, $model, $initiator, $sequence, $item);
-        return $sequence;
-    }
-
-    private function assign(Uuid $uuid, PlatformModel $model, Initiator $initiator, int $sequence, ProgressItem $item): void
-    {
         $this->getConnection()->insert(
             self::TABLE_NAME,
             [
-                'uuid' => (string)$uuid,
+                'uuid' => (string)$progress->uuid,
+                'model' => (string)$progress->model,
+                'initiator' => json_encode($progress->initiator->toArray()),
+                'user_id' => $progress->userId,
+                'timestamp' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
+            ]
+        );
+        foreach ($progress->items as $sequence => $item) {
+            $this->assign($progress->uuid, $sequence, $item);
+        }
+    }
+
+    public function append(Uuid $uuid, ProgressItem $item): int
+    {
+        $sequence = $this->nextSequence($uuid);
+        $this->assign($uuid, $sequence, $item);
+        return $sequence;
+    }
+
+    private function assign(Uuid $uuid, int $sequence, ProgressItem $item): void
+    {
+        $this->getItemsConnection()->insert(
+            self::ITEMS_TABLE,
+            [
+                'uuid' => (string)$item->uuid,
+                'progress' => (string)$uuid,
                 'sequence' => $sequence,
                 'type' => $item->type->value,
-                'model' => (string)$model,
-                'initiator' => json_encode($initiator->toArray()),
                 'timestamp' => (new \DateTimeImmutable())->format('Y-m-d H:i:s.v'),
                 'payload' => json_encode($item->payload),
             ]
@@ -95,13 +116,13 @@ final readonly class ProgressRepository
 
     private function nextSequence(Uuid $uuid): int
     {
-        $queryBuilder = $this->getQueryBuilder();
+        $queryBuilder = $this->getItemsQueryBuilder();
         $result = $queryBuilder
             ->selectLiteral('MAX(' . $queryBuilder->quoteIdentifier('sequence') . ') AS ' . $queryBuilder->quoteIdentifier('max_sequence'))
-            ->from(self::TABLE_NAME)
+            ->from(self::ITEMS_TABLE)
             ->where(
                 $queryBuilder->expr()->eq(
-                    'uuid',
+                    'progress',
                     $queryBuilder->createNamedParameter((string)$uuid)
                 )
             )
@@ -121,5 +142,15 @@ final readonly class ProgressRepository
     private function getConnection(): Connection
     {
         return $this->pool->getConnectionForTable(self::TABLE_NAME);
+    }
+
+    private function getItemsQueryBuilder(): QueryBuilder
+    {
+        return $this->pool->getQueryBuilderForTable(self::ITEMS_TABLE);
+    }
+
+    private function getItemsConnection(): Connection
+    {
+        return $this->pool->getConnectionForTable(self::ITEMS_TABLE);
     }
 }
