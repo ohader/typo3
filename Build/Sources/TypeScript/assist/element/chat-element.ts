@@ -418,7 +418,7 @@ export class ChatElement extends LitElement {
         <typo3-assist-options-element
           key=${item.key}
           text=${item.text}
-          .options=${item.options}
+          .items=${item.options}
           @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
         ></typo3-assist-options-element>
       </div>
