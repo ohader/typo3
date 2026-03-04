@@ -6,6 +6,43 @@ Experimental TYPO3 system extension (v14.2) that integrates Symfony AI platform 
 
 Package: `typo3/cms-assist` | Extension key: `assist` | Namespace: `TYPO3\CMS\Assist\`
 
+## Architecture diagram
+
+`Documentation/overview.mmd` — Mermaid `graph LR` diagram of all PHP classes/interfaces/enums/traits.
+
+**Structure:**
+- Outer graph: `graph LR` (layers flow left → right)
+- Each top-level `subgraph` = one layer; contains `direction TB` so its contents stack top-to-bottom
+- Five layers (left → right): **Presentation → Application → AI → Domain ← Infrastructure**
+
+**Node ID conventions** — each class gets a short unique ID (e.g. `AAC`, `AIF`, `PRC`):
+- `["Label"]` — class / readonly class
+- `[/"Label"/]` — interface
+- `(["Label"])` — enum
+- `{{"Label"}}` — trait
+- Labels use `\n` for line breaks; stereotype/attribute shown on second line (e.g. `"ClassName\n#AsAssistant"` or `"ClassName\n«value object»"`)
+
+**Subgraph nesting:** outer subgraph = layer, inner subgraphs = folder (e.g. `AI/Agent/`, `Domain/Model/`). Loose nodes inside a layer subgraph but outside any folder subgraph are placed directly.
+
+**Arrows — keep to ~10 essential cross-layer flows only** (too many arrows cause crossing lines):
+1. Request entry: Ajax controllers → Orchestrator / PlatformConnector
+2. Orchestration: AssistantOrchestrator → AssistantInterface, AgentService
+3. Agent execution: AgentService → AgentGateway; ProgressRecorder → ProgressRepository / Progress
+4. Platform construction: PlatformConnector + PlatformBridgeBuilder → PlatformBridge
+5. DI wiring: AssistantCompilerPass → AssistantRegistry
+6. Exception hierarchy: subclass `-->|extends|`
+
+**Init directive** (top of file, before `graph LR`):
+```
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "18px", "fontFamily": "trebuchet ms, arial, sans-serif", "primaryBorderColor": "#555", "lineColor": "#555", "primaryTextColor": "#111"}}}%%
+```
+
+**Updating the diagram:**
+- New class in an existing folder → add a node inside the matching inner subgraph; pick a new unique ID
+- New folder → add a new inner `subgraph` inside the correct layer subgraph
+- New layer → add a new outer `subgraph` with `direction TB` and connect it with an arrow
+- Renamed/removed class → update or delete the corresponding node and any arrows referencing its ID
+
 ## Development & Tools
 
 The extension directory is `typo3/sysext/assist/` (relative to the TYPO3 project root source).

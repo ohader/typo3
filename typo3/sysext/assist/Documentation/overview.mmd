@@ -1,0 +1,199 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "18px", "fontFamily": "trebuchet ms, arial, sans-serif", "primaryBorderColor": "#555", "lineColor": "#555", "primaryTextColor": "#111"}}}%%
+graph LR
+
+  %% ─────────────────────────────────────────────
+  subgraph HTTP["Presentation Layer"]
+    direction TB
+    subgraph AjaxCtrl["Controller/Ajax/"]
+      AAC["AssistantAjaxController\n#AsController"]
+      PAC["PlatformAjaxController\n#AsController"]
+    end
+    subgraph ModCtrl["Controller/Module/"]
+      AMC["AssistantController\n#AsController"]
+      PMC["PlatformController\n#AsController"]
+      GMC["GlossaryController\n#AsController"]
+      PRC2["PromptController\n#AsController"]
+    end
+    subgraph BEIntegr["Backend/"]
+      PTCA["PlatformTcaProvider"]
+      PIPC["PlatformItemsProcFunc"]
+    end
+    FA["Form/AssistAction\n«AbstractNode»"]
+    CM["ContextMenu/ItemProvider\n«AbstractProvider»"]
+  end
+
+  %% ─────────────────────────────────────────────
+  subgraph AppLayer["Application Layer"]
+    direction TB
+    AO["AI/Assistant/AssistantOrchestrator"]
+    subgraph SVC["Service/"]
+      AR["AssistantRegistry"]
+      CR["ConfigurationResolver"]
+      PS["PackageService"]
+      BUP["BackendUserPermissionService"]
+      DSS["DataSetService"]
+    end
+  end
+
+  %% ─────────────────────────────────────────────
+  subgraph AILayer["AI Layer"]
+    direction TB
+
+    subgraph AIAsst["AI/Assistant/"]
+      AIF[/"AssistantInterface\n«interface»"/]
+      TPIF[/"ToolPolicy\n«interface»"/]
+      STP["StaticToolPolicy"]
+      AREQ["AssistantRequest\n«value object»"]
+      ARESP["AssistantResponse\n«value object»"]
+      A11["A11yAssistant\n#AsAssistant"]
+      IC["InlineChatAssistant\n#AsAssistant"]
+      MC["MediaClassificationAssistant\n#AsAssistant"]
+    end
+
+    subgraph Feedback["AI/Assistant/Feedback/"]
+      FBIF[/"FeedbackInterface\n«interface»"/]
+      MF["MessageFeedback"]
+      OF["OptionsFeedback"]
+      CF["ConfirmationFeedback"]
+      OI["OptionItem"]
+      RFC["ResultFeedbackConverter"]
+    end
+
+    subgraph AIAgent["AI/Agent/"]
+      AS["AgentService"]
+      AG["AgentGateway"]
+      ACR["AgentCallRequest\n«value object»"]
+      PRIF[/"ProgressRecorderInterface\n«interface»"/]
+      PRC["ProgressRecorder"]
+      SP["SequencePointer"]
+      TF["ToolboxFactory"]
+    end
+
+    subgraph AIMsg["AI/Message/"]
+      AIIF[/"AgentInputInterface\n«interface»"/]
+      AOIF[/"AgentOutputInterface\n«interface»"/]
+      AI2["AgentInput"]
+      AO2["AgentOutput"]
+      ARB["AgentResultBag\n«Countable, IteratorAggregate»"]
+    end
+
+    subgraph AIPlt["AI/Platform/"]
+      PB["PlatformBridge"]
+      PCN["PlatformConnector"]
+      PRF["PlatformReflector"]
+      PMO["PlatformModel\n«Stringable»"]
+      FMC["FilteredModelCatalog\n«AbstractModelCatalog»"]
+      MCT["ModelCatalog\n«AbstractModelCatalog»"]
+      PD["PlatformDetails"]
+    end
+
+    subgraph AIFmt["AI/Format/"]
+      OFIF[/"OutputFormatInterface\n«interface»"/]
+      FMM["Message"]
+      FMB["Binary"]
+      FMS["Subject"]
+      FMST["Structure"]
+      FMI["ItemList"]
+      FMO["Options"]
+      UNT["UnionType"]
+    end
+
+    subgraph AITool["AI/Tool/"]
+      FPR["FetchPageRecords\n#AsTool"]
+    end
+
+  end
+
+  %% ─────────────────────────────────────────────
+  subgraph DomainLayer["Domain Layer"]
+    direction TB
+
+    subgraph DomModel["Domain/Model/"]
+      DPL["Platform"]
+      DA["Assistant"]
+      DAT["AssistantTrigger"]
+      DPR["Progress"]
+      DPI["ProgressItem"]
+      DS2["Step\n«JsonSerializable»"]
+      DIN["Initiator"]
+    end
+
+    subgraph DomDto["Domain/Dto/"]
+      DSI[/"SubjectInterface\n«interface»"/]
+      DTS["TcaSubject"]
+      DRS["ResourceSubject"]
+    end
+
+    subgraph DomRepo["Domain/Repository/"]
+      DREP["ProgressRepository"]
+    end
+
+    subgraph DomEnum["Domain/Enum/"]
+      EC(["AssistantCapability"])
+      EM(["AssistantMode"])
+      EV(["Availability"])
+      EA(["AuthenticationType"])
+      EP(["ProgressItemType"])
+      ER(["ResourceType"])
+    end
+
+  end
+
+  %% ─────────────────────────────────────────────
+  subgraph InfraLayer["Infrastructure"]
+    direction TB
+
+    subgraph DI["DependencyInjection/"]
+      ACP["AssistantCompilerPass\n«CompilerPassInterface»"]
+      AAT["Attribute/AsAssistant\n«PHP Attribute»"]
+    end
+
+    subgraph EL["EventListener/"]
+      PBB["PlatformBridgeBuilder"]
+      BAE["BackendAssetEnhancer"]
+      BBE["BackendButtonBarEnhancer"]
+      SCN["SiteConfigurationAssistNormalizer"]
+    end
+
+    subgraph CMD["Command/"]
+      CHC["ChatCommand\n#AsCommand"]
+      LMC["ListModelsCommand\n#AsCommand"]
+      CTR{{"CommandTrait"}}
+    end
+
+    subgraph EXC["Exception/"]
+      EXB["Exception\n«RuntimeException»"]
+      EXP["PlatformNotAvailableException"]
+    end
+
+    EVT["Event/BeforeBuildPlatformBridgeEvent"]
+    SRV["ServiceProvider\n«AbstractServiceProvider»"]
+
+  end
+
+  %% ══════════════════════════════════════════
+  %% Key relationships (essential flows only)
+  %% ══════════════════════════════════════════
+
+  %% 1. Request entry
+  AAC -->|"gateClientRequest"| AO
+  PAC -->|"checkConnection / getModels"| PCN
+
+  %% 2. Orchestration
+  AO -->|"resolves handler"| AIF
+  AO -->|"invokes"| AS
+
+  %% 3. Agent execution & persistence
+  AS -->|"uses transport"| AG
+  PRC -->|"writes to"| DREP
+  PRC -->|"creates"| DPR
+
+  %% 4. Platform construction
+  PCN -->|"creates"| PB
+  PBB -->|"builds"| PB
+
+  %% 5. DI wiring
+  ACP -->|"registers into"| AR
+
+  %% 6. Exception hierarchy
+  EXP -->|extends| EXB
