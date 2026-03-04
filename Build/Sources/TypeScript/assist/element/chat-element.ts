@@ -60,6 +60,10 @@ interface OptionsFeedbackItem {
 
 type AssistFeedbackItem = MessageFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem;
 
+type ChatEntry =
+  | { kind: 'user'; text: string }
+  | { kind: 'assistant'; item: AssistFeedbackItem };
+
 interface AssistantServerResponse {
   feedback: AssistFeedbackItem[];
   steps: AssistChatStep[];
@@ -97,10 +101,9 @@ export class ChatElement extends LitElement {
   @property({ type: Object }) labels: LabelProvider<any>;
 
   @state() steps: AssistChatStep[] = [];
-  @state() feedback: AssistFeedbackItem[] = [];
   @state() isLoading: boolean = false;
   @state() private progressUuid: string | null = null;
-  @state() private userMessages: string[] = [];
+  @state() private messages: ChatEntry[] = [];
 
   private get parsedSubject(): SubjectData | null {
     if (!this.subject) {
@@ -156,8 +159,7 @@ export class ChatElement extends LitElement {
             </typo3-assist-quick-actions-element>
           </div>
 
-          ${this.renderFeedback()}
-          ${this.renderUserMessages()}
+          ${this.renderMessages()}
           ${this.isLoading ? this.renderThinking() : nothing}
           ${this.renderInput()}
         </div>
@@ -196,7 +198,7 @@ export class ChatElement extends LitElement {
   private async sendRequest(message: string, params: Record<string, string> = {}): Promise<void> {
     this.isLoading = true;
     if (message !== '') {
-      this.userMessages = [...this.userMessages, message];
+      this.messages = [...this.messages, { kind: 'user', text: message }];
     }
 
     const headers: Record<string, string> = {
@@ -219,7 +221,8 @@ export class ChatElement extends LitElement {
       ).post(body, { headers });
       const data: AssistantServerResponse = await response.resolve();
       this.steps = data.steps ?? [];
-      this.feedback = [...this.feedback, ...data.feedback];
+      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
+      this.messages = [...this.messages, ...newEntries];
       if (data.progress?.uuid) {
         this.progressUuid = data.progress.uuid;
       }
@@ -301,8 +304,12 @@ export class ChatElement extends LitElement {
     `;
   }
 
-  private renderFeedback(): TemplateResult {
-    return html`${this.feedback.map(item => this.renderFeedbackItem(item))}`;
+  private renderMessages(): TemplateResult {
+    return html`${this.messages.map(entry =>
+      entry.kind === 'user'
+        ? html`<div class="assist-chat__user-input"><p class="assist-chat__user-input-bubble">${entry.text}</p></div>`
+        : this.renderFeedbackItem(entry.item)
+    )}`;
   }
 
   private renderFeedbackItem(item: AssistFeedbackItem): TemplateResult {
@@ -336,13 +343,7 @@ export class ChatElement extends LitElement {
     `;
   }
 
-  private renderUserMessages(): TemplateResult {
-    return html`${this.userMessages.map(text => html`
-      <div class="assist-chat__user-input">
-        <p class="assist-chat__user-input-bubble">${text}</p>
-      </div>
-    `)}`;
-  }
+
 }
 
 declare global {
