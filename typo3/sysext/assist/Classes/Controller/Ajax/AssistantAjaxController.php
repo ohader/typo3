@@ -19,8 +19,13 @@ namespace TYPO3\CMS\Assist\Controller\Ajax;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\AI\Agent\Exception\MaxIterationsExceededException;
+use Symfony\AI\Platform\Exception\AuthenticationException;
+use Symfony\AI\Platform\Exception\BadRequestException;
+use Symfony\AI\Platform\Exception\RateLimitExceededException;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
+use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
@@ -85,6 +90,20 @@ final readonly class AssistantAjaxController
         }
         $assistant = $this->assistantRegistry->getAssistant($identifier);
         $handler = $this->orchestrator->buildHandler($assistant);
-        return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request))->toResponse();
+
+        try {
+            return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request))->toResponse();
+        } catch (RateLimitExceededException) {
+            $message = 'The AI service is rate-limited. Please try again later.';
+        } catch (AuthenticationException) {
+            $message = 'AI service authentication failed. Please check your API key configuration.';
+        } catch (BadRequestException $e) {
+            $message = $e->getMessage();
+        } catch (MaxIterationsExceededException) {
+            $message = 'The assistant exceeded the maximum number of steps. Please try a simpler request.';
+        } catch (\Throwable $t) {
+            $message = 'An unexpected error occurred. Please try again. ' . $t->getMessage();
+        }
+        return (new AssistantResponse(error: $message))->toResponse();
     }
 }

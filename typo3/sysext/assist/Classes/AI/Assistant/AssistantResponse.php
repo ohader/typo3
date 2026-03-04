@@ -32,16 +32,21 @@ final readonly class AssistantResponse
         public array $feedback = [],
         public array $steps = [],
         public ?Progress $progress = null,
+        public ?string $error = null,
     ) {}
 
     public function toResponse(): JsonResponse
     {
-        return new JsonResponse([
+        $data = [
             'feedback' => $this->feedback,
             'steps' => $this->steps,
             'progress' => $this->progress !== null
                 ? ['uuid' => (string)$this->progress->uuid]
                 : null,
-        ]);
+        ];
+        if ($this->error !== null) {
+            $data['error'] = $this->error;
+        }
+        return new JsonResponse($data, $this->error === null ? 200 : 202);
     }
 }

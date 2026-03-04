@@ -74,12 +74,14 @@ type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | Confirmation
 
 type ChatEntry =
   | { kind: 'user'; text: string }
-  | { kind: 'assistant'; item: AssistFeedbackItem };
+  | { kind: 'assistant'; item: AssistFeedbackItem }
+  | { kind: 'error'; text: string };
 
 interface AssistantServerResponse {
   feedback: AssistFeedbackItem[];
   steps: AssistChatStep[];
   progress: { uuid: string } | null;
+  error?: string;
 }
 
 interface ResourceSubjectData {
@@ -268,12 +270,18 @@ export class ChatElement extends LitElement {
         TYPO3.settings.ajaxUrls.assist_gate_client_request
       ).post(body, { headers });
       const data: AssistantServerResponse = await response.resolve();
+      if (data.error) {
+        this.appendErrorMessage(data.error);
+        return;
+      }
       this.steps = data.steps ?? [];
       const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
       this.messages = [...this.messages, ...newEntries];
       if (data.progress?.uuid) {
         this.progressUuid = data.progress.uuid;
       }
+    } catch (e) {
+      this.appendErrorMessage(e instanceof Error ? e.message : 'Network error. Please try again.');
     } finally {
       this.isLoading = false;
       this.scrollToBottom();
@@ -353,11 +361,23 @@ export class ChatElement extends LitElement {
   }
 
   private renderMessages(): TemplateResult {
-    return html`${this.messages.map(entry =>
-      entry.kind === 'user'
-        ? html`<div class="assist-chat__user-input"><p class="assist-chat__user-input-bubble">${entry.text}</p></div>`
-        : this.renderFeedbackItem(entry.item)
-    )}`;
+    return html`${this.messages.map(entry => {
+      if (entry.kind === 'user') {
+        return html`<div class="assist-chat__user-input"><p class="assist-chat__user-input-bubble">${entry.text}</p></div>`;
+      }
+      if (entry.kind === 'error') {
+        return html`
+          <div class="assist-chat__response assist-chat__response--error">
+            <p class="assist-chat__text assist-chat__text--error">${entry.text}</p>
+          </div>
+        `;
+      }
+      return this.renderFeedbackItem(entry.item);
+    })}`;
+  }
+
+  private appendErrorMessage(text: string): void {
+    this.messages = [...this.messages, { kind: 'error', text }];
   }
 
   private renderFeedbackItem(item: AssistFeedbackItem): TemplateResult {
