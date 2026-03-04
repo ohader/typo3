@@ -62,24 +62,29 @@ class NumbAssistantTest extends FunctionalTestCase
         yield ['What is the current time?', 'I cannot help with "What is the current time?"'];
         yield ['How much is 1+1?', 'I cannot help with "How much is 1+1?"'];
         yield ['What is TYPO3 in one sentence?',
-               'TYPO3 is an open-source enterprise content management system (CMS) for building scalable websites and web applications.'];
+            'TYPO3 is an open-source enterprise content management system (CMS) for building scalable websites and web applications.'];
         yield ['Give me exactly 3 numbered taglines for a headless CMS product. Return only the numbered list.',
-               "1. Your content, everywhere.\n2. Headless CMS, unlimited potential.\n3. Deliver content at the speed of thought."];
+            "1. Your content, everywhere.\n2. Headless CMS, unlimited potential.\n3. Deliver content at the speed of thought."];
         yield ['Return a JSON object describing Berlin with fields: city, country, population (integer), famous_landmark (string).',
-               '{"city":"Berlin","country":"Germany","population":3645000,"famous_landmark":"Brandenburg Gate"}'];
+            '{"city":"Berlin","country":"Germany","population":3645000,"famous_landmark":"Brandenburg Gate"}'];
     }
 
     #[Test]
     #[DataProvider('canSendAndReceiveMessageViaPassThroughAssistantDataProvider')]
     public function passThroughAssistantCanSendMessage(string $payload, string $expectation): void
     {
-        $assistant = new class implements AssistantInterface {
-            public function getToolPolicy(): ?ToolPolicy { return null; }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest {
+        $assistant = new class () implements AssistantInterface {
+            public function getToolPolicy(): ?ToolPolicy
+            {
+                return null;
+            }
+            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            {
                 return new AgentCallRequest(model: $input->getModel(), messageBag: $input->getMessageBag());
             }
             public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
-            public function handleClientRequest(AssistantRequest $request): AssistantResponse {
+            public function handleClientRequest(AssistantRequest $request): AssistantResponse
+            {
                 return new AssistantResponse();
             }
         };
@@ -94,9 +99,13 @@ class NumbAssistantTest extends FunctionalTestCase
     #[Test]
     public function systemPromptAssistantCanSendMessage(): void
     {
-        $assistant = new class implements AssistantInterface {
-            public function getToolPolicy(): ?ToolPolicy { return null; }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest {
+        $assistant = new class () implements AssistantInterface {
+            public function getToolPolicy(): ?ToolPolicy
+            {
+                return null;
+            }
+            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            {
                 return new AgentCallRequest(
                     model: $input->getModel(),
                     messageBag: new MessageBag(
@@ -106,7 +115,8 @@ class NumbAssistantTest extends FunctionalTestCase
                 );
             }
             public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
-            public function handleClientRequest(AssistantRequest $request): AssistantResponse {
+            public function handleClientRequest(AssistantRequest $request): AssistantResponse
+            {
                 return new AssistantResponse();
             }
         };
@@ -121,13 +131,18 @@ class NumbAssistantTest extends FunctionalTestCase
     #[Test]
     public function passThroughAssistantCanSendImage(): void
     {
-        $assistant = new class implements AssistantInterface {
-            public function getToolPolicy(): ?ToolPolicy { return null; }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest {
+        $assistant = new class () implements AssistantInterface {
+            public function getToolPolicy(): ?ToolPolicy
+            {
+                return null;
+            }
+            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            {
                 return new AgentCallRequest(model: $input->getModel(), messageBag: $input->getMessageBag());
             }
             public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
-            public function handleClientRequest(AssistantRequest $request): AssistantResponse {
+            public function handleClientRequest(AssistantRequest $request): AssistantResponse
+            {
                 return new AssistantResponse();
             }
         };

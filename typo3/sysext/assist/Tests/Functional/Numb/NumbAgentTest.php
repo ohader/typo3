@@ -54,11 +54,11 @@ class NumbAgentTest extends FunctionalTestCase
         yield ['What is the current time?', 'I cannot help with "What is the current time?"'];
         yield ['How much is 1+1?', 'I cannot help with "How much is 1+1?"'];
         yield ['What is TYPO3 in one sentence?',
-               'TYPO3 is an open-source enterprise content management system (CMS) for building scalable websites and web applications.'];
+            'TYPO3 is an open-source enterprise content management system (CMS) for building scalable websites and web applications.'];
         yield ['Give me exactly 3 numbered taglines for a headless CMS product. Return only the numbered list.',
-               "1. Your content, everywhere.\n2. Headless CMS, unlimited potential.\n3. Deliver content at the speed of thought."];
+            "1. Your content, everywhere.\n2. Headless CMS, unlimited potential.\n3. Deliver content at the speed of thought."];
         yield ['Return a JSON object describing Berlin with fields: city, country, population (integer), famous_landmark (string).',
-               '{"city":"Berlin","country":"Germany","population":3645000,"famous_landmark":"Brandenburg Gate"}'];
+            '{"city":"Berlin","country":"Germany","population":3645000,"famous_landmark":"Brandenburg Gate"}'];
     }
 
     #[Test]
