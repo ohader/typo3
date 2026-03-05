@@ -96,7 +96,9 @@ final readonly class PlatformBridgeBuilder
                 return;
             }
 
-            $models = $this->buildModels($data, $package);
+            $catalogClass = $event->reflector->getModelCatalogClassName();
+            $staticModels = (new $catalogClass())->getModels();
+            $models = $this->buildModels($data, $package, $staticModels);
 
             $detailConfig = $this->platformDetails->getModelsDetailEndpoint($package);
             if ($detailConfig !== null) {
@@ -184,6 +186,7 @@ final readonly class PlatformBridgeBuilder
     private function buildModels(
         array $responseData,
         string $package,
+        array $staticModels = [],
     ): array {
 
         $idKey = $this->platformDetails->getModelsMappings($package)['response']['idKey'] ?? '';
@@ -202,6 +205,7 @@ final readonly class PlatformBridgeBuilder
             }
 
             if ($typeModelMapping !== []) {
+                // use live model mappings if available
                 $type = $model[$typeKey] ?? null;
                 if ($type === null || !isset($typeModelMapping[$type])) {
                     continue;
@@ -219,10 +223,16 @@ final readonly class PlatformBridgeBuilder
                         $capabilities[] = $capability;
                     }
                 }
+            } elseif (isset($staticModels[$identifier])) {
+                // fallback to static models (if available)
+                $class = $staticModels[$identifier]['class'];
+                $capabilities = $staticModels[$identifier]['capabilities'];
             } else {
-                // default assumptions
-                $class = CompletionsModel::class;
-                $capabilities = [Capability::INPUT_MESSAGES, Capability::OUTPUT_TEXT, Capability::OUTPUT_STREAMING];
+                // skip model since no capabilities can be resolved
+                // @todo this is a problem e.g. for OpenAI, due to the lack of capabilities in the API response
+                // (when OpenAI releases new models, that are not part of the Symfony AI model catalog yet,
+                // these models won't be shown - OpenAI does not provide an API to resolve model capabilities)
+                continue;
             }
 
             $resolvedModels[$identifier] = [

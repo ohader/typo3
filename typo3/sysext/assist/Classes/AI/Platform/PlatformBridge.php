@@ -71,4 +71,13 @@ final readonly class PlatformBridge
             ? new FilteredModelCatalog($this->platform, $modelCatalog)
             : $modelCatalog;
     }
+
+    /**
+     * Gets the Symfony AI built-in model catalog (without applying additional options).
+     */
+    public function getStaticModelCatalog(): ModelCatalogInterface
+    {
+        $class = $this->reflector->getModelCatalogClassName();
+        return new $class();
+    }
 }
