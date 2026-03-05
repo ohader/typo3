@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Service;
 
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 final readonly class AssistantRegistry
@@ -67,17 +66,6 @@ final readonly class AssistantRegistry
     public function getAssistants(): array
     {
         return $this->assistants;
-    }
-
-    /**
-     * @return array<string, Assistant>
-     */
-    public function getAssistantsByMode(AssistantMode $mode): array
-    {
-        return array_filter(
-            $this->assistants,
-            static fn(Assistant $assistant): bool => $assistant->mode === $mode,
-        );
     }
 
     /**

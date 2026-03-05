@@ -26,7 +26,6 @@ use Symfony\AI\Platform\Exception\RateLimitExceededException;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -61,7 +60,7 @@ final readonly class AssistantAjaxController
         if ($table !== '' && str_contains($table, ':')) {
             $table = explode(':', $table, 2)[0];
         }
-        $assistants = $this->assistantRegistry->getAssistantsByMode(AssistantMode::inline);
+        $assistants = $this->assistantRegistry->getAssistants();
         if ($table !== '') {
             $assistants = array_filter(
                 $assistants,

@@ -97,7 +97,7 @@ Classes/
     Module/           AssistantController, PlatformController, GlossaryController, PromptController
   DependencyInjection/ AssistantCompilerPass (wires #[AsAssistant] into AssistantRegistry)
   Domain/
-    Enum/             AssistantCapability, AssistantMode, Availability, ProgressItemType
+    Enum/             AssistantCapability, Availability, ProgressItemType
     Model/            Assistant, AssistantTrigger, Platform, Progress, ProgressItem
     Repository/       ProgressRepository
   Event/              BeforeBuildPlatformBridgeEvent
@@ -143,7 +143,6 @@ Tests/Functional/
 | `Domain\Model\AssistantTrigger` | Value object defining when an assistant triggers based on types, records, or components. `@internal` |
 | `Domain\Enum\AssistantCapability` | String-backed enum. Maps TYPO3 capability names → Symfony AI `Capability` objects via `convertToCapabilities()`. |
 | `Domain\Enum\Availability` | Enum: `enabled`, `disabled`, `unavailable` |
-| `Domain\Enum\AssistantMode` | Enum: `module`, `inline` |
 | `Event\BeforeBuildPlatformBridgeEvent` | Modify bridge options before construction (e.g. inject additional models). `@internal` |
 | `EventListener\SiteConfigurationAssistNormalizer` | Bidirectional transform: nested `assist:` YAML ↔ flat `assistDefault`/`assistPlatforms`/`assistAssistants` TCA keys. |
 | `Attribute\AsAssistant` | PHP attribute for registering assistant handler classes. Discovered at compile time by `AssistantCompilerPass`. |
@@ -211,11 +210,9 @@ Annotate the handler class with `#[AsAssistant]`. The attribute is discovered at
 ```php
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
 #[AsAssistant(
     identifier: 'my-assistant',
-    mode: AssistantMode::module,
     capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
     triggerTypes: ['context'],
     triggerRecords: ['pages'],
@@ -282,7 +279,7 @@ After `SiteConfigurationAssistNormalizer` flattens for TCA, the runtime keys are
 ## Conventions
 
 - **Immutability**: all domain objects and services are `final readonly`
-- **Enums**: string-backed enums in `Domain\Enum\` for `Availability`, `AssistantMode`, `AssistantCapability`, `ProgressItemType`
+- **Enums**: string-backed enums in `Domain\Enum\` for `Availability`, `AssistantCapability`, `ProgressItemType`
 - **Factory methods**: `createFromConfiguration()` on `Assistant` and `AssistantTrigger` — validates input, throws `\InvalidArgumentException` with numeric codes
 - **`@internal`**: `AI\Platform\PlatformBridge`, `AI\Platform\PlatformConnector`, `AI\Platform\PlatformReflector`, `AI\Platform\FilteredModelCatalog`, `Domain\Model\Assistant`, `Domain\Model\AssistantTrigger`, `BeforeBuildPlatformBridgeEvent`, all controllers
 - **Strict types**: all files declare `strict_types=1`

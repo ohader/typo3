@@ -22,11 +22,9 @@ use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
 #[AsAssistant(
     identifier: 'typo3-assist-a11y',
-    mode: AssistantMode::module,
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
     triggerResources: ['pages'],
     triggerComponents: ['page-tree', 'context-menu'],

@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Attribute;
 
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final readonly class AsAssistant
@@ -33,7 +32,6 @@ final readonly class AsAssistant
      */
     public function __construct(
         public string $identifier,
-        public AssistantMode $mode,
         public array $capabilities,
         public array $triggerResources = [],
         public array $triggerComponents = [],

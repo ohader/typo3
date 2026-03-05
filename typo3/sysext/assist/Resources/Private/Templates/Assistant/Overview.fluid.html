@@ -27,7 +27,6 @@
                     <thead>
                         <tr>
                             <th><f:translate id="column.identifier" domain="assist.modules.assist_assistant"/></th>
-                            <th><f:translate id="column.mode" domain="assist.modules.assist_assistant"/></th>
                             <th><f:translate id="column.capabilities" domain="assist.modules.assist_assistant"/></th>
                             <th><f:translate id="column.handler" domain="assist.modules.assist_assistant"/></th>
                             <th><f:translate id="column.triggers" domain="assist.modules.assist_assistant"/></th>
@@ -40,16 +39,6 @@
                         <f:for each="{assistants}" as="assistant">
                             <tr>
                                 <td>{assistant.identifier}</td>
-                                <td>
-                                    <f:switch expression="{assistant.mode.value}">
-                                        <f:case value="module">
-                                            <span class="badge badge-info"><f:translate id="mode.module" domain="assist.modules.assist_assistant"/></span>
-                                        </f:case>
-                                        <f:case value="inline">
-                                            <span class="badge badge-primary"><f:translate id="mode.inline" domain="assist.modules.assist_assistant"/></span>
-                                        </f:case>
-                                    </f:switch>
-                                </td>
                                 <td>
                                     <f:for each="{assistant.capabilities}" as="capability">
                                         <span class="badge badge-secondary">{capability.value}</span>

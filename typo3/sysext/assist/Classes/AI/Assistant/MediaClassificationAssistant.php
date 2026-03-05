@@ -32,7 +32,6 @@ use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
@@ -50,7 +49,6 @@ use TYPO3\CMS\Core\Resource\StorageRepository;
 
 #[AsAssistant(
     identifier: 'typo3-assist-media-classification',
-    mode: AssistantMode::module,
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
     triggerResources: ['sys_file'],
     triggerComponents: ['file-upload'],

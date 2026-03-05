@@ -29,7 +29,6 @@ use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\AI\Tool\FetchPageRecords;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
@@ -40,7 +39,6 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 #[AsAssistant(
     identifier: 'typo3-assist-inline-chat',
-    mode: AssistantMode::inline,
     capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
     triggerResources: ['pages', 'tt_content'],
     triggerRoutes: ['/module/web/layout'],

@@ -17,7 +17,6 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
             $definition->setPublic(true);
             $definition->addTag(AsAssistant::TAG_NAME, [
                 'identifier' => $attribute->identifier,
-                'mode' => $attribute->mode->value,
                 'capabilities' => json_encode(array_map(
                     static fn(AssistantCapability $c) => $c->value,
                     $attribute->capabilities,

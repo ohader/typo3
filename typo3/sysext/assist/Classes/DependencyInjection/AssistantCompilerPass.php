@@ -40,7 +40,6 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
             foreach ($tags as $attributes) {
                 $identifier = $attributes['identifier'];
                 $assistants[$identifier] = [
-                    'mode' => $attributes['mode'],
                     'capabilities' => json_decode($attributes['capabilities'], true),
                     'handler' => $serviceName,
                     'trigger' => [

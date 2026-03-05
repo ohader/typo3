@@ -19,7 +19,6 @@ namespace TYPO3\CMS\Assist\Domain\Model;
 
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\AssistantMode;
 
 /**
  * @internal
@@ -31,7 +30,6 @@ final readonly class Assistant
      */
     public function __construct(
         public string $identifier,
-        public AssistantMode $mode,
         public array $capabilities,
         public string $handler,
         public AssistantTrigger $trigger,
@@ -43,14 +41,6 @@ final readonly class Assistant
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
     {
-        $mode = AssistantMode::tryFrom($configuration['mode'] ?? '');
-        if ($mode === null) {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid mode "%s" for assistant "%s".', $configuration['mode'] ?? '', $identifier),
-                1749900001
-            );
-        }
-
         $handler = $configuration['handler'] ?? '';
         if (!class_exists($handler)) {
             throw new \InvalidArgumentException(
@@ -61,7 +51,6 @@ final readonly class Assistant
 
         return new self(
             identifier: $identifier,
-            mode: $mode,
             capabilities: self::normalizeCapabilities($configuration['capabilities'] ?? []),
             handler: $handler,
             trigger: AssistantTrigger::createFromConfiguration($configuration['trigger'] ?? []),

@@ -15,9 +15,6 @@
       <trans-unit id="column.identifier">
         <source>Identifier</source>
       </trans-unit>
-      <trans-unit id="column.mode">
-        <source>Mode</source>
-      </trans-unit>
       <trans-unit id="column.capabilities">
         <source>Capabilities</source>
       </trans-unit>
@@ -29,12 +26,6 @@
       </trans-unit>
       <trans-unit id="noAssistantsRegistered">
         <source>No assistants registered. Register assistants using the #[AsAssistant] attribute on your handler class.</source>
-      </trans-unit>
-      <trans-unit id="mode.module">
-        <source>Module</source>
-      </trans-unit>
-      <trans-unit id="mode.inline">
-        <source>Inline</source>
       </trans-unit>
       <trans-unit id="column.model">
         <source>Model</source>
