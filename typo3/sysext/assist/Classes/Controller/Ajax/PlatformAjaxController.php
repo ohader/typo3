@@ -93,6 +93,8 @@ final readonly class PlatformAjaxController
                 ];
             }
 
+            usort($models, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+
             return new JsonResponse(['models' => $models, 'source' => $source]);
         } catch (\Throwable $e) {
             return new JsonResponse(['models' => [], 'source' => 'static', 'error' => $e->getMessage()]);
@@ -162,6 +164,8 @@ final readonly class PlatformAjaxController
                     }
                 }
             }
+
+            usort($models, static fn(array $a, array $b): int => strcmp($a['model'], $b['model']));
 
             return new JsonResponse(['models' => $models]);
         } catch (\Throwable $e) {
