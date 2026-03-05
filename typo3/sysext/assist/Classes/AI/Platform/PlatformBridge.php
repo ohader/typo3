@@ -32,6 +32,7 @@ final readonly class PlatformBridge
         private \TYPO3\CMS\Assist\AI\Platform\PlatformReflector $reflector,
         private bool $effective,
         private array $options = [],
+        private bool $liveResolved = false,
     ) {
         if ($this->effective && $this->platform->availability !== Availability::enabled) {
             throw new PlatformNotAvailableException(
@@ -39,6 +40,11 @@ final readonly class PlatformBridge
                 1771009690
             );
         }
+    }
+
+    public function isLiveResolved(): bool
+    {
+        return $this->liveResolved;
     }
 
     public function getPlatformFactory(): PlatformInterface

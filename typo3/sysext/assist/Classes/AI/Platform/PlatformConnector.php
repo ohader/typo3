@@ -52,7 +52,7 @@ final readonly class PlatformConnector
         $event = new BeforeBuildPlatformBridgeEvent($platform, $reflector, $effective, $options);
         $this->eventDispatcher->dispatch($event);
 
-        return new PlatformBridge($platform, $reflector, $effective, $event->getOptions());
+        return new PlatformBridge($platform, $reflector, $effective, $event->getOptions(), $event->isLiveResolved());
     }
     /**
      * Creates a live PlatformInterface instance from a TYPO3 Platform domain object.

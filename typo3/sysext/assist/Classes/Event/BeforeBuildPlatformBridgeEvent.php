@@ -30,6 +30,8 @@ final class BeforeBuildPlatformBridgeEvent
      */
     private array $options = [];
 
+    private bool $liveResolved = false;
+
     public function __construct(
         public readonly Platform $platform,
         public readonly PlatformReflector $reflector,
@@ -47,5 +49,15 @@ final class BeforeBuildPlatformBridgeEvent
     public function setOptions(array $options): void
     {
         $this->options = $options;
+    }
+
+    public function markLiveResolved(): void
+    {
+        $this->liveResolved = true;
+    }
+
+    public function isLiveResolved(): bool
+    {
+        return $this->liveResolved;
     }
 }

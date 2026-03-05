@@ -78,6 +78,7 @@ final readonly class PlatformAjaxController
             $catalog = $bridge->getModelCatalog();
             $catalogModels = $catalog->getModels();
             $enabledModels = $platform->models;
+            $source = $bridge->isLiveResolved() ? 'live' : 'static';
 
             $models = [];
             foreach ($catalogModels as $name => $meta) {
@@ -92,9 +93,9 @@ final readonly class PlatformAjaxController
                 ];
             }
 
-            return new JsonResponse(['models' => $models]);
+            return new JsonResponse(['models' => $models, 'source' => $source]);
         } catch (\Throwable $e) {
-            return new JsonResponse(['models' => [], 'error' => $e->getMessage()]);
+            return new JsonResponse(['models' => [], 'source' => 'static', 'error' => $e->getMessage()]);
         }
     }
 

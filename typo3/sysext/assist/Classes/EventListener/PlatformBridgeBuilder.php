@@ -126,6 +126,7 @@ final readonly class PlatformBridgeBuilder
                 'modelCatalog' => ['additionalModels' => $models],
             ]);
         }
+        $event->markLiveResolved();
     }
 
     private function getModelCatalogParam(array $paramTypes): ?string

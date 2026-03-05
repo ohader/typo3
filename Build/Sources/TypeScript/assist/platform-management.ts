@@ -100,21 +100,26 @@ class PlatformManagement {
       }).get();
       const data = await response.resolve();
       const models: ModelInfo[] = data.models ?? [];
+      const source: string = data.source ?? 'static';
 
       if (models.length === 0) {
         cell.innerHTML = '<em>No models available for this platform.</em>';
         return;
       }
 
-      cell.innerHTML = this.renderModelsTable(models, platformIndex);
+      cell.innerHTML = this.renderModelsTable(models, platformIndex, source);
       this.bindModelCheckboxes(platformIndex);
     } catch {
       cell.innerHTML = '<em>Failed to load models.</em>';
     }
   }
 
-  private renderModelsTable(models: ModelInfo[], platformIndex: number): string {
-    let html = '<table class="table table-sm table-striped mb-0">';
+  private renderModelsTable(models: ModelInfo[], platformIndex: number, source: string): string {
+    const sourceBadge = source === 'live'
+      ? '<span class="badge badge-success me-1">Live</span>'
+      : '<span class="badge badge-secondary me-1">Static</span>';
+    let html = '<p class="mb-1">' + sourceBadge + '</p>';
+    html += '<table class="table table-sm table-striped mb-0">';
     html += '<thead><tr><th>Model</th><th>Capabilities</th><th>Enabled</th></tr></thead>';
     html += '<tbody>';
 
