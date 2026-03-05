@@ -47,6 +47,7 @@ final class ComponentsController
      */
     private array $allowedActions = [
         'componentsOverview',
+        'aiAssist',
         'avatar',
         'badges',
         'breadcrumbs',
@@ -94,6 +95,7 @@ final class ComponentsController
 
         // Actions from components navigation
         return match ($queryAction) {
+            'aiAssist' => $this->renderAiAssistView($request),
             'avatar' => $this->renderAvatarView($request),
             'badges' => $this->renderBadgesView($request),
             'breadcrumbs' => $this->renderBreadcrumbsView($request),
@@ -137,6 +139,17 @@ final class ComponentsController
             'routeIdentifier' => 'styleguide_components',
         ]);
         return $view->renderResponse('Backend/ComponentsOverview');
+    }
+
+    private function renderAiAssistView(ServerRequestInterface $request): ResponseInterface
+    {
+        $view = $this->createModuleTemplate($request, 'aiAssist');
+        $view->assignMultiple([
+            'actions' => $this->allowedActions,
+            'currentAction' => 'aiAssist',
+            'routeIdentifier' => 'styleguide_components',
+        ]);
+        return $view->renderResponse('Backend/Components/AiAssist');
     }
 
     private function renderAvatarView(ServerRequestInterface $request): ResponseInterface

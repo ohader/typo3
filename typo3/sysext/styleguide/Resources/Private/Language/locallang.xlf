@@ -63,6 +63,12 @@
       <trans-unit id="action.accordion.description">
         <source>Collapsible content sections that expand and collapse to show or hide information.</source>
       </trans-unit>
+      <trans-unit id="action.aiAssist">
+        <source>AI Assist</source>
+      </trans-unit>
+      <trans-unit id="action.aiAssist.description">
+        <source>Custom elements for the AI Assist chat interface, including the chat panel and its sub-components.</source>
+      </trans-unit>
       <trans-unit id="action.avatar">
         <source>Avatar</source>
       </trans-unit>
@@ -374,6 +380,31 @@
       </trans-unit>
       <trans-unit id="section.frontend.headline">
         <source>Frontend Styleguide</source>
+      </trans-unit>
+      <!-- Component: AI Assist -->
+      <trans-unit id="component.aiAssist.headline">
+        <source>AI Assist</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.introtext">
+        <source>The AI Assist extension provides a set of custom elements used to build an interactive chat interface in the TYPO3 backend.</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.quickActions.headline">
+        <source>Quick Actions Element</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.list.headline">
+        <source>List Element</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.optionsList.headline">
+        <source>Options Element (List)</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.optionsPanel.headline">
+        <source>Options Element (Panel)</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.chatElement.headline">
+        <source>Chat Element</source>
+      </trans-unit>
+      <trans-unit id="component.aiAssist.section.demoConversation.headline">
+        <source>Demo Conversation</source>
       </trans-unit>
       <!-- Component: Avatar -->
       <trans-unit id="component.avatar.headline">
