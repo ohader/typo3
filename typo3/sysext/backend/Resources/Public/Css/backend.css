@@ -3229,6 +3229,13 @@ typo3-assist-options-element .assist-chat__option-text{display:flex;gap:var(--ty
 @media (max-width:767px){
 typo3-assist-options-element .assist-chat__option-text{flex-direction:column}}
 typo3-assist-options-element .assist-chat__option-actions{padding-top:0}
+typo3-assist-options-element .assist-chat__media-row .panel{height:100%}
+typo3-assist-options-element .assist-chat__media-row .panel-body{flex-grow:1}
+typo3-assist-options-element .assist-chat__media-frame{align-items:center;background:var(--typo3-surface-container-low);border-radius:4px;display:flex;height:255px;justify-content:center;max-height:255px;overflow:hidden;width:100%}
+typo3-assist-options-element .assist-chat__media-frame--video{background:transparent;height:auto;max-height:none}
+typo3-assist-options-element .assist-chat__media-thumbnail,typo3-assist-options-element .assist-chat__media-video{display:block;max-height:100%;max-width:100%;width:auto}
+typo3-assist-options-element .assist-chat__media-thumbnail{-o-object-fit:contain;object-fit:contain}
+typo3-assist-options-element .assist-chat__media-video{height:auto;-o-object-fit:contain;object-fit:contain;width:100%}
 typo3-assist-chat-element{--typo3-spacing:1.25rem;display:block;height:100%}
 typo3-assist-chat-element .assist-chat-container{display:flex;flex-direction:column;height:100%;max-height:100%;min-height:0}
 typo3-assist-chat-element .assist-chat-header{background:var(--typo3-surface-bright);box-shadow:var(--typo3-component-box-shadow-flyout);display:flex;flex:0 0 auto;flex-wrap:wrap;gap:var(--typo3-spacing);justify-content:space-between;padding:var(--typo3-spacing);z-index:1}
@@ -3250,13 +3257,6 @@ typo3-assist-chat-element .assist-chat__response table thead>tr>*{border-bottom-
 typo3-assist-chat-element .assist-chat__text{margin:0}
 typo3-assist-chat-element .assist-chat__response--error{background:var(--typo3-state-danger-bg);border-left:3px solid var(--typo3-state-danger-border-color);border-radius:4px;padding:calc(var(--typo3-spacing)/2) var(--typo3-spacing)}
 typo3-assist-chat-element .assist-chat__text--error{color:var(--typo3-state-danger-color)}
-typo3-assist-chat-element .assist-chat__media-row .panel{height:100%}
-typo3-assist-chat-element .assist-chat__media-row .panel-body{flex-grow:1}
-typo3-assist-chat-element .assist-chat__media-frame{align-items:center;background:var(--typo3-surface-container-low);border-radius:4px;display:flex;height:255px;justify-content:center;max-height:255px;overflow:hidden;width:100%}
-typo3-assist-chat-element .assist-chat__media-frame--video{background:transparent;height:auto;max-height:none}
-typo3-assist-chat-element .assist-chat__media-thumbnail,typo3-assist-chat-element .assist-chat__media-video{display:block;max-height:100%;max-width:100%;width:auto}
-typo3-assist-chat-element .assist-chat__media-thumbnail{-o-object-fit:contain;object-fit:contain}
-typo3-assist-chat-element .assist-chat__media-video{height:auto;-o-object-fit:contain;object-fit:contain;width:100%}
 typo3-assist-chat-element .assist-chat__thinking{align-items:center;display:flex;gap:calc(var(--typo3-spacing)/2)}
 typo3-assist-chat-element .assist-chat__thinking-spinner{flex:0 0 auto;height:16px;width:16px}
 typo3-assist-chat-element .assist-chat__thinking-dot{animation:assist-chat-thinking-ripple 1.2s cubic-bezier(.52,.6,.25,.99) infinite;fill:currentColor;opacity:0;transform:scale(0);transform-box:fill-box;transform-origin:center}

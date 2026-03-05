@@ -62,6 +62,52 @@ typo3-assist-options-element {
     .assist-chat__option-actions {
         padding-top: 0;
     }
+
+    .assist-chat__media-row {
+        .panel {
+            height: 100%;
+        }
+
+        .panel-body {
+            flex-grow: 1;
+        }
+    }
+
+    .assist-chat__media-frame {
+        align-items: center;
+        background: var(--typo3-surface-container-low);
+        border-radius: 4px;
+        display: flex;
+        height: 255px;
+        justify-content: center;
+        max-height: 255px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .assist-chat__media-frame--video {
+        background: transparent;
+        height: auto;
+        max-height: none;
+    }
+
+    .assist-chat__media-thumbnail,
+    .assist-chat__media-video {
+        display: block;
+        max-height: 100%;
+        max-width: 100%;
+        width: auto;
+    }
+
+    .assist-chat__media-thumbnail {
+        object-fit: contain;
+    }
+
+    .assist-chat__media-video {
+        height: auto;
+        object-fit: contain;
+        width: 100%;
+    }
 }
 
 typo3-assist-chat-element {
@@ -195,52 +241,6 @@ typo3-assist-chat-element {
 
     .assist-chat__text--error {
         color: var(--typo3-state-danger-color);
-    }
-
-    .assist-chat__media-row {
-        .panel {
-            height: 100%;
-        }
-
-        .panel-body {
-            flex-grow: 1;
-        }
-    }
-
-    .assist-chat__media-frame {
-        align-items: center;
-        background: var(--typo3-surface-container-low);
-        border-radius: 4px;
-        display: flex;
-        height: 255px;
-        justify-content: center;
-        max-height: 255px;
-        overflow: hidden;
-        width: 100%;
-    }
-
-    .assist-chat__media-frame--video {
-        background: transparent;
-        height: auto;
-        max-height: none;
-    }
-
-    .assist-chat__media-thumbnail,
-    .assist-chat__media-video {
-        display: block;
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
-    }
-
-    .assist-chat__media-thumbnail {
-        object-fit: contain;
-    }
-
-    .assist-chat__media-video {
-        height: auto;
-        object-fit: contain;
-        width: 100%;
     }
 
     .assist-chat__thinking {
