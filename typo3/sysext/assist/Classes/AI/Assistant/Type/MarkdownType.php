@@ -44,10 +44,24 @@ final readonly class MarkdownType implements TypeInterface
                     '$comment' => 'Only these Markdown types are allowed: ' .
                         'bold, italic, links, list items, headlines, inline code, code blocks, tables. ' .
                         'Any other types are not allowed.',
+                    'examples' => [
+                        '**bold text**',
+                        '*italic text*',
+                        '[Link label](https://example.com)',
+                        "- First item\n- Second item\n- Third item",
+                        "# Headline\n## Subheadline",
+                        '`inline code`',
+                        "```php\n\$variable = 'value';\necho \$variable;\n```",
+                        "| Column 1 | Column 2 |\n|----------|----------|\n| Cell A   | Cell B   |",
+                    ],
                 ],
             ],
             'required' => ['type', 'value'],
             'additionalProperties' => false,
+            'examples' => [
+                ['type' => 'markdown', 'value' => "**bold** and *italic* text"],
+                ['type' => 'markdown', 'value' => "| Column 1 | Column 2 |\n|----------|----------|\n| Cell A   | Cell B   |\n"],
+            ],
         ];
     }
 
