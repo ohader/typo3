@@ -52,7 +52,7 @@ final readonly class FetchPageRecords
         if ($showHidden) {
             $queryBuilder->getRestrictions()->removeByType(HiddenRestriction::class);
         }
-        if ($filter === '') {
+        if ($filter !== '') {
             $predicates[] = $queryBuilder->expr()->like(
                 'title',
                 $queryBuilder->createNamedParameter('%' . $queryBuilder->escapeLikeWildcards($filter) . '%')
