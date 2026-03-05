@@ -74,6 +74,10 @@ class NumbAssistantTest extends FunctionalTestCase
     public function passThroughAssistantCanSendMessage(string $payload, string $expectation): void
     {
         $assistant = new class () implements AssistantInterface {
+            public function getSystemPrompt(): ?string
+            {
+                return null;
+            }
             public function getToolPolicy(): ?ToolPolicy
             {
                 return null;
@@ -100,6 +104,10 @@ class NumbAssistantTest extends FunctionalTestCase
     public function systemPromptAssistantCanSendMessage(): void
     {
         $assistant = new class () implements AssistantInterface {
+            public function getSystemPrompt(): ?string
+            {
+                return null;
+            }
             public function getToolPolicy(): ?ToolPolicy
             {
                 return null;
@@ -132,6 +140,10 @@ class NumbAssistantTest extends FunctionalTestCase
     public function passThroughAssistantCanSendImage(): void
     {
         $assistant = new class () implements AssistantInterface {
+            public function getSystemPrompt(): ?string
+            {
+                return null;
+            }
             public function getToolPolicy(): ?ToolPolicy
             {
                 return null;
