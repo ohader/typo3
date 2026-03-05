@@ -30,7 +30,7 @@ final readonly class PlatformDetails
 {
     private const ADDITIONAL_DETAILS = [
         'mittwald/symfony-ai-platform' => [
-            'endpointParam' => 'baseUrl',
+            'baseUrl' => 'https://api.mittwald.de/',
             'models' => [
                 'listEndpoint' => [
                     'path' => '/v1/models',
@@ -51,7 +51,7 @@ final readonly class PlatformDetails
             ],
         ],
         'symfony/ai-anthropic-platform' => [
-            'endpointParam' => 'baseUrl',
+            'baseUrl' => 'https://api.anthropic.com/',
             'models' => [
                 'listEndpoint' => [
                     'path' => '/v1/models',
@@ -149,7 +149,8 @@ final readonly class PlatformDetails
             ],
         ],
         'symfony/ai-open-ai-platform' => [
-            'endpointParam' => 'baseUrl',
+            // @todo does not consider potential region setting
+            'baseUrl' => 'https://api.openai.com/',
             'models' => [
                 'listEndpoint' => [
                     'path' => '/v1/models',
@@ -209,6 +210,11 @@ final readonly class PlatformDetails
     public function getAdditionalHeaders(string $platform): array
     {
         return $this->get($platform)['headers'] ?? [];
+    }
+
+    public function getBaseUrl(string $platform): ?string
+    {
+        return $this->get($platform)['baseUrl'] ?? null;
     }
 
     public function getModelMapping(string $platform): array

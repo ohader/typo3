@@ -141,20 +141,19 @@ final readonly class PlatformBridgeBuilder
 
     private function resolveBaseUrl(BeforeBuildPlatformBridgeEvent $event): ?string
     {
+        $baseUrl = $this->platformDetails->getBaseUrl($event->platform->package);
+        if (!empty($baseUrl)) {
+            return $baseUrl;
+        }
+
         $paramName = $this->platformDetails->getPlatformEndpointParam($event->platform->package);
-        if ($paramName === null) {
-            return null;
-        }
-
-        $options = $event->getOptions()['platformFactory'] ?? [];
-        $baseUrl = $options[$paramName] ?? null;
-
-        if ($baseUrl === null || $baseUrl === '') {
+        if ($paramName !== null) {
             $defaults = $event->reflector->getPlatformFactoryOptions();
-            $baseUrl = $defaults[$paramName] ?? null;
+            $options = $event->getOptions()['platformFactory'] ?? [];
+            $baseUrl = $options[$paramName] ?? $defaults[$paramName] ?? null;
         }
 
-        return $baseUrl !== null && $baseUrl !== '' ? $baseUrl : null;
+        return !empty($baseUrl) ? $baseUrl : null;
     }
 
     /**
