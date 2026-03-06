@@ -6,7 +6,8 @@ CREATE TABLE sys_assist_progress (
 	 user_id int(11) unsigned DEFAULT '0' NOT NULL,
 	 timestamp datetime(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
 
-	 PRIMARY KEY (uuid)
+	 PRIMARY KEY (uuid),
+	 KEY user_id_timestamp (user_id, timestamp)
 );
 
 CREATE TABLE sys_assist_progress_item (
