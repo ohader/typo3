@@ -70,7 +70,19 @@ interface ListFeedbackItem {
   items: string[];
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem;
+interface QuickActionItemData {
+  identifier: string;
+  text: string;
+}
+
+interface QuickActionsFeedbackItem {
+  type: 'quick-actions';
+  key: string;
+  text: string;
+  items: QuickActionItemData[];
+}
+
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -410,6 +422,18 @@ export class ChatElement extends LitElement {
       return html`
         <div class="assist-chat__response">
           <typo3-assist-list-element .items=${item.items}></typo3-assist-list-element>
+        </div>
+      `;
+    }
+    if (item.type === 'quick-actions') {
+      return html`
+        <div class="assist-chat__response">
+          <typo3-assist-quick-actions-element
+            key=${item.key}
+            text=${item.text}
+            .items=${item.items}
+            @typo3-assist-quick-action-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+          ></typo3-assist-quick-actions-element>
         </div>
       `;
     }
