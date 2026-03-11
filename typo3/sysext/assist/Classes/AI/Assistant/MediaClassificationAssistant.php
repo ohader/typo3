@@ -172,6 +172,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     private function initializeProcess(): AssistantResponse
     {
+        $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-inline-chat');
         $options = $this->buildTargetLanguageOptionItems();
 
         if (count($options) >= 2) {
@@ -187,7 +188,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $feedback = [new TextFeedback('All image files are already fully classified.')];
         }
 
-        return new AssistantResponse(feedback: $feedback);
+        return new AssistantResponse(feedback: $feedback, model: (string)$model);
     }
 
     private function processStep(Progress $progress, Step $step, int $languageChoice): AssistantResponse
@@ -210,7 +211,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 $this->getBackendUserLanguageHint(),
                 '',
                 'Respond only in JSON matching this schema:',
-                Type\OptionsAggregate::of(Type\TextType::class)
+                Type\OptionsAggregate::of(Type\TextType::class),
             ])),
             Message::ofUser(
                 sprintf(

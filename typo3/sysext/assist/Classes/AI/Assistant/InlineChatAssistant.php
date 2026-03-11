@@ -144,7 +144,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
         $feedback = $this->parseFeedback($output);
 
-        return new AssistantResponse(feedback: $feedback, progress: $progress);
+        return new AssistantResponse(feedback: $feedback, progress: $progress, model: (string)$model);
     }
 
     private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse

@@ -34,6 +34,7 @@ final readonly class AssistantResponse
         public ?StepCollection $steps = null,
         public ?Progress $progress = null,
         public ?string $error = null,
+        public ?string $model = null,
     ) {}
 
     public function toResponse(): JsonResponse
@@ -48,6 +49,7 @@ final readonly class AssistantResponse
                 ? ['uuid' => (string)$this->progress->uuid]
                 : null,
             'step' => $stepIndex,
+            'model' => $this->model,
         ];
         if ($this->error !== null) {
             $data['error'] = $this->error;
