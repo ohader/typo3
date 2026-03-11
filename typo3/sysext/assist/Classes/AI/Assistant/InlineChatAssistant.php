@@ -46,7 +46,7 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 )]
 final readonly class InlineChatAssistant implements AssistantInterface
 {
-    use BackendUserLanguageTrait;
+    use AssistantContextTrait;
 
     public function __construct(
         private ProgressRepository $progressRepository,
@@ -126,8 +126,8 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $progress = new Progress(
             uuid: Uuid::v4(),
             model: $model,
-            initiator: new Initiator(type: 'assistant', subject: 'typo3-assist-inline-chat'),
-            userId: (int)($GLOBALS['BE_USER']->user['uid'] ?? 0),
+            initiator: new Initiator(type: 'assistant', subject: $this->resolveAssistantAttribute($this)->identifier),
+            userId: $this->getBackendUserId(),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
         );
         $this->progressRepository->add($progress);

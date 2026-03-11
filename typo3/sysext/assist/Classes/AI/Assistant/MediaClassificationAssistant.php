@@ -57,6 +57,8 @@ use TYPO3\CMS\Core\Resource\StorageRepository;
 )]
 final readonly class MediaClassificationAssistant implements AssistantInterface
 {
+    use AssistantContextTrait;
+
     public function __construct(
         private StorageRepository $storageRepository,
         private ProgressRepository $progressRepository,
@@ -158,7 +160,8 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $progress = new Progress(
             uuid: Uuid::v4(),
             model: $model,
-            initiator: new Initiator(type: 'assistant', subject: 'typo3-assist-media-classification'),
+            initiator: new Initiator(type: 'assistant', subject: $this->resolveAssistantAttribute($this)->identifier),
+            userId: $this->getBackendUserId(),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
         );
         $this->progressRepository->add($progress);
@@ -314,8 +317,6 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         if ($newMessage !== '') {
             $this->progressRepository->append(
                 uuid: $progress->uuid,
-                model: $progress->model,
-                initiator: $progress->initiator,
                 item: new ProgressItem(ProgressItemType::submitted, $newMessage),
             );
             $messages[] = Message::ofUser($newMessage);
