@@ -50,11 +50,17 @@ interface MarkdownFeedbackItem {
   text: string;
 }
 
+interface ConfirmationItemData {
+  identifier: string;
+  text: string;
+}
+
 interface ConfirmationFeedbackItem {
   type: 'confirmation';
+  key: string;
   text: string;
-  acceptLabel: string;
-  declineLabel: string;
+  accept: ConfirmationItemData;
+  decline: ConfirmationItemData;
 }
 
 type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
@@ -163,13 +169,6 @@ export class ChatElement extends LitElement {
           ${this.renderSteps()}
         </div>
         <div class="assist-chat">
-          <div class="assist-chat__response">
-            <typo3-assist-quick-actions-element
-              .items=${[{ identifier:'i',text:'Improve readability' }]}
-              @typo3-assist-quick-actions-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}>
-            </typo3-assist-quick-actions-element>
-          </div>
-
           ${this.renderMessages()}
           ${this.isLoading ? this.renderThinking() : nothing}
           ${this.renderInput()}
@@ -387,8 +386,8 @@ export class ChatElement extends LitElement {
         <div class="assist-chat__response">
           <p class="assist-chat__text">${item.text}</p>
           <div class="assist-chat__confirmation-actions">
-            <button type="button" class="btn btn-primary" @click=${() => this.sendRequest(item.acceptLabel)}>${item.acceptLabel}</button>
-            <button type="button" class="btn btn-default" @click=${() => this.sendRequest(item.declineLabel)}>${item.declineLabel}</button>
+            <button type="button" class="btn btn-primary" @click=${() => this.sendRequest(item.accept.text, { [item.key]: item.accept.identifier })}>${item.accept.text}</button>
+            <button type="button" class="btn btn-default" @click=${() => this.sendRequest(item.decline.text, { [item.key]: item.decline.identifier })}>${item.decline.text}</button>
           </div>
         </div>
       `;

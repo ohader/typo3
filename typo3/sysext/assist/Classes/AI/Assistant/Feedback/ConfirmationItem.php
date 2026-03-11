@@ -17,28 +17,18 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
-final readonly class ConfirmationFeedback implements FeedbackInterface
+final readonly class ConfirmationItem
 {
     public function __construct(
-        public string $key,
+        public string $identifier,
         public string $text,
-        public ConfirmationItem $accept,
-        public ConfirmationItem $decline,
     ) {}
-
-    public function getText(): string
-    {
-        return $this->text;
-    }
 
     public function jsonSerialize(): array
     {
         return [
-            'type' => 'confirmation',
-            'key' => $this->key,
+            'identifier' => $this->identifier,
             'text' => $this->text,
-            'accept' => $this->accept,
-            'decline' => $this->decline,
         ];
     }
 }
