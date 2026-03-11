@@ -21,4 +21,11 @@ enum ProgressItemType: string
 {
     case submitted = 'submitted';
     case received = 'received';
+    case steps = 'steps';
+    case note = 'note';
+
+    public function isMessage(): bool
+    {
+        return in_array($this, [self::submitted, self::received], true);
+    }
 }

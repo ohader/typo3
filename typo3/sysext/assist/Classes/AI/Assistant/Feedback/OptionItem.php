@@ -30,6 +30,14 @@ final readonly class OptionItem implements FeedbackInterface
         return $this->text;
     }
 
+    public function getTextAndDetails(): string
+    {
+        if ($this->details === null or $this->details === '') {
+            return $this->text;
+        }
+        return $this->text . ' (' . $this->details . ')';
+    }
+
     public function jsonSerialize(): array
     {
         return [
