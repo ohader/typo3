@@ -53,9 +53,9 @@ class ProgressRepositoryTest extends FunctionalTestCase
     {
         $uuid = Uuid::v4();
 
-        $seq0 = $this->subject->append($uuid, new ProgressItem(ProgressItemType::submitted, 'hello'));
-        $seq1 = $this->subject->append($uuid, new ProgressItem(ProgressItemType::received, 'world'));
-        $seq2 = $this->subject->append($uuid, new ProgressItem(ProgressItemType::submitted, 'follow-up'));
+        $seq0 = $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::submitted, 'hello'));
+        $seq1 = $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::received, 'world'));
+        $seq2 = $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::submitted, 'follow-up'));
 
         self::assertSame(0, $seq0);
         self::assertSame(1, $seq1);
@@ -70,8 +70,8 @@ class ProgressRepositoryTest extends FunctionalTestCase
         $initiator = new Initiator('assistant', 'typo3-assist-a11y');
 
         $this->subject->add(new Progress($uuid, $model, $initiator, userId: 0, items: []));
-        $this->subject->append($uuid, new ProgressItem(ProgressItemType::submitted, 'first'));
-        $this->subject->append($uuid, new ProgressItem(ProgressItemType::received, 'second'));
+        $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::submitted, 'first'));
+        $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::received, 'second'));
 
         $progress = $this->subject->findByUuid($uuid);
 
@@ -100,9 +100,9 @@ class ProgressRepositoryTest extends FunctionalTestCase
         $uuid1 = Uuid::v4();
         $uuid2 = Uuid::v4();
 
-        $this->subject->append($uuid1, new ProgressItem(ProgressItemType::submitted, null));
-        $this->subject->append($uuid1, new ProgressItem(ProgressItemType::received, null));
-        $seq = $this->subject->append($uuid2, new ProgressItem(ProgressItemType::submitted, null));
+        $this->subject->appendItem($uuid1, new ProgressItem(ProgressItemType::submitted, null));
+        $this->subject->appendItem($uuid1, new ProgressItem(ProgressItemType::received, null));
+        $seq = $this->subject->appendItem($uuid2, new ProgressItem(ProgressItemType::submitted, null));
 
         self::assertSame(0, $seq);
     }
@@ -115,7 +115,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
         $initiator = new Initiator('assistant', 'typo3-assist-inline');
 
         $this->subject->add(new Progress($uuid, $model, $initiator, userId: 0, items: []));
-        $this->subject->append($uuid, new ProgressItem(ProgressItemType::received, 'response'));
+        $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::received, 'response'));
 
         $progress = $this->subject->findByUuid($uuid);
         self::assertInstanceOf(Progress::class, $progress);
@@ -132,7 +132,7 @@ class ProgressRepositoryTest extends FunctionalTestCase
         $initiator = new Initiator('assistant', 'typo3-assist-a11y');
 
         $this->subject->add(new Progress($uuid, $model, $initiator, userId: 0, items: []));
-        $this->subject->append($uuid, new ProgressItem(ProgressItemType::submitted, 'hello'));
+        $this->subject->appendItem($uuid, new ProgressItem(ProgressItemType::submitted, 'hello'));
 
         $progress = $this->subject->findByUuid($uuid);
 

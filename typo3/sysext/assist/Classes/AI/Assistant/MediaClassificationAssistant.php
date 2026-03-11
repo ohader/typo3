@@ -17,11 +17,14 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
+use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\BoomerangFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
@@ -37,15 +40,16 @@ use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Assist\Domain\Model\Step;
+use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\FileType;
-use TYPO3\CMS\Core\Resource\StorageRepository;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Utility\MathUtility;
 
 #[AsAssistant(
     identifier: self::IDENTIFIER,
@@ -62,7 +66,6 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     use AssistantContextTrait;
 
     public function __construct(
-        private StorageRepository $storageRepository,
         private ProgressRepository $progressRepository,
         private TranslationConfigurationProvider $translationConfigurationProvider,
         private AssistantOrchestrator $orchestrator,
@@ -70,6 +73,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         private ConfigurationResolver $configurationResolver,
         private ResultConverter $resultConverter,
         private ConnectionPool $connectionPool,
+        private ResourceFactory $resourceFactory,
     ) {}
 
     public function getSystemPrompt(): ?string
@@ -107,70 +111,120 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
         $progressUuid = $request->getProgressUuid();
+        $stepIndex = $request->getStepIndex();
 
-        if ($progressUuid !== null) {
-            return $this->continueProgress($progressUuid, $request);
+        $languageChoice = $request->params['language-choice'] ?? null;
+        $stepChoice = $request->params['step-choice'] ?? null;
+
+        if ($languageChoice === '') {
+            return new AssistantResponse(feedback: [new TextFeedback("Cancelled. We're done here...")]);
         }
 
-        if (isset($request->params['language']) || isset($request->params['message'])) {
-            return $this->startConversation($request);
+        // raise questions about what to do actually
+        if ($progressUuid === null && $languageChoice === null) {
+            return $this->initializeProcess();
         }
 
-        return $this->initializeProgress($request);
+        // initialize progress and steps
+        if ($progressUuid === null && MathUtility::canBeInterpretedAsInteger($languageChoice)) {
+            $progress = $this->createProgress();
+            $steps = $this->buildSteps((int)$languageChoice);
+            // @todo steps persistance should be handled more generic in an upper layer
+            $this->progressRepository->appendSteps($progress->uuid, $steps);
+            return new AssistantResponse(
+                feedback: [
+                    new TextFeedback("Alright, let's get started..."),
+                    // @todo language-choice should be stored internally with progress (e.g. in a `choices` collection)
+                    new BoomerangFeedback(params: ['language-choice' => $languageChoice]),
+                ],
+                steps: $steps,
+                progress: $progress,
+            );
+        }
+
+        if (!MathUtility::canBeInterpretedAsInteger($languageChoice)) {
+            return new AssistantResponse(error: 'Unexpected state: No language choice submitted.');
+        }
+        if ($progressUuid === null) {
+            return new AssistantResponse(error: 'Unexpected state: No progress header submitted.');
+        }
+        $progress = $this->progressRepository->findByUuid($progressUuid);
+
+        if ($stepIndex === null) {
+            $nextStep = $progress->steps?->findNext();
+            if ($nextStep === null) {
+                return new AssistantResponse(error: 'Unexpected state: No next step available.');
+            }
+            return $this->processStep($progress, $nextStep, (int)$languageChoice);
+        }
+
+        if ($stepChoice !== null) {
+            // @todo apply step choice
+            $nextStep = $progress->steps?->findNext();
+            if ($nextStep === null) {
+                return new AssistantResponse(feedback: [new TextFeedback('All done!')]);
+            }
+            return $this->processStep($progress, $nextStep, $languageChoice);
+        }
+
+        return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
     }
 
-    private function initializeProgress(AssistantRequest $request): AssistantResponse
+    private function initializeProcess(): AssistantResponse
     {
-        $steps = $this->buildSteps();
-        $options = array_slice($this->buildInitialOptionItems(), 0, 4);
+        $options = $this->buildTargetLanguageOptionItems();
 
         if (count($options) >= 2) {
-            $feedback = [new OptionsFeedback(key: 'language', text: 'Select a language to process:', options: $options)];
+            $feedback = [new OptionsFeedback(key: 'language-choice', text: 'Select a language to process:', options: $options)];
         } elseif (count($options) === 1) {
             $feedback = [new ConfirmationFeedback(
-                text: $options[0]->text,
-                acceptLabel: 'Start',
-                declineLabel: 'Cancel',
+                key: 'language-choice',
+                text: $options[0]->getTextAndDetails(),
+                accept: new ConfirmationItem($options[0]->identifier, 'Start'),
+                decline: new ConfirmationItem('', 'Cancel'),
             )];
         } else {
             $feedback = [new TextFeedback('All image files are already fully classified.')];
         }
 
-        return new AssistantResponse(steps: $steps, feedback: $feedback);
+        return new AssistantResponse(feedback: $feedback);
     }
 
-    private function startConversation(AssistantRequest $request): AssistantResponse
+    private function processStep(Progress $progress, Step $step, int $languageChoice): AssistantResponse
     {
-        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
-        if ($model === null) {
-            return new AssistantResponse(feedback: [new TextFeedback('No model configured for this assistant.')]);
-        }
-
-        $languageUid = $this->resolveLanguageUid($request);
-        if ($languageUid === null) {
-            return new AssistantResponse(feedback: [new TextFeedback('Unable to determine language to process.')]);
-        }
+        // @todo handle unassigned models much earlier in the call stack
+        $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-inline-chat');
 
         $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
-        $language = $languages[$languageUid] ?? null;
-        $languageLabel = $languageUid === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $languageUid);
-        $message = sprintf(
-            'Classify image metadata (title, description, alternative text) for language: %s',
-            $languageLabel,
-        );
+        $language = $languages[$languageChoice] ?? null;
+        $languageLabel = $languageChoice === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $languageChoice);
 
-        $progress = new Progress(
-            uuid: Uuid::v4(),
-            model: $model,
-            initiator: new Initiator(type: 'assistant', subject: self::IDENTIFIER),
-            userId: $this->getBackendUserId(),
-            items: [new ProgressItem(ProgressItemType::submitted, $message)],
-        );
-        $this->progressRepository->add($progress);
+        // @todo ugly and hardcoded, should use a generic subject pointer for resolving resources
+        $file = $this->resourceFactory->getFileObject((int)$step->identifier);
 
-        $input = new AgentInput($model, Message::ofUser($message));
-        $input->progress = $progress;
-        $input->sequencePointer = new SequencePointer(submitted: 1);
+        $messages = [
+            Message::forSystem(implode("\n", [
+                'You are a friendly and helpful assistant in the TYPO3 CMS backend.',
+                'This is a specific assistant agent that receives image data and generates ',
+                'metadata in the requested language.',
+                $this->getBackendUserLanguageHint(),
+                '',
+                'Respond only in JSON matching this schema:',
+                Type\OptionsAggregate::of(Type\TextType::class)
+            ])),
+            Message::ofUser(
+                sprintf(
+                    'Classify image metadata (title, description, alternative text) for language "%s" for the following image:',
+                    $languageLabel,
+                ),
+                new Image($file->getContents(), $file->getMimeType()),
+            ),
+        ];
+
+        $input = new AgentInput($model, ...$messages);
+        // @todo step-progress probably needs to be stored differently (internal, to avoid repeating all messages)
+        // $input->progress = $progress;
+        // $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
 
         $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
@@ -180,29 +234,26 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             fn($result) => $this->resultConverter->convert($result),
             $output->getResultBag()->getResults(),
         );
-
-        return new AssistantResponse(feedback: $feedback, progress: $progress);
+        return new AssistantResponse(feedback: $feedback, step: $step);
     }
 
-    private function resolveLanguageUid(AssistantRequest $request): ?int
+    private function createProgress(): Progress
     {
-        if (isset($request->params['language'])) {
-            return (int)$request->params['language'];
-        }
-
-        // Fallback for single-language confirmation flow: re-query to find the only option
-        $options = $this->buildInitialOptionItems();
-        if (count($options) === 1) {
-            return (int)$options[0]->identifier;
-        }
-
-        return null;
+        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
+        $progress = new Progress(
+            uuid: Uuid::v4(),
+            model: $model,
+            initiator: new Initiator(type: 'assistant', subject: self::IDENTIFIER),
+            userId: $this->getBackendUserId(),
+        );
+        $this->progressRepository->add($progress);
+        return $progress;
     }
 
     /**
      * @return list<OptionItem>
      */
-    private function buildInitialOptionItems(): array
+    private function buildTargetLanguageOptionItems(): array
     {
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
         $queryBuilder->getRestrictions()->removeAll();
@@ -255,49 +306,62 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $label = $langUid === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $langUid);
             $options[] = new OptionItem(
                 identifier: (string)$langUid,
-                text: sprintf('Process %s (%d %s)', $label, $count, $count === 1 ? 'file' : 'files'),
-                details: $language['ISOcode'] ?? null,
+                text: sprintf('Process language %s', $label),
+                details: sprintf(
+                    '%s%d %s',
+                        !empty($language['ISOcode']) ? $language['ISOcode'] . ', ' : '',
+                    $count,
+                    $count === 1 ? 'file' : 'files'),
             );
         }
 
         return $options;
     }
 
-    private function buildSteps(): array
+    private function buildSteps(int $targetLanguage): StepCollection
     {
-        $files = [];
-        foreach ($this->storageRepository->findAll() as $storage) {
-            $folder = $storage->getRootLevelFolder();
-            foreach ($storage->getFilesInFolder($folder, recursive: true) as $file) {
-                if ($file->getUid() > 0) {
-                    $files[] = $file;
-                }
-            }
-        }
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
+        $queryBuilder->getRestrictions()->removeAll();
 
-        $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
+        $rows = $queryBuilder
+            ->select('sf.uid', 'sf.identifier')
+            ->from('sys_file_metadata', 'sfm')
+            ->innerJoin(
+                'sfm',
+                'sys_file',
+                'sf',
+                $queryBuilder->expr()->eq('sf.uid', $queryBuilder->quoteIdentifier('sfm.file')),
+            )
+            ->where(
+                $queryBuilder->expr()->eq(
+                    'sf.type',
+                    $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->eq(
+                    'sfm.sys_language_uid',
+                    $queryBuilder->createNamedParameter($targetLanguage, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->or(
+                    $queryBuilder->expr()->isNull('sfm.title'),
+                    $queryBuilder->expr()->eq('sfm.title', $queryBuilder->createNamedParameter('')),
+                    $queryBuilder->expr()->isNull('sfm.description'),
+                    $queryBuilder->expr()->eq('sfm.description', $queryBuilder->createNamedParameter('')),
+                    $queryBuilder->expr()->isNull('sfm.alternative'),
+                    $queryBuilder->expr()->eq('sfm.alternative', $queryBuilder->createNamedParameter('')),
+                ),
+            )
+            ->orderBy('sf.identifier', 'ASC')
+            ->executeQuery()
+            ->fetchAllAssociative();
 
-        $fileSubs = array_map(
-            static fn(File $file): Step => new Step(
-                identifier: $file->getIdentifier(),
-                description: $file->getIdentifier(),
-                subject: 'sys_file:' . $file->getUid(),
+        return new StepCollection(array_map(
+            static fn(array $row): Step => new Step(
+                identifier: (string)$row['uid'],
+                description: (string)$row['identifier'],
+                subject: 'sys_file:' . $row['uid'],
             ),
-            $files,
-        );
-
-        $steps = [];
-        foreach ($languages as $language) {
-            $label = $language['uid'] === 0 ? 'default' : $language['title'];
-            $steps[] = new Step(
-                identifier: (string)$language['uid'],
-                description: 'Resolve title, description and alternative text (language: ' . $label . ')',
-                subject: '',
-                subs: $fileSubs,
-            );
-        }
-
-        return array_values($steps);
+            $rows,
+        ));
     }
 
     private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse
@@ -317,7 +381,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
         $newMessage = (string)($request->params['message'] ?? '');
         if ($newMessage !== '') {
-            $this->progressRepository->append(
+            $this->progressRepository->appendItem(
                 uuid: $progress->uuid,
                 item: new ProgressItem(ProgressItemType::submitted, $newMessage),
             );
@@ -338,23 +402,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $output->getResultBag()->getResults(),
         );
 
-        $steps = $this->deserializeSteps($request->params['steps'] ?? []);
+        $steps = StepCollection::fromArray($request->params['steps'] ?? []);
         return new AssistantResponse(steps: $steps, feedback: $feedback, progress: $progress);
-    }
-
-    private function deserializeSteps(array $raw): array
-    {
-        return array_map(
-            function (array $item): Step {
-                return new Step(
-                    identifier: (string)($item['identifier'] ?? ''),
-                    description: (string)($item['description'] ?? ''),
-                    subject: (string)($item['subject'] ?? ''),
-                    subs: $this->deserializeSteps($item['subs'] ?? []),
-                    done: (bool)($item['done'] ?? false),
-                );
-            },
-            $raw,
-        );
     }
 }

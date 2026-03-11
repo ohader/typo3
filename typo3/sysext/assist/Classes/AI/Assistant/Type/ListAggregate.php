@@ -22,7 +22,7 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Type;
  *
  * @internal
  */
-final readonly class ListAggregate implements AggregateInterface
+final readonly class ListAggregate implements AggregateInterface, \Stringable
 {
     /**
      * @param class-string<TypeInterface>|UnionAggregate $itemType Class-string implementing StaticTypeInterface, or a UnionAggregate
@@ -32,6 +32,11 @@ final readonly class ListAggregate implements AggregateInterface
         private string|UnionAggregate $itemType,
         public array $items = [],
     ) {}
+
+    public function __toString(): string
+    {
+        return json_encode($this->toJsonSchema(), JSON_THROW_ON_ERROR);
+    }
 
     public static function of(string|UnionAggregate $itemType): self
     {

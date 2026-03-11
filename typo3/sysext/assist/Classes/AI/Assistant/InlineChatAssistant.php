@@ -164,7 +164,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
         $newMessage = (string)($request->params['message'] ?? '');
         if ($newMessage !== '') {
-            $this->progressRepository->append(
+            $this->progressRepository->appendItem(
                 uuid: $progress->uuid,
                 item: new ProgressItem(ProgressItemType::submitted, $newMessage),
             );

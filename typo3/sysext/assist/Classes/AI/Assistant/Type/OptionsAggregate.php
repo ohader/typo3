@@ -23,20 +23,25 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Type;
  *
  * @internal
  */
-final readonly class OptionsAggregate implements AggregateInterface
+final readonly class OptionsAggregate implements AggregateInterface, \Stringable
 {
     /**
      * @param class-string<TypeInterface>|UnionAggregate $itemType Class-string implementing StaticTypeInterface, or a UnionAggregate
      * @param AggregateInterface[] $items Populated after parse()
      */
+    public static function of(string|UnionAggregate $itemType): self
+    {
+        return new self($itemType);
+    }
+
     public function __construct(
         private string|UnionAggregate $itemType,
         public array $items = [],
     ) {}
 
-    public static function of(string|UnionAggregate $itemType): self
+    public function __toString(): string
     {
-        return new self($itemType);
+        return json_encode($this->toJsonSchema(), JSON_THROW_ON_ERROR);
     }
 
     public function getDiscriminator(): string

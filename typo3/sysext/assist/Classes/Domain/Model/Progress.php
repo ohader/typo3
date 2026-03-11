@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Domain\Model;
 
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 
 /**
  * @internal
@@ -33,7 +34,8 @@ final readonly class Progress
         public PlatformModel $model,
         public Initiator $initiator,
         public int $userId,
-        public array $items,
+        public array $items = [],
+        public ?StepCollection $steps = null,
     ) {}
 
     /**
@@ -44,12 +46,25 @@ final readonly class Progress
     {
         usort($itemRows, static fn(array $a, array $b): int => $a['sequence'] <=> $b['sequence']);
 
+        $stepsRow = null;
+        foreach ($itemRows as $row) {
+            // only takes the last step occurrence here
+            $rowType = ProgressItemType::tryFrom($row['type']);
+            if ($rowType === ProgressItemType::steps) {
+                $stepsRow = $row;
+            }
+        }
+        $steps = $stepsRow !== null
+            ? StepCollection::fromArray(json_decode($stepsRow['payload'], true))
+            : null;
+
         return new self(
             uuid: Uuid::fromString($parentRow['uuid']),
             model: PlatformModel::fromString($parentRow['model']),
             initiator: Initiator::fromJson($parentRow['initiator']),
             userId: (int)$parentRow['user_id'],
             items: array_map(ProgressItem::fromRow(...), $itemRows),
+            steps: $steps,
         );
     }
 }

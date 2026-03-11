@@ -19,8 +19,10 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
+use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
@@ -92,11 +94,17 @@ final readonly class ProgressRepository
         }
     }
 
-    public function append(Uuid $uuid, ProgressItem $item): int
+    public function appendItem(Uuid $uuid, ProgressItem $item): int
     {
         $sequence = $this->nextSequence($uuid);
         $this->assign($uuid, $sequence, $item);
         return $sequence;
+    }
+
+    public function appendSteps(Uuid $uuid, StepCollection $steps): int
+    {
+        $item = new ProgressItem(ProgressItemType::steps, $steps);
+        return $this->appendItem($uuid, $item);
     }
 
     private function assign(Uuid $uuid, int $sequence, ProgressItem $item): void

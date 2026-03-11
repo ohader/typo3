@@ -22,19 +22,24 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Type;
  *
  * @internal
  */
-final class UnionAggregate
+final class UnionAggregate implements \Stringable
 {
-    /**
-     * @param AggregateInterface[] $types
-     */
-    private function __construct(private readonly array $types) {}
-
     /**
      * @param class-string<TypeInterface>|AggregateInterface ...$types Class-strings implementing StaticTypeInterface, or AggregateInterface instances
      */
     public static function of(string|AggregateInterface ...$types): self
     {
         return new self(array_values($types));
+    }
+
+    /**
+     * @param AggregateInterface[] $types
+     */
+    private function __construct(private readonly array $types) {}
+
+    public function __toString(): string
+    {
+        return json_encode($this->toJsonSchema(), JSON_THROW_ON_ERROR);
     }
 
     /** Returns {"oneOf": [...]} */
@@ -66,11 +71,6 @@ final class UnionAggregate
             sprintf('Unknown output format type "%s".', $discriminator),
             1740999601,
         );
-    }
-
-    public function __toString(): string
-    {
-        return json_encode($this->toJsonSchema(), JSON_THROW_ON_ERROR);
     }
 
     private function isStaticType(mixed $type): bool

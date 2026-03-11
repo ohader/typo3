@@ -40,7 +40,7 @@ final readonly class ProgressRecorder implements ProgressRecorderInterface
         }
         $items = $progress->items;
         for ($i = $sequencePointer->submitted(), $end = count($items); $i < $end; $i++) {
-            $sequence = $this->progressRepository->append(
+            $sequence = $this->progressRepository->appendItem(
                 uuid: $progress->uuid,
                 item: $items[$i],
             );
@@ -55,7 +55,7 @@ final readonly class ProgressRecorder implements ProgressRecorderInterface
         if ($progress === null || $sequencePointer === null) {
             return;
         }
-        $sequence = $this->progressRepository->append(
+        $sequence = $this->progressRepository->appendItem(
             uuid: $progress->uuid,
             item: new ProgressItem(
                 type: ProgressItemType::received,

@@ -63,7 +63,12 @@ interface ConfirmationFeedbackItem {
   decline: ConfirmationItemData;
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
+interface BoomerangFeedbackItem {
+  type: 'boomerang';
+  params: Record<string, string>;
+}
+
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem | BoomerangFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -73,6 +78,7 @@ type ChatEntry =
 interface AssistantServerResponse {
   feedback: AssistFeedbackItem[];
   steps: AssistChatStep[];
+  step: number | null;
   progress: { uuid: string } | null;
   error?: string;
 }
@@ -110,6 +116,7 @@ export class ChatElement extends LitElement {
   @state() steps: AssistChatStep[] = [];
   @state() isLoading: boolean = false;
   @state() private progressUuid: string | null = null;
+  @state() private stepIndex: number | null = null;
   @state() private messages: ChatEntry[] = [];
 
   private historyIndex = -1;
@@ -243,6 +250,9 @@ export class ChatElement extends LitElement {
     if (this.progressUuid) {
       headers['x-typo3-assist-progress'] = this.progressUuid;
     }
+    if (this.stepIndex !== null) {
+      headers['x-typo3-assist-step'] = String(this.stepIndex);
+    }
 
     try {
       const body: Record<string, unknown> = { identifier: this.assistant };
@@ -261,10 +271,18 @@ export class ChatElement extends LitElement {
         return;
       }
       this.steps = data.steps ?? [];
-      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
+      if (data.step !== undefined) {
+        this.stepIndex = data.step;
+      }
+      const boomerang = data.feedback.find((item): item is BoomerangFeedbackItem => item.type === 'boomerang');
+      const visibleFeedback = data.feedback.filter(item => item.type !== 'boomerang');
+      const newEntries: ChatEntry[] = visibleFeedback.map(item => ({ kind: 'assistant' as const, item }));
       this.messages = [...this.messages, ...newEntries];
       if (data.progress?.uuid) {
         this.progressUuid = data.progress.uuid;
+      }
+      if (boomerang !== undefined) {
+        await this.sendRequest('', boomerang.params);
       }
     } catch (e) {
       this.appendErrorMessage(e instanceof Error ? e.message : 'Network error. Please try again.');
@@ -411,16 +429,19 @@ export class ChatElement extends LitElement {
         </div>
       `;
     }
-    return html`
-      <div class="assist-chat__response">
-        <typo3-assist-options-element
-          key=${item.key}
-          text=${item.text}
-          .items=${item.options}
-          @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
-        ></typo3-assist-options-element>
-      </div>
-    `;
+    if (item.type === 'options') {
+      return html`
+        <div class="assist-chat__response">
+          <typo3-assist-options-element
+            key=${item.key}
+            text=${item.text}
+            .items=${item.options}
+            @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+          ></typo3-assist-options-element>
+        </div>
+      `;
+    }
+    return html`${nothing}`;
   }
 
 

@@ -46,4 +46,13 @@ final readonly class AssistantRequest
         }
         return Uuid::fromString($this->headers['x-typo3-assist-progress']);
     }
+
+    public function getStepIndex(): ?int
+    {
+        if (!isset($this->headers['x-typo3-assist-step'])) {
+            return null;
+        }
+        $value = $this->headers['x-typo3-assist-step'];
+        return is_numeric($value) ? (int)$value : null;
+    }
 }
