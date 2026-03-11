@@ -14,6 +14,11 @@
 import { customElement, property } from 'lit/decorators.js';
 import { html, LitElement, type TemplateResult } from 'lit';
 
+export interface ListFeedbackItem {
+  type: 'list';
+  items: string[];
+}
+
 /**
  * Module: @typo3/assist/element/list-element
  */

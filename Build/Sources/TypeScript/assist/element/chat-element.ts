@@ -16,9 +16,14 @@ import { html, LitElement, nothing, type TemplateResult } from 'lit';
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import { markdown } from '@typo3/core/directive/markdown';
+
 import '@typo3/assist/element/list-element';
 import '@typo3/assist/element/options-element';
 import '@typo3/assist/element/quick-actions-element';
+
+import type { ListFeedbackItem } from '@typo3/assist/element/list-element';
+import type { OptionsFeedbackItem } from '@typo3/assist/element/options-element';
+import type { QuickActionsFeedbackItem } from '@typo3/assist/element/quick-actions-element';
 
 export interface AssistChatProperties {
   additionalModule?: string;
@@ -50,36 +55,6 @@ interface ConfirmationFeedbackItem {
   text: string;
   acceptLabel: string;
   declineLabel: string;
-}
-
-interface OptionItemData {
-  identifier: string;
-  text: string;
-  details?: string | null;
-}
-
-interface OptionsFeedbackItem {
-  type: 'options';
-  key: string;
-  text: string;
-  options: OptionItemData[];
-}
-
-interface ListFeedbackItem {
-  type: 'list';
-  items: string[];
-}
-
-interface QuickActionItemData {
-  identifier: string;
-  text: string;
-}
-
-interface QuickActionsFeedbackItem {
-  type: 'quick-actions';
-  key: string;
-  text: string;
-  items: QuickActionItemData[];
 }
 
 type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;

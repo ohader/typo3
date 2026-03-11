@@ -16,10 +16,17 @@ import { html, LitElement, nothing, type TemplateResult } from 'lit';
 // import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import labels from '~labels/assist.elements';
 
-interface OptionItem {
+export interface OptionItemData {
   identifier: string;
   text: string;
   details?: string | null;
+}
+
+export interface OptionsFeedbackItem {
+  type: 'options';
+  key: string;
+  text: string;
+  options: OptionItemData[];
 }
 
 const demoPath: string = '/typo3/sysext/assist/Resources/Public/Demo/';
@@ -37,7 +44,7 @@ export class OptionsElement extends LitElement {
   @property({ type: String, reflect: true }) type = 'list';
   @property({ type: String }) key: string = '';
   @property({ type: String }) text: string = '';
-  @property({ type: Array }) items: OptionItem[] = [];
+  @property({ type: Array }) items: OptionItemData[] = [];
 
   override createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
@@ -188,7 +195,7 @@ export class OptionsElement extends LitElement {
      */
   }
 
-  private handleSelection(item: OptionItem): void {
+  private handleSelection(item: OptionItemData): void {
     this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string }>('typo3-assist-option-select', {
       detail: { key: this.key, identifier: item.identifier, text: item.text },
       bubbles: true,

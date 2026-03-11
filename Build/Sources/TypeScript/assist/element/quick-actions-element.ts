@@ -16,10 +16,18 @@ import { html, LitElement, type TemplateResult } from 'lit';
 // import { LabelProvider } from '@typo3/backend/localization/label-provider';
 // import labels from '~labels/assist.elements';
 
-interface QuickActionItem {
+export interface QuickActionItemData {
   identifier: string;
   text: string;
 }
+
+export interface QuickActionsFeedbackItem {
+  type: 'quick-actions';
+  key: string;
+  text: string;
+  items: QuickActionItemData[];
+}
+
 
 /**
  * Module: @typo3/assist/element/quick-actions-element
@@ -28,7 +36,7 @@ interface QuickActionItem {
 export class QuickActionsElement extends LitElement {
   @property({ type: String }) key: string = '';
   @property({ type: String }) text: string = '';
-  @property({ type: Array }) items: QuickActionItem[] = [];
+  @property({ type: Array }) items: QuickActionItemData[] = [];
 
   override createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
@@ -46,7 +54,7 @@ export class QuickActionsElement extends LitElement {
     `;
   }
 
-  private handleSelection(item: QuickActionItem): void {
+  private handleSelection(item: QuickActionItemData): void {
     this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string }>('typo3-assist-quick-action-select', {
       detail: { key: this.key, identifier: item.identifier, text: item.text },
       bubbles: true,
