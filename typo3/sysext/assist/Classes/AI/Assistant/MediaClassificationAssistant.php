@@ -48,7 +48,7 @@ use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\StorageRepository;
 
 #[AsAssistant(
-    identifier: 'typo3-assist-media-classification',
+    identifier: self::IDENTIFIER,
     capabilities: [AssistantCapability::messages, AssistantCapability::inputImage, AssistantCapability::toolCalling],
     triggerResources: ['sys_file'],
     triggerComponents: ['file-upload'],
@@ -57,6 +57,8 @@ use TYPO3\CMS\Core\Resource\StorageRepository;
 )]
 final readonly class MediaClassificationAssistant implements AssistantInterface
 {
+    private const IDENTIFIER = 'typo3-assist-media-classification';
+
     use AssistantContextTrait;
 
     public function __construct(
@@ -139,7 +141,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     private function startConversation(AssistantRequest $request): AssistantResponse
     {
-        $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-media-classification');
+        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
         if ($model === null) {
             return new AssistantResponse(feedback: [new TextFeedback('No model configured for this assistant.')]);
         }
@@ -160,7 +162,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $progress = new Progress(
             uuid: Uuid::v4(),
             model: $model,
-            initiator: new Initiator(type: 'assistant', subject: $this->resolveAssistantAttribute($this)->identifier),
+            initiator: new Initiator(type: 'assistant', subject: self::IDENTIFIER),
             userId: $this->getBackendUserId(),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
         );
@@ -171,7 +173,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-media-classification');
+        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = array_map(
@@ -328,7 +330,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: count($progress->items));
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-media-classification');
+        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = array_map(

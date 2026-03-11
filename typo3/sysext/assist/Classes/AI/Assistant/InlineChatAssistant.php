@@ -38,7 +38,7 @@ use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 #[AsAssistant(
-    identifier: 'typo3-assist-inline-chat',
+    identifier: self::IDENTIFIER,
     capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
     triggerResources: ['pages', 'tt_content'],
     triggerRoutes: ['/module/web/layout'],
@@ -46,6 +46,8 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 )]
 final readonly class InlineChatAssistant implements AssistantInterface
 {
+    private const IDENTIFIER = 'typo3-assist-inline-chat';
+
     use AssistantContextTrait;
 
     public function __construct(
@@ -126,7 +128,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $progress = new Progress(
             uuid: Uuid::v4(),
             model: $model,
-            initiator: new Initiator(type: 'assistant', subject: $this->resolveAssistantAttribute($this)->identifier),
+            initiator: new Initiator(type: 'assistant', subject: self::IDENTIFIER),
             userId: $this->getBackendUserId(),
             items: [new ProgressItem(ProgressItemType::submitted, $message)],
         );
@@ -137,7 +139,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-inline-chat');
+        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = $this->parseFeedback($output);
@@ -175,7 +177,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: count($progress->items));
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant('typo3-assist-inline-chat');
+        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         $this->orchestrator->process($assistant, $input, $output);
 
         $feedback = $this->parseFeedback($output);

@@ -17,28 +17,10 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 
 trait AssistantContextTrait
 {
-    private function resolveAssistantAttribute(AssistantInterface $target): AsAssistant
-    {
-        $reflector = new \ReflectionClass($target);
-        $attributes = $reflector->getAttributes(AsAssistant::class);
-        if ($attributes === []) {
-            throw new \LogicException(
-                sprintf(
-                'Assistant "%s" must have an attribute of type "%s".',
-                $target::class,
-                AsAssistant::class
-                ),
-                1773217744
-            );
-        }
-        return $attributes[0]->newInstance();
-    }
-
     private function getBackendUserLanguageHint(): string
     {
         $lang = $this->getBackendUser()->user['lang'] ?? 'en';
