@@ -22,6 +22,7 @@ use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Capability;
 use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use TYPO3\CMS\Assist\AI\Http\RecordingHttpClient;
 use TYPO3\CMS\Assist\AI\Platform\ModelCatalog;
 use TYPO3\CMS\Assist\AI\Platform\PlatformDetails;
 use TYPO3\CMS\Assist\Domain\Enum\AuthenticationType;
@@ -51,6 +52,12 @@ final readonly class PlatformBridgeBuilder
 
     public function __invoke(BeforeBuildPlatformBridgeEvent $event): void
     {
+        if ($this->isDebugHttpTrafficEnabled()) {
+            $options = $event->getOptions();
+            $options['platformFactory']['httpClient'] = new RecordingHttpClient($this->logger);
+            $event->setOptions($options);
+        }
+
         if ($event->platform->availability !== Availability::enabled) {
             return;
         }
@@ -333,6 +340,15 @@ final readonly class PlatformBridgeBuilder
             return (int)$this->extensionConfiguration->get('assist', 'modelCacheLifetime');
         } catch (\Exception) {
             return 10800;
+        }
+    }
+
+    private function isDebugHttpTrafficEnabled(): bool
+    {
+        try {
+            return (bool)$this->extensionConfiguration->get('assist', 'debugHttpTraffic');
+        } catch (\Exception) {
+            return false;
         }
     }
 }

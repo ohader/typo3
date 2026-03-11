@@ -6,6 +6,9 @@
       <trans-unit id="modelCacheLifetime">
         <source>Lifetime in seconds for caching discovered platform models (0 = disabled).</source>
       </trans-unit>
+      <trans-unit id="debugHttpTraffic">
+        <source>Whether to debug/log HTTP traffic to AI platforms (0 = disabled).</source>
+      </trans-unit>
     </body>
   </file>
 </xliff>
