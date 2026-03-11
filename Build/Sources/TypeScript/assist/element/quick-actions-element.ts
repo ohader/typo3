@@ -12,7 +12,7 @@
  */
 
 import { customElement, property } from 'lit/decorators.js';
-import { html, LitElement, type TemplateResult } from 'lit';
+import { html, LitElement, nothing, type TemplateResult } from 'lit';
 // import { LabelProvider } from '@typo3/backend/localization/label-provider';
 // import labels from '~labels/assist.elements';
 
@@ -27,7 +27,6 @@ export interface QuickActionsFeedbackItem {
   text: string;
   items: QuickActionItemData[];
 }
-
 
 /**
  * Module: @typo3/assist/element/quick-actions-element
@@ -44,6 +43,7 @@ export class QuickActionsElement extends LitElement {
 
   protected override render(): TemplateResult {
     return html`
+      ${this.text ? html`<p class="assist-chat__text">${this.text}</p>` : nothing}
       <ul class="assist-chat__quick-actions">
         ${this.items.map((item) => html`
           <li><a href="#" class="assist-chat__quick-action"
