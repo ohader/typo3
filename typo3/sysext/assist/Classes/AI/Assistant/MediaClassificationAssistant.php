@@ -172,7 +172,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     private function initializeProcess(): AssistantResponse
     {
-        $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-inline-chat');
+        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
         $options = $this->buildTargetLanguageOptionItems();
 
         if (count($options) >= 2) {
@@ -194,7 +194,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     private function processStep(Progress $progress, Step $step, int $languageChoice): AssistantResponse
     {
         // @todo handle unassigned models much earlier in the call stack
-        $model = $this->configurationResolver->getDefaultAssistantModel('typo3-assist-inline-chat');
+        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
 
         $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
         $language = $languages[$languageChoice] ?? null;
