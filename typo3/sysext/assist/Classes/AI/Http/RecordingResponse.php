@@ -66,6 +66,11 @@ final class RecordingResponse implements ResponseInterface
         return $data;
     }
 
+    public function unwrap(): ResponseInterface
+    {
+        return $this->inner;
+    }
+
     public function cancel(): void
     {
         $this->inner->cancel();

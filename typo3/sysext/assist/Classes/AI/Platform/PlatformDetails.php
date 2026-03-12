@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Platform;
 
+use Symfony\AI\Platform\Bridge\Anthropic\Claude;
 use Symfony\AI\Platform\Bridge\Generic\CompletionsModel;
 use Symfony\AI\Platform\Bridge\Generic\EmbeddingsModel;
 use Symfony\AI\Platform\Bridge\Ollama\Ollama;
@@ -69,7 +70,7 @@ final readonly class PlatformDetails
                         'model' => [Capability::INPUT_MESSAGES, Capability::INPUT_IMAGE, Capability::OUTPUT_TEXT, Capability::OUTPUT_STREAMING, Capability::TOOL_CALLING],
                     ],
                     'typeModel' => [
-                        'model' => CompletionsModel::class,
+                        'model' => Claude::class,
                     ],
                 ],
             ],
