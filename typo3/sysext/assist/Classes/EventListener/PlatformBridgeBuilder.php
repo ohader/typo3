@@ -123,17 +123,21 @@ final readonly class PlatformBridgeBuilder
         // replace ModelCatalog completely (if the parameter is present)
         if ($modelCatalogParam !== null) {
             $modelCatalog = new ModelCatalog($models);
-            $event->setOptions([
-                ...$event->getOptions(),
-                'platformFactory' => ['modelCatalog' => $modelCatalog],
-                'modelCatalog' => $modelCatalog,
-            ]);
+            $event->setOptions(array_replace_recursive(
+                $event->getOptions(),
+                [
+                    'platformFactory' => ['modelCatalog' => $modelCatalog],
+                    'modelCatalog' => $modelCatalog,
+                ]
+            ));
             // otherwise, at least append to the existing catalog
         } else {
-            $event->setOptions([
-                ...$event->getOptions(),
-                'modelCatalog' => ['additionalModels' => $models],
-            ]);
+            $event->setOptions(array_replace_recursive(
+                $event->getOptions(),
+                [
+                    'modelCatalog' => ['additionalModels' => $models]
+                ]
+            ));
         }
         $event->markLiveResolved();
     }
