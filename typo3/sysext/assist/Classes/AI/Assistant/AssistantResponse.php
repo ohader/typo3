@@ -33,7 +33,6 @@ final readonly class AssistantResponse
         public ?int $stepIndex = null,
         public ?StepCollection $steps = null,
         public ?Progress $progress = null,
-        public ?string $error = null,
         public ?string $model = null,
         public ?StateCollection $state = null,
         public bool $boomerang = false,
@@ -52,9 +51,6 @@ final readonly class AssistantResponse
             'state' => $this->state,
             'boomerang' => $this->boomerang,
         ];
-        if ($this->error !== null) {
-            $data['error'] = $this->error;
-        }
-        return new JsonResponse($data, $this->error === null ? 200 : 202);
+        return new JsonResponse($data);
     }
 }

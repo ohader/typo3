@@ -12,7 +12,7 @@
  */
 
 import { customElement, property, state } from 'lit/decorators.js';
-import { html, LitElement, nothing, type TemplateResult } from 'lit';
+import { html, LitElement, nothing, type PropertyValues, type TemplateResult } from 'lit';
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import { markdown } from '@typo3/core/directive/markdown';
@@ -50,6 +50,11 @@ interface MarkdownFeedbackItem {
   text: string;
 }
 
+interface ErrorFeedbackItem {
+  type: 'error';
+  text: string;
+}
+
 interface MediaFeedbackItem {
   type: 'media';
   url: string;
@@ -69,7 +74,7 @@ interface ConfirmationFeedbackItem {
   decline: ConfirmationItemData;
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -84,7 +89,6 @@ interface AssistantServerResponse {
   model: string | null;
   state?: Record<string, string>;
   boomerang?: boolean;
-  error?: string;
 }
 
 interface ResourceSubjectData {
@@ -279,10 +283,6 @@ export class ChatElement extends LitElement {
         TYPO3.settings.ajaxUrls.assist_gate_client_request
       ).post(body, { headers });
       const data: AssistantServerResponse = await response.resolve();
-      if (data.error) {
-        this.appendErrorMessage(data.error);
-        return;
-      }
       // update state information
       if (data.model) {
         this.model = data.model;
@@ -422,6 +422,13 @@ export class ChatElement extends LitElement {
   }
 
   private renderFeedbackItem(item: AssistFeedbackItem): TemplateResult {
+    if (item.type === 'error') {
+      return html`
+        <div class="assist-chat__response assist-chat__response--error">
+          <p class="assist-chat__text assist-chat__text--error">${item.text}</p>
+        </div>
+      `;
+    }
     if (item.type === 'text') {
       return html`
         <div class="assist-chat__response">

@@ -24,6 +24,7 @@ use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ErrorFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\MediaFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
@@ -170,16 +171,16 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         }
 
         if (!MathUtility::canBeInterpretedAsInteger($languageChoice)) {
-            return new AssistantResponse(error: 'Unexpected state: No language choice submitted.');
+            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No language choice submitted.')]);
         }
         if ($progressUuid === null) {
-            return new AssistantResponse(error: 'Unexpected state: No progress header submitted.');
+            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No progress header submitted.')]);
         }
         $progress = $this->progressRepository->findByUuid($progressUuid);
 
         $step = $stepIndex !== null ? $progress->steps->find($stepIndex) : null;
         if ($stepIndex !== null && $stepChoice === null) {
-            return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
+            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No step choice submitted.')]);
         }
 
         if ($stepChoice === '') {
@@ -190,7 +191,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $metadataStructure = $this->createMetadataStructure();
             $decoded = $this->validateStepChoice($metadataStructure, $stepChoice);
             if ($decoded === null) {
-                return new AssistantResponse(error: 'Invalid step choice.');
+                return new AssistantResponse(feedback: [new ErrorFeedback('Invalid step choice.')]);
             }
             $properties = array_filter(
                 $decoded['value'],
@@ -212,7 +213,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $dataHandler->process_datamap();
 
             if ($dataHandler->errorLog) {
-
+                $feedback = array_map(
+                    static fn(string $error): ErrorFeedback => new ErrorFeedback($error),
+                    $dataHandler->errorLog,
+                );
             }
 
             // mark the step as done
@@ -223,10 +227,16 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         do {
             $nextStep = $progress->steps?->findNext();
             if ($nextStep === null) {
-                return new AssistantResponse(feedback: [new TextFeedback('All done!')]);
+                return new AssistantResponse(
+                    feedback: [
+                        ...$feedback,
+                        new TextFeedback('All done!'),
+                    ],
+                    steps: $progress->steps,
+                );
             }
             try {
-                return $this->processStep($progress, $nextStep, (int)$languageChoice);
+                return $this->processStep($progress, $nextStep, (int)$languageChoice, $feedback ?? []);
             } catch (StepSkippedException) {
                 continue;
             }
@@ -254,7 +264,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return new AssistantResponse(feedback: $feedback, model: (string)$model);
     }
 
-    private function processStep(Progress $progress, Step $step, int $languageChoice): AssistantResponse
+    private function processStep(Progress $progress, Step $step, int $languageChoice, array $feedback = []): AssistantResponse
     {
         // @todo handle unassigned models much earlier in the call stack
         $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
@@ -332,6 +342,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         if ($optionItems === []) {
             return new AssistantResponse(
                 feedback: [
+                    ...$feedback,
                     new TextFeedback('AI response did not contain any metadata suggestions.'),
                     new MediaFeedback($file->getPublicUrl()),
                 ],
@@ -346,18 +357,19 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             details: 'Skip this item and continue with the next one.',
         );
 
-        $feedback = [
-            new TextFeedback('Select a metadata suggestion to apply:'),
-            new OptionsFeedback(
-                key: 'step-choice',
-                text: sprintf("Current values:\n%s", 'empty'),
-                options: $optionItems,
-                heading: $file->getName(),
-                image: $file->getPublicUrl(),
-            )
-        ];
+
         return new AssistantResponse(
-            feedback: $feedback,
+            feedback: [
+                ...$feedback,
+                new TextFeedback('Select a metadata suggestion to apply:'),
+                new OptionsFeedback(
+                    key: 'step-choice',
+                    text: sprintf("Current values:\n%s", 'empty'),
+                    options: $optionItems,
+                    heading: $file->getName(),
+                    image: $file->getPublicUrl(),
+                ),
+            ],
             stepIndex: $progress->steps?->index($step),
         );
     }

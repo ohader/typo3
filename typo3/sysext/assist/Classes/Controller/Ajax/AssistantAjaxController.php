@@ -26,6 +26,7 @@ use Symfony\AI\Platform\Exception\RateLimitExceededException;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ErrorFeedback;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Backend\Attribute\AsController;
@@ -104,6 +105,6 @@ final readonly class AssistantAjaxController
         } catch (\Throwable $t) {
             $message = 'An unexpected error occurred. Please try again. ' . $t->getMessage() . '[' . $t->getFile() . ':' . $t->getLine() . ']';
         }
-        return (new AssistantResponse(error: $message))->toResponse();
+        return (new AssistantResponse(feedback: [new ErrorFeedback($message)]))->toResponse();
     }
 }
