@@ -26,7 +26,12 @@ use TYPO3\CMS\Core\Http\JsonResponse;
 final readonly class AssistantResponse
 {
     /**
-     * @param list<FeedbackInterface> $feedback
+     * @param list<FeedbackInterface> $feedback Messages to be displayed to the user
+     * @param int|null $stepIndex Index of the current step a client-side message is related to
+     * @param StepCollection|null $steps Collection of identified steps to be executed
+     * @param Progress|null $progress Overall (persisted) progress of the assistant
+     * @param string|null $model Name of the AI platform-model used for the current request
+     * @param StateCollection|null $state Client-side state values to be sent back to server with each request
      */
     public function __construct(
         public array $feedback = [],
