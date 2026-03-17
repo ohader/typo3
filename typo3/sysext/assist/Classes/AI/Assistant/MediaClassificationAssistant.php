@@ -43,11 +43,9 @@ use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\StateCollection;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
-use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Assist\Domain\Model\Step;
 use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
@@ -356,7 +354,6 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             text: 'Skip',
             details: 'Skip this item and continue with the next one.',
         );
-
 
         return new AssistantResponse(
             feedback: [
