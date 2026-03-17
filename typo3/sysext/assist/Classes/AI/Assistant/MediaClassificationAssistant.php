@@ -98,21 +98,6 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     public function getSystemPrompt(): ?string
     {
         return null;
-        return implode("\n", [
-            'You are a TYPO3 CMS media classification assistant.',
-            'Your task is to analyse images and generate metadata in the requested language.',
-            'For each image produce a title (short), description (one sentence), and alternative text (screen-reader caption).',
-            '',
-            'Respond only in JSON matching this schema:',
-            Type\UnionAggregate::of(
-                Type\TextType::class,
-                Type\ListAggregate::of(Type\StructureAggregate::fromDefinition(
-                    new Type\PropertyDefinition('title', 'string', 'Short title for the media file'),
-                    new Type\PropertyDefinition('description', 'string', 'One-sentence description'),
-                    new Type\PropertyDefinition('alternative', 'string', 'Screen-reader alternative text'),
-                )),
-            ),
-        ]);
     }
 
     public function getToolPolicy(): ?ToolPolicy
@@ -153,7 +138,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         if ($progressUuid === null && MathUtility::canBeInterpretedAsInteger($languageChoice)) {
             $progress = $this->createProgress();
             $steps = $this->buildSteps((int)$languageChoice);
-            // @todo steps persistance should be handled more generic in an upper layer
+            // @todo steps persistence should be handled more generic in an upper layer
             $this->progressRepository->appendSteps($progress->uuid, $steps);
             $this->progressRepository->appendState(
                 $progress->uuid,
