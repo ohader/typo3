@@ -76,9 +76,10 @@ final readonly class PlatformBridgeBuilder
         $apiKey = $this->resolveApiKey($package, $event);
         $cacheLifetime = $this->getCacheLifetime();
         $cacheIdentifier = $this->buildCacheIdentifier($package, $baseUrl, $apiKey);
+        $useCache = $cacheLifetime > 0 && $this->platformDetails->shallCache($package);
 
         $models = false;
-        if ($cacheLifetime > 0) {
+        if ($useCache) {
             $models = $this->cache->get($cacheIdentifier);
         }
 
@@ -113,7 +114,7 @@ final readonly class PlatformBridgeBuilder
                 $models = $this->enrichModelsWithDetails($models, $baseUrl, $headers, $detailConfig, $mappings);
             }
 
-            if ($cacheLifetime > 0) {
+            if ($useCache) {
                 $this->cache->set($cacheIdentifier, $models, ['assist'], $cacheLifetime);
             }
         }

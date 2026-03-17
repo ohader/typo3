@@ -90,6 +90,7 @@ final readonly class PlatformDetails
             ],
         ],
         'symfony/ai-lm-studio-platform' => [
+            'cache' => false,
             'endpointParam' => 'baseUrl',
             'models' => [
                 'listEndpoint' => [
@@ -219,6 +220,11 @@ final readonly class PlatformDetails
     public function getBaseUrl(string $platform): ?string
     {
         return $this->get($platform)['baseUrl'] ?? null;
+    }
+
+    public function shallCache(string $platform): bool
+    {
+        return $this->get($platform)['cache'] ?? true;
     }
 
     public function getModelMapping(string $platform): array
