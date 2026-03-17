@@ -27,12 +27,21 @@ final readonly class OptionsFeedback implements FeedbackInterface
         public string $text,
         public array $options,
         public string $view = 'list',
+        public ?string $heading = null,
+        public ?string $image = null,
+        public ?string $video = null,
     ) {
         $count = count($options);
         if ($count < 2 || $count > 4) {
             throw new \InvalidArgumentException(
                 'OptionsFeedback requires between 2 and 4 options, ' . $count . ' given.',
                 1773749607,
+            );
+        }
+        if ($image !== null && $video !== null) {
+            throw new \InvalidArgumentException(
+                'OptionsFeedback cannot have both image and video set.',
+                1773749608,
             );
         }
     }
@@ -50,6 +59,9 @@ final readonly class OptionsFeedback implements FeedbackInterface
             'text' => $this->text,
             'options' => $this->options,
             'view' => $this->view,
+            'heading' => $this->heading,
+            'image' => $this->image,
+            'video' => $this->video,
         ];
     }
 }

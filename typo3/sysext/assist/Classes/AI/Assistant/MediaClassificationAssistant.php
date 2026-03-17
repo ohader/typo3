@@ -25,10 +25,10 @@ use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\MediaFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
-use TYPO3\CMS\Assist\AI\Assistant\Feedback\MediaFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Type\AggregateInterface;
 use TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate;
@@ -182,7 +182,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
         }
 
-        if ($stepChoice !== null) {
+        if ($stepChoice === '') {
+            // mark the step as done (skipped)
+            $progress->steps->markDone($step);
+            $this->progressRepository->appendSteps($progress->uuid, $progress->steps);
+        } elseif ($stepChoice !== null) {
             $metadataStructure = $this->createMetadataStructure();
             $decoded = $this->validateStepChoice($metadataStructure, $stepChoice);
             if ($decoded === null) {
@@ -207,7 +211,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $dataHandler->start(['sys_file_metadata' => [(int)$metaData['uid'] => $properties]], []);
             $dataHandler->process_datamap();
 
-            // mark step as done
+            if ($dataHandler->errorLog) {
+
+            }
+
+            // mark the step as done
             $progress->steps->markDone($step);
             $this->progressRepository->appendSteps($progress->uuid, $progress->steps);
         }
@@ -269,8 +277,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 'metadata in the requested language. Create three different suggestions.',
                 $this->getBackendUserLanguageHint(),
                 '',
-                'Respond only in JSON matching this schema:',
+                'Your entire response must be a single raw JSON object — no markdown, no explanation.',
+                'The JSON must conform to this schema:',
                 $responseType,
+                'Do not return the schema itself. Return actual metadata content that matches the schema.',
             ])),
             Message::ofUser(
                 sprintf(
@@ -295,7 +305,13 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             if (!$result instanceof TextResult) {
                 continue;
             }
-            $json = json_decode($result->getContent(), true);
+            $content = trim($result->getContent());
+            if (str_starts_with($content, '```')) {
+                $content = preg_replace('/^```[a-z]*\n?/i', '', $content);
+                $content = rtrim($content, '`');
+                $content = trim($content);
+            }
+            $json = json_decode($content, true);
             if (!is_array($json) || ($json['type'] ?? null) !== 'options' || !is_array($json['items'] ?? null)) {
                 continue;
             }
@@ -314,19 +330,36 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         }
 
         if ($optionItems === []) {
-            throw new StepSkippedException('Skipped', 1773749903);
+            return new AssistantResponse(
+                feedback: [
+                    new TextFeedback('AI response did not contain any metadata suggestions.'),
+                    new MediaFeedback($file->getPublicUrl()),
+                ],
+                stepIndex: $progress->steps?->index($step),
+                boomerang: true,
+            );
         }
 
-        $feedback = [
-            new MediaFeedback(url: $file->getPublicUrl() ?? '', alt: $file->getName()),
-        ];
-        $feedback[] = new OptionsFeedback(
-            key: 'step-choice',
-            text: 'Select a metadata suggestion to apply:',
-            options: $optionItems,
+        $optionItems[] = new OptionItem(
+            identifier: '',
+            text: 'Skip',
+            details: 'Skip this item and continue with the next one.',
         );
 
-        return new AssistantResponse(feedback: $feedback, stepIndex: $progress->steps?->index($step));
+        $feedback = [
+            new TextFeedback('Select a metadata suggestion to apply:'),
+            new OptionsFeedback(
+                key: 'step-choice',
+                text: sprintf("Current values:\n%s", 'empty'),
+                options: $optionItems,
+                heading: $file->getName(),
+                image: $file->getPublicUrl(),
+            )
+        ];
+        return new AssistantResponse(
+            feedback: $feedback,
+            stepIndex: $progress->steps?->index($step),
+        );
     }
 
     private function createProgress(): Progress
@@ -473,7 +506,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $props = [
             'title' => new PropertyDefinition(name: 'title', comment: 'Description used in title attribute in markup for this image.'),
             'description' => new PropertyDefinition(name: 'description', comment: 'Detailed description used as potential caption below the image.'),
-            'alternative' => new PropertyDefinition(name: 'description', comment: 'Alternative description used as substitute in a web accessibility context.'),
+            'alternative' => new PropertyDefinition(name: 'alternative', comment: 'Alternative description used as substitute in a web accessibility context.'),
         ];
 
         if ($file !== null) {

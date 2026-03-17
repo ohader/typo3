@@ -336,7 +336,9 @@ export class ChatElement extends LitElement {
       return html`${nothing}`;
     }
     const stages = this.resolveStepIdentifiers(this.steps);
-    const activeStage = this.countDoneSteps(this.steps);
+    const activeStage = this.stepIndex !== null
+      ? this.stepIndex
+      : this.countDoneSteps(this.steps);
     return html`
       <div class="assist-chat-header__progress">
         <typo3-backend-progress-tracker
@@ -481,6 +483,9 @@ export class ChatElement extends LitElement {
             key=${item.key}
             text=${item.text}
             type=${item.view ?? 'list'}
+            .image=${item.image ?? null}
+            .video=${item.video ?? null}
+            .heading=${item.heading ?? null}
             .items=${item.options}
             @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string; recover: () => void }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier }, e.detail.recover)}
           ></typo3-assist-options-element>

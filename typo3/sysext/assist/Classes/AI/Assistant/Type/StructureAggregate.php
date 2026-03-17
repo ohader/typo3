@@ -119,6 +119,17 @@ final readonly class StructureAggregate implements AggregateInterface, \Stringab
         ]);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function getPropertyNames(): array
+    {
+        return array_map(
+            static fn(PropertyDefinition $p): string => $p->name,
+            $this->properties
+        );
+    }
+
     public function parse(array $json): static
     {
         return new static($this->properties, $json['value']);

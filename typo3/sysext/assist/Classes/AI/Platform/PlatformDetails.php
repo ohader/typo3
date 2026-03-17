@@ -30,6 +30,8 @@ use TYPO3\CMS\Assist\Domain\Enum\AuthenticationType;
 final readonly class PlatformDetails
 {
     private const ADDITIONAL_DETAILS = [
+        /**
+        // @todo API does not provide any more details on models
         'mittwald/symfony-ai-platform' => [
             'baseUrl' => 'https://api.mittwald.de/',
             'models' => [
@@ -51,6 +53,7 @@ final readonly class PlatformDetails
                 'param' => 'apiKey',
             ],
         ],
+         */
         'symfony/ai-anthropic-platform' => [
             'baseUrl' => 'https://api.anthropic.com/',
             'models' => [

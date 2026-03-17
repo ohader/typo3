@@ -29,6 +29,9 @@ export interface OptionsFeedbackItem {
   text: string;
   options: OptionItemData[];
   view?: 'list' | 'image' | 'video';
+  image?: string | null;
+  video?: string | null;
+  heading?: string | null;
 }
 
 /**
@@ -40,6 +43,9 @@ export class OptionsElement extends LitElement {
   @property({ type: String }) key: string = '';
   @property({ type: String }) text: string = '';
   @property({ type: Array }) items: OptionItemData[] = [];
+  @property({ type: String }) heading: string | null = null;
+  @property({ type: String }) image: string | null = null;
+  @property({ type: String }) video: string | null = null;
 
   @state() private selectedIdentifier: string | null = null;
 
@@ -48,39 +54,89 @@ export class OptionsElement extends LitElement {
   }
 
   protected override render(): TemplateResult {
-    if (this.type === 'image') {
-      return this.renderImages();
+    let content: TemplateResult;
+    switch (this.type) {
+      case 'image': content = this.renderImages(); break;
+      case 'video': content = this.renderVideos(); break;
+      default: content = this.renderListItems(); break;
     }
-    if (this.type === 'video') {
-      return this.renderVideos();
+    return html`
+      <article class="panel panel-default assist-chat__option assist-chat__media-panel">
+        ${this.renderHeading()}
+        <div class="panel-body assist-chat__option-text">
+            ${this.renderMediaPreview()}
+            ${content}
+        </div>
+      </article>
+    `;
+  }
+
+  private renderHeading(): TemplateResult {
+    if (this.heading) {
+      return html`
+        <div class="panel-heading">
+          <h3 class="h5 assist-chat__options-heading">${this.heading}</h3>
+        </div>
+      `;
     }
-    return this.renderListItems();
+    return html`${nothing}`;
+  }
+
+  private renderMediaPreview(): TemplateResult {
+    const kind = this.image !== null ? 'image' : this.video !== null ? 'video' : null;
+    let content: TemplateResult;
+    switch (kind) {
+      case 'image': content = html`
+          <div class="assist-chat__media-frame">
+            <img class="assist-chat__media-thumbnail" src=${this.image!} alt="">
+          </div>
+        `;
+        break;
+      case 'video': content = html`
+          <div class="assist-chat__media-frame assist-chat__media-frame--video">
+            <video class="assist-chat__media-video" src=${this.video!} controls></video>
+          </div>
+        `;
+        break;
+      default: content = html`${nothing}`;
+    }
+    return html`
+      <div class="assist-chat__alt-media">
+        ${content}
+      </div>
+    `;
+  }
+
+  private nl2br(text: string): TemplateResult {
+    return html`${text.split('\n').flatMap((line, i, arr) => i < arr.length - 1 ? [line, html`<br>`] : [line])}`;
   }
 
   private renderListItems(): TemplateResult {
     return html`
-      <p class="assist-chat__text">${this.text}</p>
-      <div class="assist-chat__options">
-        ${this.items.map((item, index) => html`
-          <article class="panel panel-default assist-chat__option">
-            <div class="panel-heading">
-              <h3 class="h5 assist-chat__option-title">Option ${this.indexToChar(index)} - ${item.text}</h3>
-            </div>
-            ${item.details ? html`
-              <div class="panel-body assist-chat__option-text">${item.details}</div>
-            ` : nothing}
-            <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null} @click=${() => this.handleSelection(item)}>${labels.get('button.accept')}</button>
-            </div>
-          </article>
-        `)}
+      <div class="assist-chat__alt-text">
+        <p class="assist-chat__option-alt-text">${this.nl2br(this.text)}</p>
+        <div class="assist-chat__options">
+          ${this.items.map((item, index) => html`
+            <article class="panel panel-default assist-chat__option">
+              <div class="panel-heading">
+                <h3 class="h5 assist-chat__option-title">Option ${this.indexToChar(index)} - ${item.text}</h3>
+              </div>
+              ${item.details ? html`
+                <div class="panel-body assist-chat__option-text">${item.details}</div>
+              ` : nothing}
+              <div class="panel-footer assist-chat__option-actions">
+                <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null} @click=${() => this.handleSelection(item)}>${labels.get('button.accept')}</button>
+              </div>
+            </article>
+          `)}
+        </div>
       </div>
     `;
   }
 
   private renderImages(): TemplateResult {
     return html`
-      <p class="assist-chat__text">${this.text}</p>
+      <p class="assist-chat__text">${this.nl2br(this.text)}</p>
       <div class="row g-3 assist-chat__media-row assist-chat__media-row--images">
         ${this.items.map(item => html`
           <div class="col-12 col-md-6 col-xl-4">
@@ -108,7 +164,7 @@ export class OptionsElement extends LitElement {
 
   private renderVideos(): TemplateResult {
     return html`
-      <p class="assist-chat__text">${this.text}</p>
+      <p class="assist-chat__text">${this.nl2br(this.text)}</p>
       <div class="row g-3 assist-chat__media-row assist-chat__media-row--videos">
         ${this.items.map(item => html`
           <div class="col-12 col-lg-6">
