@@ -18,14 +18,14 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
- * Schema combinator for a discriminated union of StaticTypeInterface and AggregateInterface types.
+ * Schema combinator that applies all listed schemas simultaneously (allOf).
  *
  * @internal
  */
-final class UnionAggregate implements \Stringable
+final readonly class IntersectionAggregate implements \Stringable
 {
     /**
-     * @param class-string<TypeInterface>|AggregateInterface ...$types Class-strings implementing StaticTypeInterface, or AggregateInterface instances
+     * @param class-string<TypeInterface>|AggregateInterface ...$types Class-strings implementing TypeInterface, or AggregateInterface instances
      */
     public static function of(string|AggregateInterface ...$types): self
     {
@@ -33,19 +33,23 @@ final class UnionAggregate implements \Stringable
     }
 
     /**
-     * @param AggregateInterface[] $types
+     * @param array<string|AggregateInterface> $types
+     * @param array<TypeInterface|AggregateInterface> $parts
      */
-    private function __construct(private readonly array $types) {}
+    private function __construct(
+        private array $types,
+        public array $parts = [],
+    ) {}
 
     public function __toString(): string
     {
         return (string)$this->toJsonSchema();
     }
 
-    /** Returns {"oneOf": [...]} */
+    /** Returns {"allOf": [...]} */
     public function toJsonSchema(): JsonSchema
     {
-        return new JsonSchema(['oneOf' => array_map(
+        return new JsonSchema(['allOf' => array_map(
             fn(string|AggregateInterface $type) => $this->isStaticType($type)
                 ? $type::toJsonSchema()->jsonSerialize()
                 : $type->toJsonSchema()->jsonSerialize(),
@@ -54,23 +58,15 @@ final class UnionAggregate implements \Stringable
     }
 
     /**
-     * Dispatches $json to the matching type via getType() or getDiscriminator().
-     *
-     * @throws \UnexpectedValueException For unknown type discriminator (code 1740999601)
+     * Applies each component's parser to $json and returns a new instance with populated $parts.
      */
-    public function parse(array $json): TypeInterface|AggregateInterface
+    public function parse(array $json): static
     {
-        $discriminator = $json['type'] ?? '';
+        $parts = [];
         foreach ($this->types as $type) {
-            $typeKey = $this->isStaticType($type) ? $type::getType() : $type->getDiscriminator();
-            if ($typeKey === $discriminator) {
-                return $this->isStaticType($type) ? $type::fromJson($json) : $type->parse($json);
-            }
+            $parts[] = $this->isStaticType($type) ? $type::fromJson($json) : $type->parse($json);
         }
-        throw new \UnexpectedValueException(
-            sprintf('Unknown output format type "%s".', $discriminator),
-            1773751576,
-        );
+        return new static($this->types, $parts);
     }
 
     private function isStaticType(mixed $type): bool

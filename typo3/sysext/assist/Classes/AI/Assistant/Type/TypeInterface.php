@@ -24,8 +24,8 @@ interface TypeInterface
 {
     public static function getType(): string;
 
-    /** Returns the JSON schema array describing this type */
-    public static function toJsonSchema(): array;
+    /** Returns the JSON schema describing this type */
+    public static function toJsonSchema(): JsonSchema;
 
     /** Constructs an instance from a decoded JSON array */
     public static function fromJson(array $json): static;

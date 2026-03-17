@@ -34,13 +34,13 @@ final class BinaryTypeTest extends UnitTestCase
     {
         $schema = BinaryType::toJsonSchema();
 
-        self::assertSame('object', $schema['type']);
-        self::assertSame('binary', $schema['properties']['type']['const']);
-        self::assertSame('string', $schema['properties']['data']['type']);
-        self::assertSame('base64', $schema['properties']['data']['contentEncoding']);
-        self::assertSame('string', $schema['properties']['mimeType']['type']);
-        self::assertSame(['type', 'data'], $schema['required']);
-        self::assertFalse($schema['additionalProperties']);
+        self::assertSame('object', $schema->jsonSerialize()['type']);
+        self::assertSame('binary', $schema->jsonSerialize()['properties']['type']['const']);
+        self::assertSame('string', $schema->jsonSerialize()['properties']['data']['type']);
+        self::assertSame('base64', $schema->jsonSerialize()['properties']['data']['contentEncoding']);
+        self::assertSame('string', $schema->jsonSerialize()['properties']['mimeType']['type']);
+        self::assertSame(['type', 'data'], $schema->jsonSerialize()['required']);
+        self::assertFalse($schema->jsonSerialize()['additionalProperties']);
     }
 
     #[Test]

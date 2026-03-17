@@ -63,12 +63,7 @@ interface ConfirmationFeedbackItem {
   decline: ConfirmationItemData;
 }
 
-interface BoomerangFeedbackItem {
-  type: 'boomerang';
-  params: Record<string, string>;
-}
-
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem | BoomerangFeedbackItem;
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -81,6 +76,8 @@ interface AssistantServerResponse {
   step: number | null;
   progress: { uuid: string } | null;
   model: string | null;
+  state?: Record<string, string>;
+  boomerang?: boolean;
   error?: string;
 }
 
@@ -107,11 +104,9 @@ type SubjectData = ResourceSubjectData | TcaSubjectData;
  */
 @customElement('typo3-assist-chat-element')
 export class ChatElement extends LitElement {
-  // @todo remove `template` occurrences
-  @property({ type: String, reflect: true }) template: string = 'meta';
-
   @property({ type: String, reflect: true }) subject: string;
   @property({ type: String, reflect: true }) assistant: string;
+  @property({ type: String, reflect: true }) input: 'optional' | 'visible' | 'hidden' = 'optional';
   @property({ type: Object }) labels: LabelProvider<any>;
 
   @state() steps: AssistChatStep[] = [];
@@ -120,6 +115,9 @@ export class ChatElement extends LitElement {
   @state() private stepIndex: number | null = null;
   @state() private messages: ChatEntry[] = [];
   @state() private model: string | null = null;
+  @state() private disabledKeys: Set<string> = new Set();
+  @state() private readonly showInput: boolean = false;
+  @state() private clientState: Record<string, string> = {};
 
   private historyIndex = -1;
   private draft = '';
@@ -188,7 +186,7 @@ export class ChatElement extends LitElement {
   }
 
   private readonly handleModalShown = (): void => {
-    this.sendRequest('');
+    this.sendRequest();
   };
 
   private readonly handleKeyDown = (e: KeyboardEvent): void => {
@@ -241,7 +239,7 @@ export class ChatElement extends LitElement {
     this.sendRequest(text);
   }
 
-  private async sendRequest(message: string, params: Record<string, string> = {}): Promise<void> {
+  private async sendRequest(message: string = '', params: Record<string, string> = {}, onFailure?: () => void): Promise<void> {
     this.isLoading = true;
     if (message !== '') {
       this.messages = [...this.messages, { kind: 'user', text: message }];
@@ -258,7 +256,7 @@ export class ChatElement extends LitElement {
     }
 
     try {
-      const body: Record<string, unknown> = { identifier: this.assistant };
+      const body: Record<string, unknown> = { identifier: this.assistant, ...this.clientState };
       if (Object.keys(params).length > 0) {
         Object.assign(body, params);
       } else if (message !== '') {
@@ -277,9 +275,7 @@ export class ChatElement extends LitElement {
       if (data.step !== undefined) {
         this.stepIndex = data.step;
       }
-      const boomerang = data.feedback.find((item): item is BoomerangFeedbackItem => item.type === 'boomerang');
-      const visibleFeedback = data.feedback.filter(item => item.type !== 'boomerang');
-      const newEntries: ChatEntry[] = visibleFeedback.map(item => ({ kind: 'assistant' as const, item }));
+      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
       this.messages = [...this.messages, ...newEntries];
       if (data.progress?.uuid) {
         this.progressUuid = data.progress.uuid;
@@ -287,11 +283,15 @@ export class ChatElement extends LitElement {
       if (data.model) {
         this.model = data.model;
       }
-      if (boomerang !== undefined) {
-        await this.sendRequest('', boomerang.params);
+      if (data.state && typeof data.state === 'object') {
+        this.clientState = { ...this.clientState, ...data.state };
+      }
+      if (data.boomerang) {
+        await this.sendRequest();
       }
     } catch (e) {
       this.appendErrorMessage(e instanceof Error ? e.message : 'Network error. Please try again.');
+      onFailure?.();
     } finally {
       this.isLoading = false;
       this.scrollToBottom();
@@ -361,6 +361,12 @@ export class ChatElement extends LitElement {
   }
 
   private renderInput(): TemplateResult {
+    if (this.input === 'hidden') {
+      return html`${nothing}`;
+    }
+    if (this.input === 'optional' && !this.showInput) {
+      return html`${nothing}`;
+    }
     return html`
       <div class="assist-chat__input">
         <input
@@ -413,12 +419,18 @@ export class ChatElement extends LitElement {
       `;
     }
     if (item.type === 'confirmation') {
+      const disabled = this.disabledKeys.has(item.key);
+      const handleConfirmation = (choice: ConfirmationItemData) => {
+        this.disabledKeys = new Set([...this.disabledKeys, item.key]);
+        const recover = () => { this.disabledKeys = new Set([...this.disabledKeys].filter(k => k !== item.key)); };
+        this.sendRequest(choice.text, { [item.key]: choice.identifier }, recover);
+      };
       return html`
         <div class="assist-chat__response">
           <p class="assist-chat__text">${item.text}</p>
           <div class="assist-chat__confirmation-actions">
-            <button type="button" class="btn btn-primary" @click=${() => this.sendRequest(item.accept.text, { [item.key]: item.accept.identifier })}>${item.accept.text}</button>
-            <button type="button" class="btn btn-default" @click=${() => this.sendRequest(item.decline.text, { [item.key]: item.decline.identifier })}>${item.decline.text}</button>
+            <button type="button" class="btn btn-primary" ?disabled=${disabled} @click=${() => handleConfirmation(item.accept)}>${item.accept.text}</button>
+            <button type="button" class="btn btn-default" ?disabled=${disabled} @click=${() => handleConfirmation(item.decline)}>${item.decline.text}</button>
           </div>
         </div>
       `;
@@ -437,7 +449,7 @@ export class ChatElement extends LitElement {
             key=${item.key}
             text=${item.text}
             .items=${item.items}
-            @typo3-assist-quick-action-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+            @typo3-assist-quick-action-select=${(e: CustomEvent<{ key: string; identifier: string; text: string; recover: () => void }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier }, e.detail.recover)}
           ></typo3-assist-quick-actions-element>
         </div>
       `;
@@ -448,8 +460,9 @@ export class ChatElement extends LitElement {
           <typo3-assist-options-element
             key=${item.key}
             text=${item.text}
+            type=${item.view ?? 'list'}
             .items=${item.options}
-            @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier })}
+            @typo3-assist-option-select=${(e: CustomEvent<{ key: string; identifier: string; text: string; recover: () => void }>) => this.sendRequest(e.detail.text, { [e.detail.key]: e.detail.identifier }, e.detail.recover)}
           ></typo3-assist-options-element>
         </div>
       `;

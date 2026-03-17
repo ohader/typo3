@@ -20,7 +20,7 @@ namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Assist\AI\Assistant\Type\BinaryType;
 use TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate;
-use TYPO3\CMS\Assist\AI\Assistant\Type\StructureType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\StructureAggregate;
 use TYPO3\CMS\Assist\AI\Assistant\Type\SubjectType;
 use TYPO3\CMS\Assist\AI\Assistant\Type\TextType;
 use TYPO3\CMS\Assist\AI\Assistant\Type\UnionAggregate;
@@ -33,21 +33,22 @@ final class UnionAggregateTest extends UnitTestCase
     {
         $schema = UnionAggregate::of(TextType::class)->toJsonSchema();
 
-        self::assertArrayHasKey('oneOf', $schema);
-        self::assertCount(1, $schema['oneOf']);
-        self::assertSame(TextType::toJsonSchema(), $schema['oneOf'][0]);
+        self::assertArrayHasKey('oneOf', $schema->jsonSerialize());
+        self::assertCount(1, $schema->jsonSerialize()['oneOf']);
+        self::assertSame(TextType::toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][0]);
     }
 
     #[Test]
     public function toJsonSchemaWithMultipleTypesIncludesAllSchemas(): void
     {
-        $schema = UnionAggregate::of(TextType::class, BinaryType::class, StructureType::class)->toJsonSchema();
+        $structure = new StructureAggregate();
+        $schema = UnionAggregate::of(TextType::class, BinaryType::class, $structure)->toJsonSchema();
 
-        self::assertArrayHasKey('oneOf', $schema);
-        self::assertCount(3, $schema['oneOf']);
-        self::assertSame(TextType::toJsonSchema(), $schema['oneOf'][0]);
-        self::assertSame(BinaryType::toJsonSchema(), $schema['oneOf'][1]);
-        self::assertSame(StructureType::toJsonSchema(), $schema['oneOf'][2]);
+        self::assertArrayHasKey('oneOf', $schema->jsonSerialize());
+        self::assertCount(3, $schema->jsonSerialize()['oneOf']);
+        self::assertSame(TextType::toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][0]);
+        self::assertSame(BinaryType::toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][1]);
+        self::assertSame($structure->toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][2]);
     }
 
     #[Test]
@@ -55,7 +56,7 @@ final class UnionAggregateTest extends UnitTestCase
     {
         $schema = UnionAggregate::of(TextType::class)->toJsonSchema();
 
-        self::assertSame(['oneOf'], array_keys($schema));
+        self::assertSame(['oneOf'], array_keys($schema->jsonSerialize()));
     }
 
     #[Test]
@@ -64,9 +65,9 @@ final class UnionAggregateTest extends UnitTestCase
         $options = OptionsAggregate::of(TextType::class);
         $schema = UnionAggregate::of(TextType::class, $options)->toJsonSchema();
 
-        self::assertCount(2, $schema['oneOf']);
-        self::assertSame(TextType::toJsonSchema(), $schema['oneOf'][0]);
-        self::assertSame($options->toJsonSchema(), $schema['oneOf'][1]);
+        self::assertCount(2, $schema->jsonSerialize()['oneOf']);
+        self::assertSame(TextType::toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][0]);
+        self::assertSame($options->toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['oneOf'][1]);
     }
 
     #[Test]

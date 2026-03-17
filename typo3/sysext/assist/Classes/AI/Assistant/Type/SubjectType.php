@@ -29,9 +29,9 @@ final readonly class SubjectType implements TypeInterface
         return 'subject';
     }
 
-    public static function toJsonSchema(): array
+    public static function toJsonSchema(): JsonSchema
     {
-        return [
+        return new JsonSchema([
             'type' => 'object',
             'properties' => [
                 'type' => ['type' => 'string', 'const' => 'subject'],
@@ -44,7 +44,7 @@ final readonly class SubjectType implements TypeInterface
             ],
             'required' => ['type', 'value'],
             'additionalProperties' => false,
-        ];
+        ]);
     }
 
     public static function fromJson(array $json): static

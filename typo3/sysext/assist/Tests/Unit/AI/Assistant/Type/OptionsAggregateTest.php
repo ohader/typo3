@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Tests\Unit\AI\Assistant\Type;
 
 use PHPUnit\Framework\Attributes\Test;
 use TYPO3\CMS\Assist\AI\Assistant\Type\BinaryType;
+use TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate;
 use TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate;
 use TYPO3\CMS\Assist\AI\Assistant\Type\TextType;
 use TYPO3\CMS\Assist\AI\Assistant\Type\UnionAggregate;
@@ -53,7 +54,7 @@ final class OptionsAggregateTest extends UnitTestCase
     {
         $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
-        self::assertSame('options', $schema['properties']['type']['const']);
+        self::assertSame('options', $schema->jsonSerialize()['properties']['type']['const']);
     }
 
     #[Test]
@@ -61,7 +62,7 @@ final class OptionsAggregateTest extends UnitTestCase
     {
         $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
-        self::assertSame(2, $schema['properties']['items']['minItems']);
+        self::assertSame(2, $schema->jsonSerialize()['properties']['items']['minItems']);
     }
 
     #[Test]
@@ -69,8 +70,8 @@ final class OptionsAggregateTest extends UnitTestCase
     {
         $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
-        self::assertSame('array', $schema['properties']['items']['type']);
-        self::assertSame(TextType::toJsonSchema(), $schema['properties']['items']['items']);
+        self::assertSame('array', $schema->jsonSerialize()['properties']['items']['type']);
+        self::assertSame(TextType::toJsonSchema()->jsonSerialize(), $schema->jsonSerialize()['properties']['items']['items']);
     }
 
     #[Test]
@@ -79,8 +80,8 @@ final class OptionsAggregateTest extends UnitTestCase
         $union = UnionAggregate::of(TextType::class, BinaryType::class);
         $schema = (new OptionsAggregate($union))->toJsonSchema();
 
-        self::assertArrayHasKey('oneOf', $schema['properties']['items']['items']);
-        self::assertCount(2, $schema['properties']['items']['items']['oneOf']);
+        self::assertArrayHasKey('oneOf', $schema->jsonSerialize()['properties']['items']['items']);
+        self::assertCount(2, $schema->jsonSerialize()['properties']['items']['items']['oneOf']);
     }
 
     #[Test]
@@ -88,7 +89,7 @@ final class OptionsAggregateTest extends UnitTestCase
     {
         $schema = (new OptionsAggregate(TextType::class))->toJsonSchema();
 
-        self::assertSame(['type', 'items'], $schema['required']);
+        self::assertSame(['type', 'items'], $schema->jsonSerialize()['required']);
     }
 
     // -------------------------------------------------------------------------
@@ -158,5 +159,45 @@ final class OptionsAggregateTest extends UnitTestCase
         ]);
 
         self::assertEmpty($descriptor->items);
+    }
+
+    // -------------------------------------------------------------------------
+    // IntersectionAggregate as item type
+    // -------------------------------------------------------------------------
+
+    #[Test]
+    public function ofWithIntersectionAggregateCreatesDescriptor(): void
+    {
+        $itemType = IntersectionAggregate::of(TextType::class, BinaryType::class);
+        self::assertInstanceOf(OptionsAggregate::class, OptionsAggregate::of($itemType));
+    }
+
+    #[Test]
+    public function toJsonSchemaWithIntersectionAggregateEmbeddsAllOfSchema(): void
+    {
+        $itemType = IntersectionAggregate::of(TextType::class, BinaryType::class);
+        $schema = (new OptionsAggregate($itemType))->toJsonSchema();
+
+        self::assertArrayHasKey('allOf', $schema->jsonSerialize()['properties']['items']['items']);
+        self::assertCount(2, $schema->jsonSerialize()['properties']['items']['items']['allOf']);
+    }
+
+    #[Test]
+    public function parseWithIntersectionAggregatePopulatesItemParts(): void
+    {
+        $itemType = IntersectionAggregate::of(TextType::class);
+        $result = (new OptionsAggregate($itemType))->parse([
+            'type' => 'options',
+            'items' => [
+                ['type' => 'text', 'value' => 'Yes'],
+                ['type' => 'text', 'value' => 'No'],
+            ],
+        ]);
+
+        self::assertCount(2, $result->items);
+        self::assertInstanceOf(IntersectionAggregate::class, $result->items[0]);
+        self::assertCount(1, $result->items[0]->parts);
+        self::assertInstanceOf(TextType::class, $result->items[0]->parts[0]);
+        self::assertSame('Yes', $result->items[0]->parts[0]->value);
     }
 }

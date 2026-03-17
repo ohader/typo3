@@ -19,16 +19,18 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Message;
+use Symfony\AI\Platform\Result\TextResult;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
-use TYPO3\CMS\Assist\AI\Assistant\Feedback\BoomerangFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Type\PropertyDefinition;
+use TYPO3\CMS\Assist\AI\Assistant\Type\StructureAggregate;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
@@ -37,11 +39,13 @@ use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
+use TYPO3\CMS\Assist\Domain\Model\StateCollection;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
 use TYPO3\CMS\Assist\Domain\Model\Step;
 use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
+use TYPO3\CMS\Assist\Exception\StepSkippedException;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
@@ -49,6 +53,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 #[AsAssistant(
@@ -61,9 +66,15 @@ use TYPO3\CMS\Core\Utility\MathUtility;
 )]
 final readonly class MediaClassificationAssistant implements AssistantInterface
 {
+    use AssistantContextTrait;
     private const IDENTIFIER = 'typo3-assist-media-classification';
 
-    use AssistantContextTrait;
+    private const MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+    ];
 
     public function __construct(
         private ProgressRepository $progressRepository,
@@ -74,10 +85,12 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         private ResultConverter $resultConverter,
         private ConnectionPool $connectionPool,
         private ResourceFactory $resourceFactory,
+        private TcaSchemaFactory $schemaFactory,
     ) {}
 
     public function getSystemPrompt(): ?string
     {
+        return null;
         return implode("\n", [
             'You are a TYPO3 CMS media classification assistant.',
             'Your task is to analyse images and generate metadata in the requested language.',
@@ -86,7 +99,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             'Respond only in JSON matching this schema:',
             Type\UnionAggregate::of(
                 Type\TextType::class,
-                Type\ListAggregate::of(Type\StructureType::class),
+                Type\ListAggregate::of(Type\StructureAggregate::fromDefinition(
+                    new Type\PropertyDefinition('title', 'string', 'Short title for the media file'),
+                    new Type\PropertyDefinition('description', 'string', 'One-sentence description'),
+                    new Type\PropertyDefinition('alternative', 'string', 'Screen-reader alternative text'),
+                )),
             ),
         ]);
     }
@@ -131,14 +148,16 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $steps = $this->buildSteps((int)$languageChoice);
             // @todo steps persistance should be handled more generic in an upper layer
             $this->progressRepository->appendSteps($progress->uuid, $steps);
+            $this->progressRepository->appendState(
+                $progress->uuid,
+                new StateCollection(['language-choice' => $languageChoice]),
+            );
             return new AssistantResponse(
-                feedback: [
-                    new TextFeedback("Alright, let's get started..."),
-                    // @todo language-choice should be stored internally with progress (e.g. in a `choices` collection)
-                    new BoomerangFeedback(params: ['language-choice' => $languageChoice]),
-                ],
+                feedback: [new TextFeedback("Alright, let's get started...")],
                 steps: $steps,
                 progress: $progress,
+                state: new StateCollection(['language-choice' => $languageChoice]),
+                boomerang: true,
             );
         }
 
@@ -150,24 +169,25 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         }
         $progress = $this->progressRepository->findByUuid($progressUuid);
 
-        if ($stepIndex === null) {
-            $nextStep = $progress->steps?->findNext();
-            if ($nextStep === null) {
-                return new AssistantResponse(error: 'Unexpected state: No next step available.');
-            }
-            return $this->processStep($progress, $nextStep, (int)$languageChoice);
+        if ($stepIndex !== null && $stepChoice === null) {
+            return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
         }
 
         if ($stepChoice !== null) {
             // @todo apply step choice
+        }
+
+        do {
             $nextStep = $progress->steps?->findNext();
             if ($nextStep === null) {
                 return new AssistantResponse(feedback: [new TextFeedback('All done!')]);
             }
-            return $this->processStep($progress, $nextStep, $languageChoice);
-        }
-
-        return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
+            try {
+                return $this->processStep($progress, $nextStep, (int)$languageChoice);
+            } catch (StepSkippedException) {
+                continue;
+            }
+        } while (true);
     }
 
     private function initializeProcess(): AssistantResponse
@@ -202,20 +222,39 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
         // @todo ugly and hardcoded, should use a generic subject pointer for resolving resources
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
+        $values = [
+            'title' => $file->getProperty('title'),
+            'description' => $file->getProperty('description'),
+            'alternative' => $file->getProperty('alternative'),
+        ];
+        $props = [
+            'title' => new PropertyDefinition(name: 'title', comment: 'Description used in title attribute in markup for this image.'),
+            'description' => new PropertyDefinition(name: 'description', comment: 'Detailed description used as potential caption below the image.'),
+            'alternative' => new PropertyDefinition(name: 'description', comment: 'Alternative description used as substitute in a web accessibility context.'),
+        ];
+        $emptyProperties = array_filter($values, static fn(?string $value): bool => $value === null || $value === '');
+        $tcaSchema = $this->schemaFactory->get('sys_file');
+
+        $responseType = \TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate::of(
+            \TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate::of(
+                StructureAggregate::fromTcaSchema($tcaSchema, ...array_intersect_key($props, $emptyProperties)),
+            )
+        );
 
         $messages = [
             Message::forSystem(implode("\n", [
                 'You are a friendly and helpful assistant in the TYPO3 CMS backend.',
                 'This is a specific assistant agent that receives image data and generates ',
-                'metadata in the requested language.',
+                'metadata in the requested language. Create three different suggestions.',
                 $this->getBackendUserLanguageHint(),
                 '',
                 'Respond only in JSON matching this schema:',
-                Type\OptionsAggregate::of(Type\TextType::class),
+                $responseType,
             ])),
             Message::ofUser(
                 sprintf(
-                    'Classify image metadata (title, description, alternative text) for language "%s" for the following image:',
+                    'Classify image metadata (%s) for language "%s" for the following image:',
+                    implode(', ', array_keys($emptyProperties)),
                     $languageLabel,
                 ),
                 new Image($file->getContents(), $file->getMimeType()),
@@ -231,10 +270,43 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         $this->orchestrator->process($assistant, $input, $output);
 
-        $feedback = array_map(
-            fn($result) => $this->resultConverter->convert($result),
-            $output->getResultBag()->getResults(),
+        $optionItems = [];
+        foreach ($output->getResultBag()->getResults() as $result) {
+            if (!$result instanceof TextResult) {
+                continue;
+            }
+            $json = json_decode($result->getContent(), true);
+            if (!is_array($json) || ($json['type'] ?? null) !== 'options' || !is_array($json['items'] ?? null)) {
+                continue;
+            }
+            foreach ($json['items'] as $rawItem) {
+                $value = $rawItem['value'] ?? [];
+                $lines = [];
+                foreach ($value as $fieldName => $fieldValue) {
+                    $lines[] = sprintf('**%s:** %s', ucfirst((string)$fieldName), $fieldValue);
+                }
+                $optionItems[] = new OptionItem(
+                    identifier: json_encode($rawItem, JSON_THROW_ON_ERROR),
+                    text: reset($value) ?? '',
+                    details: implode("  \n", $lines),
+                );
+            }
+        }
+
+        if ($optionItems === []) {
+            throw new StepSkippedException('Skipped', 1773749903);
+        }
+
+        $feedback = [
+            // @todo create a MediaFeedback item that is capable of holding an image or a video
+            new TextFeedback($file->getCombinedIdentifier() . ' (should be an image)'),
+        ];
+        $feedback[] = new OptionsFeedback(
+            key: 'step-choice',
+            text: 'Select a metadata suggestion to apply:',
+            options: $optionItems,
         );
+
         return new AssistantResponse(feedback: $feedback, step: $step);
     }
 
@@ -274,6 +346,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                     'sf.type',
                     $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
                 ),
+                $queryBuilder->expr()->in(
+                    'sf.mime_type',
+                    $queryBuilder->createNamedParameter(self::MIME_TYPES, Connection::PARAM_STR_ARRAY),
+                ),
                 $queryBuilder->expr()->gte(
                     'sfm.sys_language_uid',
                     $queryBuilder->createNamedParameter(0, Connection::PARAM_INT),
@@ -310,9 +386,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 text: sprintf('Process language %s', $label),
                 details: sprintf(
                     '%s%d %s',
-                        !empty($language['ISOcode']) ? $language['ISOcode'] . ', ' : '',
+                    !empty($language['ISOcode']) ? $language['ISOcode'] . ', ' : '',
                     $count,
-                    $count === 1 ? 'file' : 'files'),
+                    $count === 1 ? 'file' : 'files'
+                ),
             );
         }
 
@@ -337,6 +414,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 $queryBuilder->expr()->eq(
                     'sf.type',
                     $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
+                ),
+                $queryBuilder->expr()->in(
+                    'sf.mime_type',
+                    $queryBuilder->createNamedParameter(self::MIME_TYPES, Connection::PARAM_STR_ARRAY),
                 ),
                 $queryBuilder->expr()->eq(
                     'sfm.sys_language_uid',

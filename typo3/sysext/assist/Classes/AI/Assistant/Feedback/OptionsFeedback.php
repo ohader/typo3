@@ -26,12 +26,13 @@ final readonly class OptionsFeedback implements FeedbackInterface
         public string $key,
         public string $text,
         public array $options,
+        public string $view = 'list',
     ) {
         $count = count($options);
         if ($count < 2 || $count > 4) {
             throw new \InvalidArgumentException(
-                'OptionsQuestion requires between 2 and 4 options, ' . $count . ' given.',
-                1740000001,
+                'OptionsFeedback requires between 2 and 4 options, ' . $count . ' given.',
+                1773749607,
             );
         }
     }
@@ -48,6 +49,7 @@ final readonly class OptionsFeedback implements FeedbackInterface
             'key' => $this->key,
             'text' => $this->text,
             'options' => $this->options,
+            'view' => $this->view,
         ];
     }
 }

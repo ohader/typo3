@@ -36,6 +36,7 @@ final readonly class Progress
         public int $userId,
         public array $items = [],
         public ?StepCollection $steps = null,
+        public ?StateCollection $state = null,
     ) {}
 
     /**
@@ -47,15 +48,22 @@ final readonly class Progress
         usort($itemRows, static fn(array $a, array $b): int => $a['sequence'] <=> $b['sequence']);
 
         $stepsRow = null;
+        $stateRow = null;
         foreach ($itemRows as $row) {
-            // only takes the last step occurrence here
+            // only takes the last occurrence here
             $rowType = ProgressItemType::tryFrom($row['type']);
             if ($rowType === ProgressItemType::steps) {
                 $stepsRow = $row;
             }
+            if ($rowType === ProgressItemType::state) {
+                $stateRow = $row;
+            }
         }
         $steps = $stepsRow !== null
             ? StepCollection::fromArray(json_decode($stepsRow['payload'], true))
+            : null;
+        $state = $stateRow !== null
+            ? StateCollection::fromArray(json_decode($stateRow['payload'], true))
             : null;
 
         return new self(
@@ -65,6 +73,7 @@ final readonly class Progress
             userId: (int)$parentRow['user_id'],
             items: array_map(ProgressItem::fromRow(...), $itemRows),
             steps: $steps,
+            state: $state,
         );
     }
 }

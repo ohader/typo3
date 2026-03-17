@@ -15,18 +15,6 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain\Enum;
+namespace TYPO3\CMS\Assist\Exception;
 
-enum ProgressItemType: string
-{
-    case submitted = 'submitted';
-    case received = 'received';
-    case steps = 'steps';
-    case state = 'state';
-    case note = 'note';
-
-    public function isMessage(): bool
-    {
-        return in_array($this, [self::submitted, self::received], true);
-    }
-}
+class StepSkippedException extends Exception {}

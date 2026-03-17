@@ -34,11 +34,11 @@ final class MessageTypeTest extends UnitTestCase
     {
         $schema = TextType::toJsonSchema();
 
-        self::assertSame('object', $schema['type']);
-        self::assertSame('text', $schema['properties']['type']['const']);
-        self::assertSame('string', $schema['properties']['value']['type']);
-        self::assertSame(['type', 'value'], $schema['required']);
-        self::assertFalse($schema['additionalProperties']);
+        self::assertSame('object', $schema->jsonSerialize()['type']);
+        self::assertSame('text', $schema->jsonSerialize()['properties']['type']['const']);
+        self::assertSame('string', $schema->jsonSerialize()['properties']['value']['type']);
+        self::assertSame(['type', 'value'], $schema->jsonSerialize()['required']);
+        self::assertFalse($schema->jsonSerialize()['additionalProperties']);
     }
 
     #[Test]

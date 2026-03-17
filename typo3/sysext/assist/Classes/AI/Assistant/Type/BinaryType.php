@@ -32,9 +32,9 @@ final readonly class BinaryType implements TypeInterface
         return 'binary';
     }
 
-    public static function toJsonSchema(): array
+    public static function toJsonSchema(): JsonSchema
     {
-        return [
+        return new JsonSchema([
             'type' => 'object',
             '$comment' => 'Use this type to provide base64-encoded binary data.',
             'properties' => [
@@ -44,7 +44,7 @@ final readonly class BinaryType implements TypeInterface
             ],
             'required' => ['type', 'data'],
             'additionalProperties' => false,
-        ];
+        ]);
     }
 
     public static function fromJson(array $json): static

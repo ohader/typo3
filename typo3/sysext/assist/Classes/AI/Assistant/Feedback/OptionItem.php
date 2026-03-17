@@ -23,6 +23,7 @@ final readonly class OptionItem implements FeedbackInterface
         public string $identifier,
         public string $text,
         public ?string $details = null,
+        public ?string $src = null,
     ) {}
 
     public function getText(): string
@@ -44,6 +45,7 @@ final readonly class OptionItem implements FeedbackInterface
             'identifier' => $this->identifier,
             'text' => $this->text,
             'details' => $this->details,
+            'src' => $this->src,
         ];
     }
 }

@@ -90,18 +90,19 @@ final readonly class AssistantAjaxController
         $assistant = $this->assistantRegistry->getAssistant($identifier);
         $handler = $this->orchestrator->buildHandler($assistant);
 
+        // @todo normalize file paths to project path (do not expose full path)
         try {
             return $handler->handleClientRequest(AssistantRequest::fromServerRequest($request))->toResponse();
         } catch (RateLimitExceededException) {
             $message = 'The AI service is rate-limited. Please try again later.';
-        } catch (AuthenticationException) {
+        } catch (AuthenticationException $e) {
             $message = 'AI service authentication failed. Please check your API key configuration.';
         } catch (BadRequestException $e) {
             $message = $e->getMessage();
         } catch (MaxIterationsExceededException) {
             $message = 'The assistant exceeded the maximum number of steps. Please try a simpler request.';
         } catch (\Throwable $t) {
-            $message = 'An unexpected error occurred. Please try again. ' . $t->getMessage();
+            $message = 'An unexpected error occurred. Please try again. ' . $t->getMessage() . '[' . $t->getFile() . ':' . $t->getLine() . ']';
         }
         return (new AssistantResponse(error: $message))->toResponse();
     }

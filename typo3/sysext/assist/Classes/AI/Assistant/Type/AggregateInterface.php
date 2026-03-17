@@ -25,8 +25,8 @@ interface AggregateInterface
     /** Discriminator string used to identify this type in a parsed JSON payload */
     public function getDiscriminator(): string;
 
-    /** Returns the JSON schema array describing this type */
-    public function toJsonSchema(): array;
+    /** Returns the JSON schema describing this type */
+    public function toJsonSchema(): JsonSchema;
 
     /** Constructs an instance from a decoded JSON array */
     public function parse(array $json): static;

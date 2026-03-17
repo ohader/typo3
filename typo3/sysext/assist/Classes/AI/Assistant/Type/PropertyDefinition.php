@@ -15,18 +15,18 @@ declare(strict_types=1);
  * The TYPO3 project - inspiring people to share!
  */
 
-namespace TYPO3\CMS\Assist\Domain\Enum;
+namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
-enum ProgressItemType: string
+/**
+ * Value object describing a single property in a structured AI response.
+ *
+ * @internal
+ */
+final readonly class PropertyDefinition
 {
-    case submitted = 'submitted';
-    case received = 'received';
-    case steps = 'steps';
-    case state = 'state';
-    case note = 'note';
-
-    public function isMessage(): bool
-    {
-        return in_array($this, [self::submitted, self::received], true);
-    }
+    public function __construct(
+        public string $name,
+        public ?string $type = null, // JSON Schema primitive: "string", "integer", "number", "boolean"
+        public ?string $comment = null, // maps to JSON Schema $comment
+    ) {}
 }

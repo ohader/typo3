@@ -29,9 +29,9 @@ final readonly class TextType implements TypeInterface
         return 'text';
     }
 
-    public static function toJsonSchema(): array
+    public static function toJsonSchema(): JsonSchema
     {
-        return [
+        return new JsonSchema([
             'type' => 'object',
             '$comment' => 'Use this type to provide plain text content.',
             'properties' => [
@@ -46,7 +46,7 @@ final readonly class TextType implements TypeInterface
             ],
             'required' => ['type', 'value'],
             'additionalProperties' => false,
-        ];
+        ]);
     }
 
     public static function fromJson(array $json): static

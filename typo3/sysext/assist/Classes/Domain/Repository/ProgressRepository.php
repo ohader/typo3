@@ -22,6 +22,7 @@ use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
+use TYPO3\CMS\Assist\Domain\Model\StateCollection;
 use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -104,6 +105,12 @@ final readonly class ProgressRepository
     public function appendSteps(Uuid $uuid, StepCollection $steps): int
     {
         $item = new ProgressItem(ProgressItemType::steps, $steps);
+        return $this->appendItem($uuid, $item);
+    }
+
+    public function appendState(Uuid $uuid, StateCollection $state): int
+    {
+        $item = new ProgressItem(ProgressItemType::state, $state);
         return $this->appendItem($uuid, $item);
     }
 

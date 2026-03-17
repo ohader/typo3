@@ -11,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import { html, LitElement, nothing, type TemplateResult } from 'lit';
 // import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import labels from '~labels/assist.elements';
@@ -20,6 +20,7 @@ export interface OptionItemData {
   identifier: string;
   text: string;
   details?: string | null;
+  src?: string | null;
 }
 
 export interface OptionsFeedbackItem {
@@ -27,14 +28,8 @@ export interface OptionsFeedbackItem {
   key: string;
   text: string;
   options: OptionItemData[];
+  view?: 'list' | 'image' | 'video';
 }
-
-const demoPath: string = '/typo3/sysext/assist/Resources/Public/Demo/';
-const imagePlaceholderA: string = demoPath + 'banner_ultrawide.jpg';
-const imagePlaceholderB: string = demoPath + 'detail_stress.jpg';
-const imagePlaceholderC: string = demoPath + 'photo_sim.jpg';
-// const videoPlaceholderA: string = demoPath + 'moving_test.mp4';
-// const videoPlaceholderB: string = demoPath + 'moving_test.mp4';
 
 /**
  * Module: @typo3/assist/element/options-element
@@ -46,18 +41,23 @@ export class OptionsElement extends LitElement {
   @property({ type: String }) text: string = '';
   @property({ type: Array }) items: OptionItemData[] = [];
 
+  @state() private selectedIdentifier: string | null = null;
+
   override createRenderRoot(): HTMLElement | DocumentFragment {
     return this;
   }
 
   protected override render(): TemplateResult {
-    if (this.type === 'panel') {
-      return this.renderPanelType();
+    if (this.type === 'image') {
+      return this.renderImages();
     }
-    return this.renderListType();
+    if (this.type === 'video') {
+      return this.renderVideos();
+    }
+    return this.renderListItems();
   }
 
-  private renderListType(): TemplateResult {
+  private renderListItems(): TemplateResult {
     return html`
       <p class="assist-chat__text">${this.text}</p>
       <div class="assist-chat__options">
@@ -70,7 +70,7 @@ export class OptionsElement extends LitElement {
               <div class="panel-body assist-chat__option-text">${item.details}</div>
             ` : nothing}
             <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default" @click=${() => this.handleSelection(item)}>${labels.get('button.accept')}</button>
+              <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null} @click=${() => this.handleSelection(item)}>${labels.get('button.accept')}</button>
             </div>
           </article>
         `)}
@@ -78,126 +78,64 @@ export class OptionsElement extends LitElement {
     `;
   }
 
-  private renderPanelType(): TemplateResult {
-    // @todo hardcoded - fill in the blanks
+  private renderImages(): TemplateResult {
     return html`
-      <p class="assist-chat__text">
-        I generated image suggestions for this page. Please choose the ones you want to use.
-      </p>
-
+      <p class="assist-chat__text">${this.text}</p>
       <div class="row g-3 assist-chat__media-row assist-chat__media-row--images">
-        <div class="col-12 col-md-6 col-xl-4">
-          <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-            <div class="panel-heading">
-              <h3 class="h5 assist-chat__option-title">Team meeting in modern office</h3>
-            </div>
-            <div class="panel-body assist-chat__option-text">
-              <div class="assist-chat__media-frame">
-                <img class="assist-chat__media-thumbnail" src="${imagePlaceholderA}" alt="Banner ultrawide" />
+        ${this.items.map(item => html`
+          <div class="col-12 col-md-6 col-xl-4">
+            <article class="panel panel-default assist-chat__option assist-chat__media-panel">
+              <div class="panel-heading">
+                <h3 class="h5 assist-chat__option-title">${item.text}</h3>
               </div>
-            </div>
-            <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-              <button
-                type="button"
-                class="assist-chat__option-action btn btn-default"
-              >
-                <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-              </button>
-            </div>
-          </article>
-        </div>
-
-        <div class="col-12 col-md-6 col-xl-4">
-          <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-            <div class="panel-heading">
-              <h3 class="h5 assist-chat__option-title">Person working on laptop with analytics dashboard</h3>
-            </div>
-            <div class="panel-body assist-chat__option-text">
-              <div class="assist-chat__media-frame">
-                <img class="assist-chat__media-thumbnail" src="${imagePlaceholderB}" alt="Detail stress" />
+              <div class="panel-body assist-chat__option-text">
+                <div class="assist-chat__media-frame">
+                  <img class="assist-chat__media-thumbnail" src="${item.src ?? ''}" alt="${item.text}"/>
+                </div>
               </div>
-            </div>
-            <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-              <button
-                type="button"
-                class="assist-chat__option-action btn btn-default"
-              >
-                <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-              </button>
-            </div>
-          </article>
-        </div>
-
-        <div class="col-12 col-md-6 col-xl-4">
-          <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-            <div class="panel-heading">
-              <h3 class="h5 assist-chat__option-title">Close-up of hands typing on keyboard</h3>
-            </div>
-            <div class="panel-body assist-chat__option-text">
-              <div class="assist-chat__media-frame">
-                <img class="assist-chat__media-thumbnail" src="${imagePlaceholderC}" alt="Photo sim" />
+              <div class="panel-footer assist-chat__option-actions">
+                <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null} @click=${() => this.handleSelection(item)}>${labels.get('button.insert')}</button>
+                <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null}>
+                  <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
+                </button>
               </div>
-            </div>
-            <div class="panel-footer assist-chat__option-actions">
-              <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-              <button
-                type="button"
-                class="assist-chat__option-action btn btn-default"
-              >
-                <typo3-backend-icon identifier="actions-eye"></typo3-backend-icon>
-              </button>
-            </div>
-          </article>
-        </div>
-      </div>
-
-      <p class="assist-chat__text">
-        You can select one or multiple images. I will insert them into suitable positions in the content.
-      </p>
-    `;
-    /*
-            <div class="row g-3 assist-chat__media-row assist-chat__media-row--videos">
-              <div class="col-12 col-lg-6">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Video 1</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame assist-chat__media-frame--video">
-                      <video class="assist-chat__media-video" src="${this.videoPlaceholderA}" controls></video>
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                  </div>
-                </article>
-              </div>
-
-              <div class="col-12 col-lg-6">
-                <article class="panel panel-default assist-chat__option assist-chat__media-panel">
-                  <div class="panel-heading">
-                    <h3 class="h5 assist-chat__option-title">Video 2</h3>
-                  </div>
-                  <div class="panel-body assist-chat__option-text">
-                    <div class="assist-chat__media-frame assist-chat__media-frame--video">
-                      <video class="assist-chat__media-video" src="${this.videoPlaceholderB}" controls></video>
-                    </div>
-                  </div>
-                  <div class="panel-footer assist-chat__option-actions">
-                    <button type="button" class="assist-chat__option-action btn btn-default">${labels.get('button.insert')}</button>
-                  </div>
-                </article>
-              </div>
-            </div>
+            </article>
           </div>
-     */
+        `)}
+      </div>
+    `;
+  }
+
+  private renderVideos(): TemplateResult {
+    return html`
+      <p class="assist-chat__text">${this.text}</p>
+      <div class="row g-3 assist-chat__media-row assist-chat__media-row--videos">
+        ${this.items.map(item => html`
+          <div class="col-12 col-lg-6">
+            <article class="panel panel-default assist-chat__option assist-chat__media-panel">
+              <div class="panel-heading">
+                <h3 class="h5 assist-chat__option-title">${item.text}</h3>
+              </div>
+              <div class="panel-body assist-chat__option-text">
+                <div class="assist-chat__media-frame assist-chat__media-frame--video">
+                  <video class="assist-chat__media-video" src="${item.src ?? ''}" controls></video>
+                </div>
+              </div>
+              <div class="panel-footer assist-chat__option-actions">
+                <button type="button" class="assist-chat__option-action btn btn-default" ?disabled=${this.selectedIdentifier !== null} @click=${() => this.handleSelection(item)}>${labels.get('button.insert')}</button>
+              </div>
+            </article>
+          </div>
+        `)}
+      </div>
+    `;
   }
 
   private handleSelection(item: OptionItemData): void {
-    this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string }>('typo3-assist-option-select', {
-      detail: { key: this.key, identifier: item.identifier, text: item.text },
+    this.selectedIdentifier = item.identifier;
+    const recover = () => { this.selectedIdentifier = null; };
+    this.dispatchEvent(new CustomEvent<{ key: string; identifier: string; text: string; recover: () => void }>('typo3-assist-option-select', {
+      detail: { key: this.key, identifier: item.identifier, text: item.text, recover },
       bubbles: true,
     }));
   }

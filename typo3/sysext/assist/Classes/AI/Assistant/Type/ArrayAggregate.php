@@ -18,18 +18,22 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 
 /**
- * Composite descriptor/result for a list of typed items.
+ * Composite descriptor/result for a plain JSON array of typed items.
+ *
+ * Unlike ListAggregate, the AI returns a bare JSON array ([item1, item2, …])
+ * with no envelope object or type discriminator. This is ideal when the
+ * response is always an array and you do not need union dispatch.
  *
  * @internal
  */
-final readonly class ListAggregate implements AggregateInterface, \Stringable
+final readonly class ArrayAggregate implements AggregateInterface, \Stringable
 {
     /**
-     * @param class-string<TypeInterface>|UnionAggregate|IntersectionAggregate|AggregateInterface $itemType Class-string implementing TypeInterface, a UnionAggregate, an IntersectionAggregate, or an AggregateInterface instance
-     * @param AggregateInterface[] $items Populated after parse()
+     * @param class-string<TypeInterface>|UnionAggregate|AggregateInterface $itemType Class-string implementing TypeInterface, a UnionAggregate, or an AggregateInterface instance
+     * @param array $items Populated after parse()
      */
     public function __construct(
-        private string|UnionAggregate|IntersectionAggregate|AggregateInterface $itemType,
+        private string|UnionAggregate|AggregateInterface $itemType,
         public array $items = [],
     ) {}
 
@@ -38,14 +42,14 @@ final readonly class ListAggregate implements AggregateInterface, \Stringable
         return (string)$this->toJsonSchema();
     }
 
-    public static function of(string|UnionAggregate|IntersectionAggregate|AggregateInterface $itemType): self
+    public static function of(string|UnionAggregate|AggregateInterface $itemType): self
     {
         return new self($itemType);
     }
 
     public function getDiscriminator(): string
     {
-        return 'list';
+        return 'array';
     }
 
     public function toJsonSchema(): JsonSchema
@@ -55,27 +59,20 @@ final readonly class ListAggregate implements AggregateInterface, \Stringable
             : $this->itemType->toJsonSchema()->jsonSerialize();
 
         return new JsonSchema([
-            'type' => 'object',
-            '$comment' => 'Use this type when presenting a list or enumeration of items.',
-            'properties' => [
-                'type' => ['type' => 'string', 'const' => 'list'],
-                'items' => [
-                    'type' => 'array',
-                    'items' => $itemsSchema,
-                ],
-            ],
-            'required' => ['type', 'items'],
-            'additionalProperties' => false,
+            'type' => 'array',
+            'items' => $itemsSchema,
         ]);
     }
 
     public function parse(array $json): static
     {
         $parsedItems = array_map(
-            fn(array $item) => $this->isStaticType()
-                ? ($this->itemType)::fromJson($item)
-                : $this->itemType->parse($item),
-            $json['items'],
+            fn(array $item) => $this->itemType instanceof UnionAggregate
+                ? $this->itemType->parse($item)
+                : ($this->itemType instanceof AggregateInterface
+                    ? $this->itemType->parse($item)
+                    : ($this->itemType)::fromJson($item)),
+            $json,
         );
 
         return new static($this->itemType, $parsedItems);

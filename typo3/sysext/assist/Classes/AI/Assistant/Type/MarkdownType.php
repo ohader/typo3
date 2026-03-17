@@ -29,9 +29,9 @@ final readonly class MarkdownType implements TypeInterface
         return 'markdown';
     }
 
-    public static function toJsonSchema(): array
+    public static function toJsonSchema(): JsonSchema
     {
-        return [
+        return new JsonSchema([
             'type' => 'object',
             '$comment' => 'Use this type to provide rich text content.',
             'properties' => [
@@ -62,7 +62,7 @@ final readonly class MarkdownType implements TypeInterface
                 ['type' => 'markdown', 'value' => "**bold** and *italic* text"],
                 ['type' => 'markdown', 'value' => "| Column 1 | Column 2 |\n|----------|----------|\n| Cell A   | Cell B   |\n"],
             ],
-        ];
+        ]);
     }
 
     public static function fromJson(array $json): static

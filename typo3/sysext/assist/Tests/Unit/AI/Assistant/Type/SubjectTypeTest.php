@@ -34,11 +34,11 @@ final class SubjectTypeTest extends UnitTestCase
     {
         $schema = SubjectType::toJsonSchema();
 
-        self::assertSame('object', $schema['type']);
-        self::assertSame('subject', $schema['properties']['type']['const']);
-        self::assertSame('string', $schema['properties']['value']['type']);
-        self::assertSame(['type', 'value'], $schema['required']);
-        self::assertFalse($schema['additionalProperties']);
+        self::assertSame('object', $schema->jsonSerialize()['type']);
+        self::assertSame('subject', $schema->jsonSerialize()['properties']['type']['const']);
+        self::assertSame('string', $schema->jsonSerialize()['properties']['value']['type']);
+        self::assertSame(['type', 'value'], $schema->jsonSerialize()['required']);
+        self::assertFalse($schema->jsonSerialize()['additionalProperties']);
     }
 
     #[Test]
@@ -46,7 +46,7 @@ final class SubjectTypeTest extends UnitTestCase
     {
         $schema = SubjectType::toJsonSchema();
 
-        self::assertArrayHasKey('description', $schema['properties']['value']);
+        self::assertArrayHasKey('description', $schema->jsonSerialize()['properties']['value']);
     }
 
     #[Test]

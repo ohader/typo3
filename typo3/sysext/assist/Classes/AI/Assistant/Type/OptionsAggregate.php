@@ -26,22 +26,22 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Type;
 final readonly class OptionsAggregate implements AggregateInterface, \Stringable
 {
     /**
-     * @param class-string<TypeInterface>|UnionAggregate $itemType Class-string implementing StaticTypeInterface, or a UnionAggregate
+     * @param class-string<TypeInterface>|UnionAggregate|IntersectionAggregate $itemType Class-string implementing TypeInterface, a UnionAggregate, or an IntersectionAggregate
      * @param AggregateInterface[] $items Populated after parse()
      */
-    public static function of(string|UnionAggregate $itemType): self
+    public static function of(string|UnionAggregate|IntersectionAggregate $itemType): self
     {
         return new self($itemType);
     }
 
     public function __construct(
-        private string|UnionAggregate $itemType,
+        private string|UnionAggregate|IntersectionAggregate $itemType,
         public array $items = [],
     ) {}
 
     public function __toString(): string
     {
-        return json_encode($this->toJsonSchema(), JSON_THROW_ON_ERROR);
+        return (string)$this->toJsonSchema();
     }
 
     public function getDiscriminator(): string
@@ -49,13 +49,13 @@ final readonly class OptionsAggregate implements AggregateInterface, \Stringable
         return 'options';
     }
 
-    public function toJsonSchema(): array
+    public function toJsonSchema(): JsonSchema
     {
         $itemsSchema = $this->isStaticType()
-            ? ($this->itemType)::toJsonSchema()
-            : $this->itemType->toJsonSchema();
+            ? ($this->itemType)::toJsonSchema()->jsonSerialize()
+            : $this->itemType->toJsonSchema()->jsonSerialize();
 
-        return [
+        return new JsonSchema([
             'type' => 'object',
             '$comment' => 'Use this type when presenting a list of options the user can choose from.',
             'properties' => [
@@ -68,15 +68,15 @@ final readonly class OptionsAggregate implements AggregateInterface, \Stringable
             ],
             'required' => ['type', 'items'],
             'additionalProperties' => false,
-        ];
+        ]);
     }
 
     public function parse(array $json): static
     {
         $parsedItems = array_map(
-            fn(array $item) => $this->itemType instanceof UnionAggregate
-                ? $this->itemType->parse($item)
-                : ($this->itemType)::fromJson($item),
+            fn(array $item) => $this->isStaticType()
+                ? ($this->itemType)::fromJson($item)
+                : $this->itemType->parse($item),
             $json['items'],
         );
 
