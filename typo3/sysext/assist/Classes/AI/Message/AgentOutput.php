@@ -18,23 +18,37 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Message;
 
 use Symfony\AI\Platform\Result\ResultInterface;
+use Symfony\AI\Platform\TokenUsage\TokenUsageInterface;
 
 final class AgentOutput implements AgentOutputInterface
 {
     private AgentResultBag $resultBag;
 
+    private TokenConsumption $tokenConsumption;
+
     public function __construct(ResultInterface ...$results)
     {
         $this->resultBag = new AgentResultBag(...$results);
+        $this->tokenConsumption = new TokenConsumption();
     }
 
     public function add(ResultInterface $result): void
     {
         $this->resultBag->add($result);
+        $usage = $result->getMetadata()->get('token_usage');
+        if ($usage instanceof TokenUsageInterface) {
+            $tokenConsumption = TokenConsumption::fromTokenUsageInterface($usage);
+            $this->tokenConsumption = $this->tokenConsumption->add($tokenConsumption);
+        }
     }
 
     public function getResultBag(): AgentResultBag
     {
         return $this->resultBag;
+    }
+
+    public function getTokenConsumption(): TokenConsumption
+    {
+        return $this->tokenConsumption;
     }
 }

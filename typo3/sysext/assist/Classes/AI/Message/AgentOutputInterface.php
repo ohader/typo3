@@ -24,4 +24,6 @@ interface AgentOutputInterface
     public function add(ResultInterface $result): void;
 
     public function getResultBag(): AgentResultBag;
+
+    public function getTokenConsumption(): TokenConsumption;
 }
