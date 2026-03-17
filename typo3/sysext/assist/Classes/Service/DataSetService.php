@@ -33,6 +33,7 @@ final readonly class DataSetService
             'data-assistant-identifier' => $assistant->identifier,
             'data-assistant-label-domain' => $assistant->labelDomain,
             'data-assistant-module' => $assistant->additionalModule,
+            'data-assistant-input' => $assistant->chatInput->value,
         ];
         if ($subject !== null) {
             $attrs['data-assistant-subject'] = (string)$subject;

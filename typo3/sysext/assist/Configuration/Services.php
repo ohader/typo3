@@ -26,6 +26,7 @@ return static function (ContainerConfigurator $container, ContainerBuilder $cont
                 'triggerRoutes' => json_encode($attribute->triggerRoutes),
                 'labelDomain' => $attribute->labelDomain,
                 'additionalModule' => $attribute->additionalModule,
+                'chatInput' => $attribute->chatInput->value,
             ]);
         }
     );

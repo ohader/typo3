@@ -32,6 +32,7 @@ final readonly class AssistantResponse
      * @param Progress|null $progress Overall (persisted) progress of the assistant
      * @param string|null $model Name of the AI platform-model used for the current request
      * @param StateCollection|null $state Client-side state values to be sent back to server with each request
+     * @param bool $showInput When true, instructs the client to show the chat input field (if not disabled in AsAssistant)
      */
     public function __construct(
         public array $feedback = [],
@@ -41,6 +42,7 @@ final readonly class AssistantResponse
         public ?string $model = null,
         public ?StateCollection $state = null,
         public bool $boomerang = false,
+        public bool $showInput = false,
     ) {}
 
     public function toResponse(): JsonResponse
@@ -55,6 +57,7 @@ final readonly class AssistantResponse
             'model' => $this->model,
             'state' => $this->state,
             'boomerang' => $this->boomerang,
+            'showInput' => $this->showInput,
         ];
         return new JsonResponse($data);
     }

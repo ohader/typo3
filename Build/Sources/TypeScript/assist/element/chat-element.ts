@@ -30,6 +30,7 @@ export interface AssistChatProperties {
   subject: string;
   assistant: string;
   labelDomain: string;
+  input?: 'optional' | 'visible' | 'hidden';
 }
 
 interface AssistChatStep {
@@ -89,6 +90,7 @@ interface AssistantServerResponse {
   model: string | null;
   state?: Record<string, string>;
   boomerang?: boolean;
+  showInput?: boolean;
 }
 
 interface ResourceSubjectData {
@@ -126,7 +128,7 @@ export class ChatElement extends LitElement {
   @state() private messages: ChatEntry[] = [];
   @state() private model: string | null = null;
   @state() private disabledKeys: Set<string> = new Set();
-  @state() private readonly showInput: boolean = false;
+  @state() private showInput: boolean = false;
   @state() private clientState: Record<string, string> = {};
 
   private historyIndex = -1;
@@ -286,6 +288,9 @@ export class ChatElement extends LitElement {
       // update state information
       if (data.model) {
         this.model = data.model;
+      }
+      if (data.showInput !== undefined) {
+        this.showInput = data.showInput;
       }
       if (data.steps !== undefined && data.steps !== null) {
         this.steps = data.steps || [];

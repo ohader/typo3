@@ -41,6 +41,7 @@ export const openAssistModal = async (properties: AssistChatProperties): Promise
       .subject=${properties.subject}
       .assistant=${properties.assistant}
       .labels=${labels}
+      .input=${properties.input ?? 'optional'}
     ></typo3-assist-chat-element>`,
     staticBackdrop: true,
     hideHeader: true,
@@ -65,6 +66,7 @@ document.addEventListener('click', (event: Event): void => {
     subject: triggerItem.dataset.assistantSubject,
     assistant: triggerItem.dataset.assistantIdentifier,
     labelDomain: triggerItem.dataset.assistantLabelDomain,
+    input: triggerItem.dataset.assistantInput as 'optional' | 'visible' | 'hidden' | undefined,
   };
   void openAssistModal(properties as AssistChatProperties);
 });

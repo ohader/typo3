@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 
 /**
@@ -49,6 +50,7 @@ final readonly class AssistantCompilerPass implements CompilerPassInterface
                     ],
                     'labelDomain' => $attributes['labelDomain'] ?? '',
                     'additionalModule' => $attributes['additionalModule'] ?? '',
+                    'chatInput' => $attributes['chatInput'] ?? ChatInputType::optional->value,
                 ];
             }
         }

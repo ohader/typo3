@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Attribute;
 
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
 
 #[\Attribute(\Attribute::TARGET_CLASS)]
 final readonly class AsAssistant
@@ -38,5 +39,6 @@ final readonly class AsAssistant
         public array $triggerRoutes = [],
         public string $labelDomain = '',
         public string $additionalModule = '',
+        public ChatInputType $chatInput = ChatInputType::optional,
     ) {}
 }

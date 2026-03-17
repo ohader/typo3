@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Domain\Model;
 
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
 
 /**
  * @internal
@@ -37,6 +38,7 @@ final readonly class Assistant
         public string $absolutePackagePath,
         public string $labelDomain = '',
         public string $additionalModule = '',
+        public ChatInputType $chatInput = ChatInputType::optional,
     ) {}
 
     public static function createFromConfiguration(string $identifier, array $configuration): self
@@ -58,6 +60,7 @@ final readonly class Assistant
             absolutePackagePath: $configuration['absolutePackagePath'] ?? '',
             labelDomain: $configuration['labelDomain'] ?? '',
             additionalModule: $configuration['additionalModule'] ?? '',
+            chatInput: ChatInputType::from($configuration['chatInput'] ?? ChatInputType::optional->value),
         );
     }
 
