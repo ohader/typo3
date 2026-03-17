@@ -20,7 +20,6 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\FeedbackInterface;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\StateCollection;
-use TYPO3\CMS\Assist\Domain\Model\Step;
 use TYPO3\CMS\Assist\Domain\Model\StepCollection;
 use TYPO3\CMS\Core\Http\JsonResponse;
 
@@ -31,7 +30,7 @@ final readonly class AssistantResponse
      */
     public function __construct(
         public array $feedback = [],
-        public ?Step $step = null,
+        public ?int $stepIndex = null,
         public ?StepCollection $steps = null,
         public ?Progress $progress = null,
         public ?string $error = null,
@@ -42,16 +41,13 @@ final readonly class AssistantResponse
 
     public function toResponse(): JsonResponse
     {
-        $stepIndex = $this->step !== null && $this->steps !== null
-            ? $this->steps->index($this->step)
-            : null;
         $data = [
             'feedback' => $this->feedback,
             'steps' => $this->steps,
             'progress' => $this->progress !== null
                 ? ['uuid' => (string)$this->progress->uuid]
                 : null,
-            'step' => $stepIndex,
+            'stepIndex' => $this->stepIndex,
             'model' => $this->model,
             'state' => $this->state,
             'boomerang' => $this->boomerang,

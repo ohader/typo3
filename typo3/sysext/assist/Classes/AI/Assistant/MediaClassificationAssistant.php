@@ -307,7 +307,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             options: $optionItems,
         );
 
-        return new AssistantResponse(feedback: $feedback, step: $step);
+        return new AssistantResponse(feedback: $feedback, stepIndex: $progress->steps?->index($step));
     }
 
     private function createProgress(): Progress

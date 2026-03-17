@@ -73,7 +73,7 @@ type ChatEntry =
 interface AssistantServerResponse {
   feedback: AssistFeedbackItem[];
   steps: AssistChatStep[];
-  step: number | null;
+  stepIndex: number | null;
   progress: { uuid: string } | null;
   model: string | null;
   state?: Record<string, string>;
@@ -272,8 +272,8 @@ export class ChatElement extends LitElement {
         return;
       }
       this.steps = data.steps ?? [];
-      if (data.step !== undefined) {
-        this.stepIndex = data.step;
+      if (data.stepIndex !== undefined) {
+        this.stepIndex = data.stepIndex;
       }
       const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
       this.messages = [...this.messages, ...newEntries];
