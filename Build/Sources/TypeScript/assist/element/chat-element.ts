@@ -342,7 +342,7 @@ export class ChatElement extends LitElement {
     return html`
       <div class="assist-chat-header__progress">
         <typo3-backend-progress-tracker
-          activeStage=${activeStage}
+          .activeStage=${activeStage}
           .stages=${stages}>
         </typo3-backend-progress-tracker>
       </div>
