@@ -137,8 +137,8 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $progressUuid = $request->getProgressUuid();
         $stepIndex = $request->getStepIndex();
 
-        $languageChoice = $request->params['language-choice'] ?? null;
         $stepChoice = $request->params['step-choice'] ?? null;
+        $languageChoice = $request->params['language-choice'] ?? null;
 
         if ($languageChoice === '') {
             return new AssistantResponse(feedback: [new TextFeedback("Cancelled. We're done here...")]);
@@ -181,6 +181,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No step choice submitted.')]);
         }
 
+        $feedback = [];
         if ($stepChoice === '') {
             // mark the step as done (skipped)
             $progress->steps->markDone($step);
@@ -209,12 +210,8 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
             $dataHandler->start(['sys_file_metadata' => [(int)$metaData['uid'] => $properties]], []);
             $dataHandler->process_datamap();
-
-            if ($dataHandler->errorLog) {
-                $feedback = array_map(
-                    static fn(string $error): ErrorFeedback => new ErrorFeedback($error),
-                    $dataHandler->errorLog,
-                );
+            foreach ($dataHandler->errorLog as $error) {
+                $feedback[] = new ErrorFeedback($error);
             }
 
             // mark the step as done
@@ -234,7 +231,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 );
             }
             try {
-                return $this->processStep($progress, $nextStep, (int)$languageChoice, $feedback ?? []);
+                return $this->processStep($progress, $nextStep, (int)$languageChoice, $feedback);
             } catch (StepSkippedException) {
                 continue;
             }
