@@ -50,6 +50,12 @@ interface MarkdownFeedbackItem {
   text: string;
 }
 
+interface MediaFeedbackItem {
+  type: 'media';
+  url: string;
+  alt: string;
+}
+
 interface ConfirmationItemData {
   identifier: string;
   text: string;
@@ -63,7 +69,7 @@ interface ConfirmationFeedbackItem {
   decline: ConfirmationItemData;
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -413,6 +419,15 @@ export class ChatElement extends LitElement {
       return html`
         <div class="assist-chat__response">
           <p class="assist-chat__text">${item.text}</p>
+        </div>
+      `;
+    }
+    if (item.type === 'media') {
+      return html`
+        <div class="assist-chat__response">
+          <div class="assist-chat__media-frame">
+            <img class="assist-chat__media-thumbnail" src=${item.url} alt=${item.alt}>
+          </div>
         </div>
       `;
     }

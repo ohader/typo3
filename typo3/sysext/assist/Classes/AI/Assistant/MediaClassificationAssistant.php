@@ -28,6 +28,7 @@ use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\MediaFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Type\AggregateInterface;
 use TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate;
@@ -317,8 +318,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         }
 
         $feedback = [
-            // @todo create a MediaFeedback item that is capable of holding an image or a video
-            new TextFeedback($file->getCombinedIdentifier() . ' (should be an image)'),
+            new MediaFeedback(url: $file->getPublicUrl() ?? '', alt: $file->getName()),
         ];
         $feedback[] = new OptionsFeedback(
             key: 'step-choice',
@@ -515,20 +515,19 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             return null;
         }
 
-        $required = $valueSchema['required'] ?? [];
         $valueProps = $valueSchema['properties'] ?? [];
         $value = $decoded['value'];
 
-        foreach ($required as $key) {
-            if (!array_key_exists($key, $value)) {
+        foreach ($value as $key => $val) {
+            if (!array_key_exists($key, $valueProps)) {
                 return null;
             }
             $expectedType = $valueProps[$key]['type'] ?? 'string';
             $valid = match ($expectedType) {
-                'boolean' => is_bool($value[$key]),
-                'integer' => is_int($value[$key]),
-                'number'  => is_int($value[$key]) || is_float($value[$key]),
-                default   => is_string($value[$key]),
+                'boolean' => is_bool($val),
+                'integer' => is_int($val),
+                'number'  => is_int($val) || is_float($val),
+                default   => is_string($val),
             };
             if (!$valid) {
                 return null;
