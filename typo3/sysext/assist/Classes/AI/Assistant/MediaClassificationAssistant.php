@@ -261,8 +261,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     private function processStep(Progress $progress, Step $step, int $languageChoice, array $feedback = []): AssistantResponse
     {
-        // @todo handle unassigned models much earlier in the call stack
-        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
+        $model = $progress->model;
 
         $languageLabel = $this->resolveLanguageLabel($languageChoice);
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
