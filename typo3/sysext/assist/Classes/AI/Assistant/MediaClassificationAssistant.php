@@ -264,10 +264,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         // @todo handle unassigned models much earlier in the call stack
         $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
 
-        $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
-        $language = $languages[$languageChoice] ?? null;
-        $languageLabel = $languageChoice === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $languageChoice);
-
+        $languageLabel = $this->resolveLanguageLabel($languageChoice);
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
         $metadataStructure = $this->createMetadataStructure($file);
 
@@ -448,28 +445,39 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             return [];
         }
 
-        $languages = $this->translationConfigurationProvider->getSystemLanguages(0);
-        $languageMap = array_column($languages, null, 'uid');
-
         $options = [];
         foreach ($rows as $row) {
-            $langUid = (int)$row['sys_language_uid'];
-            $count = (int)$row['missing_count'];
-            $language = $languageMap[$langUid] ?? null;
-            $label = $langUid === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $langUid);
+            $missingCount = (int)$row['missing_count'];
+            $languageId = (int)$row['sys_language_uid'];
+            $languageLabel = $this->resolveLanguageLabel($languageId);
+            $languageIsoCode = $this->resolveLanguageIsoCode($languageId);
             $options[] = new OptionItem(
-                identifier: (string)$langUid,
-                text: sprintf('Process language %s', $label),
+                identifier: (string)$languageId,
+                text: sprintf('Process language %s', $languageLabel),
                 details: sprintf(
                     '%s%d %s',
-                    !empty($language['ISOcode']) ? $language['ISOcode'] . ', ' : '',
-                    $count,
-                    $count === 1 ? 'file' : 'files'
+                    $languageIsoCode !== null ? $languageIsoCode . ', ' : '',
+                    $missingCount,
+                    $missingCount === 1 ? 'file' : 'files'
                 ),
             );
         }
 
         return $options;
+    }
+
+    private function resolveLanguageLabel(int $languageId, int $pageId = 0): string
+    {
+        $languages = $this->translationConfigurationProvider->getSystemLanguages($pageId);
+        $language = $languages[$languageId] ?? null;
+        return $languageId === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $languageId);
+    }
+
+    private function resolveLanguageIsoCode(int $languageId, int $pageId = 0): ?string
+    {
+        $languages = $this->translationConfigurationProvider->getSystemLanguages($pageId);
+        $language = $languages[$languageId] ?? null;
+        return $language['ISOcode'] ?? null;
     }
 
     private function buildSteps(int $targetLanguage): StepCollection
