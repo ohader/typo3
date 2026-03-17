@@ -135,7 +135,7 @@ final readonly class PlatformBridgeBuilder
             $event->setOptions(array_replace_recursive(
                 $event->getOptions(),
                 [
-                    'modelCatalog' => ['additionalModels' => $models]
+                    'modelCatalog' => ['additionalModels' => $models],
                 ]
             ));
         }

@@ -89,7 +89,7 @@ final class RecordingHttpClient implements HttpClientInterface
             return $innerStream;
         }
 
-        return new class($innerStream, $map) implements ResponseStreamInterface {
+        return new class ($innerStream, $map) implements ResponseStreamInterface {
             public function __construct(
                 private readonly ResponseStreamInterface $inner,
                 private readonly \SplObjectStorage $map,
@@ -106,11 +106,20 @@ final class RecordingHttpClient implements HttpClientInterface
                 return $this->map->offsetExists($key) ? $this->map[$key] : $key;
             }
 
-            public function next(): void { $this->inner->next(); }
+            public function next(): void
+            {
+                $this->inner->next();
+            }
 
-            public function rewind(): void { $this->inner->rewind(); }
+            public function rewind(): void
+            {
+                $this->inner->rewind();
+            }
 
-            public function valid(): bool { return $this->inner->valid(); }
+            public function valid(): bool
+            {
+                return $this->inner->valid();
+            }
         };
     }
 

@@ -35,7 +35,7 @@ trait AssistantContextTrait
 
     private function getBackendUserId(): int
     {
-            return $this->getBackendUser()->user['uid'] ?? 0;
+        return $this->getBackendUser()->user['uid'] ?? 0;
     }
 
     private function getBackendUser(): BackendUserAuthentication

@@ -59,7 +59,7 @@ final readonly class MarkdownType implements TypeInterface
             'required' => ['type', 'value'],
             'additionalProperties' => false,
             'examples' => [
-                ['type' => 'markdown', 'value' => "**bold** and *italic* text"],
+                ['type' => 'markdown', 'value' => '**bold** and *italic* text'],
                 ['type' => 'markdown', 'value' => "| Column 1 | Column 2 |\n|----------|----------|\n| Cell A   | Cell B   |\n"],
             ],
         ]);

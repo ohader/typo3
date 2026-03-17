@@ -41,7 +41,7 @@ final readonly class FetchPageRecords
     /**
      * @param string $filter Search filter applied to pages title
      * @param bool $showHidden Whether to include hidden pages in the result
-     * @param null|int $limit Maximum number of pages to return
+     * @param int|null $limit Maximum number of pages to return
      * @return array<int, array{uid: int, title: string, pid: int, tstamp: int, hidden: bool}>
      */
     public function __invoke(

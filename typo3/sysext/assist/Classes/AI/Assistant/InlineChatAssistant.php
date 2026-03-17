@@ -46,9 +46,9 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 )]
 final readonly class InlineChatAssistant implements AssistantInterface
 {
-    private const IDENTIFIER = 'typo3-assist-inline-chat';
-
     use AssistantContextTrait;
+
+    private const IDENTIFIER = 'typo3-assist-inline-chat';
 
     public function __construct(
         private ProgressRepository $progressRepository,
