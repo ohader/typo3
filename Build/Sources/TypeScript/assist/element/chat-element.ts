@@ -271,21 +271,26 @@ export class ChatElement extends LitElement {
         this.appendErrorMessage(data.error);
         return;
       }
-      this.steps = data.steps ?? [];
-      if (data.stepIndex !== undefined) {
-        this.stepIndex = data.stepIndex;
-      }
-      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
-      this.messages = [...this.messages, ...newEntries];
-      if (data.progress?.uuid) {
-        this.progressUuid = data.progress.uuid;
-      }
+      // update state information
       if (data.model) {
         this.model = data.model;
       }
+      if (data.steps !== undefined && data.steps !== null) {
+        this.steps = data.steps || [];
+      }
+      if (data.stepIndex !== undefined && data.stepIndex !== null) {
+        this.stepIndex = data.stepIndex;
+      }
+      if (data.progress?.uuid) {
+        this.progressUuid = data.progress.uuid;
+      }
+      // handle messages
+      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
+      this.messages = [...this.messages, ...newEntries];
       if (data.state && typeof data.state === 'object') {
         this.clientState = { ...this.clientState, ...data.state };
       }
+      // immediately return to server (boomerang)
       if (data.boomerang) {
         await this.sendRequest();
       }

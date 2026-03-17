@@ -29,8 +29,12 @@ use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Type\AggregateInterface;
+use TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate;
+use TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate;
 use TYPO3\CMS\Assist\AI\Assistant\Type\PropertyDefinition;
 use TYPO3\CMS\Assist\AI\Assistant\Type\StructureAggregate;
+use TYPO3\CMS\Assist\AI\Assistant\Type\TypeInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
@@ -49,11 +53,14 @@ use TYPO3\CMS\Assist\Exception\StepSkippedException;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
+use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
 #[AsAssistant(
@@ -169,12 +176,39 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         }
         $progress = $this->progressRepository->findByUuid($progressUuid);
 
+        $step = $stepIndex !== null ? $progress->steps->find($stepIndex) : null;
         if ($stepIndex !== null && $stepChoice === null) {
             return new AssistantResponse(error: 'Unexpected state: No step choice submitted.');
         }
 
         if ($stepChoice !== null) {
-            // @todo apply step choice
+            $metadataStructure = $this->createMetadataStructure();
+            $decoded = $this->validateStepChoice($metadataStructure, $stepChoice);
+            if ($decoded === null) {
+                return new AssistantResponse(error: 'Invalid step choice.');
+            }
+            $properties = array_filter(
+                $decoded['value'],
+                static fn(string $value): bool => $value !== null && $value !== '',
+            );
+
+            $metaDataQueryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
+            $metaData = $metaDataQueryBuilder
+                ->select('uid')
+                ->from('sys_file_metadata')
+                ->where(
+                    $metaDataQueryBuilder->expr()->eq('file', $metaDataQueryBuilder->createNamedParameter((int)$step->identifier, Connection::PARAM_INT)),
+                    $metaDataQueryBuilder->expr()->eq('sys_language_uid', $metaDataQueryBuilder->createNamedParameter((int)$languageChoice, Connection::PARAM_INT)),
+                )
+                ->executeQuery()
+                ->fetchAssociative();
+            $dataHandler = GeneralUtility::makeInstance(DataHandler::class);
+            $dataHandler->start(['sys_file_metadata' => [(int)$metaData['uid'] => $properties]], []);
+            $dataHandler->process_datamap();
+
+            // mark step as done
+            $progress->steps->markDone($step);
+            $this->progressRepository->appendSteps($progress->uuid, $progress->steps);
         }
 
         do {
@@ -220,25 +254,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $language = $languages[$languageChoice] ?? null;
         $languageLabel = $languageChoice === 0 ? 'Default' : ($language['title'] ?? 'Language ' . $languageChoice);
 
-        // @todo ugly and hardcoded, should use a generic subject pointer for resolving resources
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
-        $values = [
-            'title' => $file->getProperty('title'),
-            'description' => $file->getProperty('description'),
-            'alternative' => $file->getProperty('alternative'),
-        ];
-        $props = [
-            'title' => new PropertyDefinition(name: 'title', comment: 'Description used in title attribute in markup for this image.'),
-            'description' => new PropertyDefinition(name: 'description', comment: 'Detailed description used as potential caption below the image.'),
-            'alternative' => new PropertyDefinition(name: 'description', comment: 'Alternative description used as substitute in a web accessibility context.'),
-        ];
-        $emptyProperties = array_filter($values, static fn(?string $value): bool => $value === null || $value === '');
-        $tcaSchema = $this->schemaFactory->get('sys_file');
+        $metadataStructure = $this->createMetadataStructure($file);
 
-        $responseType = \TYPO3\CMS\Assist\AI\Assistant\Type\OptionsAggregate::of(
-            \TYPO3\CMS\Assist\AI\Assistant\Type\IntersectionAggregate::of(
-                StructureAggregate::fromTcaSchema($tcaSchema, ...array_intersect_key($props, $emptyProperties)),
-            )
+        $responseType = OptionsAggregate::of(
+            IntersectionAggregate::of($metadataStructure)
         );
 
         $messages = [
@@ -253,8 +273,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             ])),
             Message::ofUser(
                 sprintf(
-                    'Classify image metadata (%s) for language "%s" for the following image:',
-                    implode(', ', array_keys($emptyProperties)),
+                    'Classify image metadata for language "%s" for the following image:',
                     $languageLabel,
                 ),
                 new Image($file->getContents(), $file->getMimeType()),
@@ -444,6 +463,79 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             ),
             $rows,
         ));
+    }
+
+    /**
+     * @todo ugly and hardcoded, should use a generic subject pointer for resolving resources
+     */
+    private function createMetadataStructure(?FileInterface $file = null): StructureAggregate
+    {
+        $props = [
+            'title' => new PropertyDefinition(name: 'title', comment: 'Description used in title attribute in markup for this image.'),
+            'description' => new PropertyDefinition(name: 'description', comment: 'Detailed description used as potential caption below the image.'),
+            'alternative' => new PropertyDefinition(name: 'description', comment: 'Alternative description used as substitute in a web accessibility context.'),
+        ];
+
+        if ($file !== null) {
+            $values = [
+                'title' => $file->getProperty('title'),
+                'description' => $file->getProperty('description'),
+                'alternative' => $file->getProperty('alternative'),
+            ];
+            $emptyProperties = array_filter($values, static fn(?string $value): bool => $value === null || $value === '');
+            $properties = array_intersect_key($props, $emptyProperties);
+        } else {
+            $properties = $props;
+        }
+
+        $tcaSchema = $this->schemaFactory->get('sys_file_metadata');
+        return StructureAggregate::fromTcaSchema($tcaSchema, ...$properties);
+    }
+
+    /**
+     * Validates that $json is a well-formed payload for the given $type.
+     * Returns the decoded array on success, or null on any validation failure.
+     */
+    private function validateStepChoice(AggregateInterface|TypeInterface $type, string $json): ?array
+    {
+        $decoded = json_decode($json, true);
+        $schema = $type->toJsonSchema()->data;
+        $discriminator = $schema['properties']['type']['const'] ?? null;
+
+        if (!is_array($decoded) || ($decoded['type'] ?? null) !== $discriminator) {
+            return null;
+        }
+
+        $valueSchema = $schema['properties']['value'] ?? [];
+        if (($valueSchema['type'] ?? null) !== 'object') {
+            return $decoded;
+        }
+
+        if (!is_array($decoded['value'] ?? null)) {
+            return null;
+        }
+
+        $required = $valueSchema['required'] ?? [];
+        $valueProps = $valueSchema['properties'] ?? [];
+        $value = $decoded['value'];
+
+        foreach ($required as $key) {
+            if (!array_key_exists($key, $value)) {
+                return null;
+            }
+            $expectedType = $valueProps[$key]['type'] ?? 'string';
+            $valid = match ($expectedType) {
+                'boolean' => is_bool($value[$key]),
+                'integer' => is_int($value[$key]),
+                'number'  => is_int($value[$key]) || is_float($value[$key]),
+                default   => is_string($value[$key]),
+            };
+            if (!$valid) {
+                return null;
+            }
+        }
+
+        return $decoded;
     }
 
     private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse

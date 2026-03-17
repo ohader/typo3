@@ -30,6 +30,11 @@ class StepCollection implements \JsonSerializable
         $this->steps = $steps;
     }
 
+    public function has(int $index): bool
+    {
+        return isset($this->steps[$index]);
+    }
+
     public function find(int $index): ?Step
     {
         return $this->steps[$index] ?? null;
