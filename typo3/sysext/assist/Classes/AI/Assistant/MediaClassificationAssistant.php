@@ -153,13 +153,14 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             );
         }
 
-        if (!MathUtility::canBeInterpretedAsInteger($languageChoice)) {
-            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No language choice submitted.')]);
-        }
         if ($progressUuid === null) {
             return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No progress header submitted.')]);
         }
         $progress = $this->progressRepository->findByUuid($progressUuid);
+        $languageChoice = $languageChoice ?? $progress->state?->get('language-choice');
+        if (!MathUtility::canBeInterpretedAsInteger($languageChoice)) {
+            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No language choice submitted.')]);
+        }
 
         $step = $stepIndex !== null ? $progress->steps->find($stepIndex) : null;
         if ($stepIndex !== null && $stepChoice === null) {
