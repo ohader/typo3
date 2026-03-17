@@ -155,6 +155,12 @@ export class ChatElement extends LitElement {
     this.closest('typo3-backend-modal')?.addEventListener('typo3-modal-shown', this.handleModalShown, { once: true });
   }
 
+  protected override updated(changedProperties: PropertyValues): void {
+    if (changedProperties.has('messages')) {
+      this.scrollToBottom();
+    }
+  }
+
   protected override render(): TemplateResult {
     return html`
       <div class="assist-chat-container">
@@ -305,7 +311,6 @@ export class ChatElement extends LitElement {
       onFailure?.();
     } finally {
       this.isLoading = false;
-      this.scrollToBottom();
     }
   }
 
