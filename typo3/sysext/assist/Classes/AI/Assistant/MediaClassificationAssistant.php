@@ -271,6 +271,17 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
         $metadataStructure = $this->createMetadataStructure($file);
 
+        $metaDataQueryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
+        $currentMetadata = $metaDataQueryBuilder
+            ->select('title', 'description', 'alternative')
+            ->from('sys_file_metadata')
+            ->where(
+                $metaDataQueryBuilder->expr()->eq('file', $metaDataQueryBuilder->createNamedParameter((int)$step->identifier, Connection::PARAM_INT)),
+                $metaDataQueryBuilder->expr()->eq('sys_language_uid', $metaDataQueryBuilder->createNamedParameter($languageChoice, Connection::PARAM_INT)),
+            )
+            ->executeQuery()
+            ->fetchAssociative();
+
         $responseType = OptionsAggregate::of(
             IntersectionAggregate::of($metadataStructure)
         );
@@ -352,13 +363,20 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             details: 'Skip this item and continue with the next one.',
         );
 
+        $currentValueLines = [];
+        foreach (['title', 'description', 'alternative'] as $field) {
+            $value = (string)($currentMetadata[$field] ?? '');
+            $currentValueLines[] = sprintf('**%s:** %s', ucfirst($field), $value !== '' ? $value : '_(empty)_');
+        }
+        $currentValuesText = implode("  \n", $currentValueLines);
+
         return new AssistantResponse(
             feedback: [
                 ...$feedback,
                 new TextFeedback('Select a metadata suggestion to apply:'),
                 new OptionsFeedback(
                     key: 'step-choice',
-                    text: sprintf("Current values:\n%s", 'empty'),
+                    text: sprintf("Current values:\n%s", $currentValuesText),
                     options: $optionItems,
                     heading: $file->getName(),
                     image: $file->getPublicUrl(),
