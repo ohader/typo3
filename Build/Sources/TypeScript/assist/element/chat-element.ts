@@ -340,7 +340,7 @@ export class ChatElement extends LitElement {
     if (this.steps.length === 0) {
       return html`${nothing}`;
     }
-    const stages = this.resolveStepIdentifiers(this.steps);
+    const stages = this.resolveStepSubjects(this.steps);
     const activeStage = this.stepIndex !== null
       ? this.stepIndex
       : this.countDoneSteps(this.steps);
@@ -354,8 +354,8 @@ export class ChatElement extends LitElement {
     `;
   }
 
-  private resolveStepIdentifiers(steps: AssistChatStep[]): string[] {
-    return steps.flatMap(step => [step.identifier, ...this.resolveStepIdentifiers(step.subs)]);
+  private resolveStepSubjects(steps: AssistChatStep[]): string[] {
+    return steps.flatMap(step => [step.subject, ...this.resolveStepSubjects(step.subs)]);
   }
 
   private countDoneSteps(steps: AssistChatStep[]): number {
