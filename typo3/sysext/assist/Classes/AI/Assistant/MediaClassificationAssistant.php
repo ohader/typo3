@@ -581,46 +581,4 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
         return $decoded;
     }
-
-    private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse
-    {
-        $progress = $this->progressRepository->findByUuid($uuid);
-        if ($progress === null) {
-            return new AssistantResponse();
-        }
-
-        $messages = [];
-        foreach ($progress->items as $item) {
-            $text = (string)json_decode((string)$item->payload);
-            $messages[] = $item->type === ProgressItemType::submitted
-                ? Message::ofUser($text)
-                : Message::ofAssistant($text);
-        }
-
-        $newMessage = (string)($request->params['message'] ?? '');
-        if ($newMessage !== '') {
-            $this->progressRepository->appendItem(
-                uuid: $progress->uuid,
-                item: new ProgressItem(ProgressItemType::submitted, $newMessage),
-            );
-            $messages[] = Message::ofUser($newMessage);
-        }
-
-        $model = $progress->model;
-        $input = new AgentInput($model, ...$messages);
-        $input->progress = $progress;
-        $input->sequencePointer = new SequencePointer(submitted: count($progress->items));
-        $output = new AgentOutput();
-
-        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
-        $this->orchestrator->process($assistant, $input, $output);
-
-        $feedback = array_map(
-            fn($result) => $this->resultConverter->convert($result),
-            $output->getResultBag()->getResults(),
-        );
-
-        $steps = StepCollection::fromArray($request->params['steps'] ?? []);
-        return new AssistantResponse(steps: $steps, feedback: $feedback, progress: $progress);
-    }
 }
