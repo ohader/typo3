@@ -59,16 +59,13 @@ final readonly class StructureAggregate implements AggregateInterface, \Stringab
         }
         $defs = [];
         foreach ($properties as $prop) {
-            if ($prop instanceof PropertyDefinition) {
-                $defs[] = $prop;
-            } else {
-                $field = $schema->getField($prop);
-                $defs[] = new PropertyDefinition(
-                    name: $prop,
-                    type: self::mapTcaTypeToJsonType($field),
-                    comment: $field->getLabel() !== '' ? $field->getLabel() : null,
-                );
-            }
+            $definition = $prop instanceof PropertyDefinition ? $prop : null;
+            $field = $schema->getField($definition->name ?? $prop);
+            $defs[] = new PropertyDefinition(
+                name: $definition->name ?? $prop,
+                type: $definition->type ?? self::mapTcaTypeToJsonType($field),
+                comment: $definition->comment ?? ($field->getLabel() !== '' ? $field->getLabel() : null),
+            );
         }
         return new self($defs);
     }
