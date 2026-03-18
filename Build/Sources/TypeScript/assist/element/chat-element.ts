@@ -109,7 +109,14 @@ interface TcaSubjectData {
   types: string[] | null;
 }
 
-type SubjectData = ResourceSubjectData | TcaSubjectData;
+interface PageSubjectData {
+  kind: 'page';
+  uid: number;
+  languageId: number;
+  workspaceId: number;
+}
+
+type SubjectData = ResourceSubjectData | TcaSubjectData | PageSubjectData;
 
 /**
  * Module: @typo3/assist/element/chat-element
@@ -327,15 +334,26 @@ export class ChatElement extends LitElement {
   }
 
   private renderSubjectContext(): TemplateResult {
-    const s = this.parsedSubject;
-    const label = s === null
-      ? (this.subject ?? '')
-      : s.kind === 'resource' ? s.path : `${s.tableName}:${s.uid} — ${s.propertyName}`;
+    const label = this.resolveSubjectLabel();
     return html`
       <p class="assist-chat-header__context text-variant">
         ${label}
       </p>
     `;
+  }
+
+  private resolveSubjectLabel(): string {
+    const subject = this.parsedSubject;
+    if (subject === null) {
+      return this.subject ?? '';
+    }
+    if (subject.kind === 'resource') {
+      return subject.path;
+    }
+    if (subject.kind === 'page') {
+      return `Page #${subject.uid}`;
+    }
+    return `${subject.tableName}:${subject.uid} — ${subject.propertyName}`;
   }
 
   /**

@@ -17,9 +17,11 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\EventListener;
 
+use TYPO3\CMS\Assist\Domain\Dto\SubjectInterface;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\DataSetService;
+use TYPO3\CMS\Assist\Service\SubjectResolver;
 use TYPO3\CMS\Backend\Routing\Route;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\Buttons\ButtonInterface;
@@ -43,6 +45,7 @@ final readonly class BackendButtonBarEnhancer
         private DataSetService $dataSetService,
         private ComponentFactory $componentFactory,
         private AssistantRegistry $assistantRegistry,
+        private SubjectResolver $subjectResolver,
     ) {}
 
     public function __invoke(ModifyButtonBarEvent $event): void
@@ -56,16 +59,17 @@ final readonly class BackendButtonBarEnhancer
 
         $this->pageRenderer->loadJavaScriptModule('@typo3/assist/assistant-trigger.js');
 
+        $subject = $this->subjectResolver->resolveFromRequest($request);
         $buttons = $event->getButtons();
         $nextButtonGroup = $this->resolveHighestButtonGroup(ButtonBar::BUTTON_POSITION_LEFT, $buttons) + 1;
-        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton($assistants);
+        $buttons[ButtonBar::BUTTON_POSITION_LEFT][$nextButtonGroup][] = $this->buildAssistButton($assistants, $subject);
         $event->setButtons($buttons);
     }
 
     /**
      * @param list<Assistant> $assistants
      */
-    private function buildAssistButton(array $assistants): ButtonInterface
+    private function buildAssistButton(array $assistants, ?SubjectInterface $subject): ButtonInterface
     {
         $assistButton = $this->componentFactory->createDropDownButton()
             ->setLabel('Ask AI')
@@ -73,7 +77,6 @@ final readonly class BackendButtonBarEnhancer
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-wand-sparkles', IconSize::SMALL));
 
-        // @todo forward current call context
         // data-assist-template :== meta|media|alt
         foreach ($assistants as $assistant) {
             $assistButton->addItem(
@@ -82,7 +85,7 @@ final readonly class BackendButtonBarEnhancer
                     ->setHref('#')
                     ->setAttributes([
                         'class' => 't3js-assist-trigger-item',
-                        ...$this->dataSetService->forAssistant($assistant),
+                        ...$this->dataSetService->forAssistant($assistant, $subject),
                     ])
             );
         }
