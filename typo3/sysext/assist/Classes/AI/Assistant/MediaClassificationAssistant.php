@@ -22,7 +22,6 @@ use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Result\TextResult;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
-use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ErrorFeedback;
@@ -382,10 +381,25 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     }
 
     /**
+     * @return list<int>
+     */
+    private function getAccessibleStorageUids(): array
+    {
+        // getFileStorages() never returns storage 0 (the pseudo-storage); admin users
+        // get all storages, regular users only those they have file mounts for.
+        return array_keys($this->getBackendUser()->getFileStorages());
+    }
+
+    /**
      * @return list<OptionItem>
      */
     private function buildTargetLanguageOptionItems(): array
     {
+        $storageUids = $this->getAccessibleStorageUids();
+        if ($storageUids === []) {
+            return [];
+        }
+
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
         $queryBuilder->getRestrictions()->removeAll();
 
@@ -400,6 +414,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 $queryBuilder->expr()->eq('sf.uid', $queryBuilder->quoteIdentifier('sfm.file')),
             )
             ->where(
+                $queryBuilder->expr()->in(
+                    'sf.storage',
+                    $queryBuilder->createNamedParameter($storageUids, Connection::PARAM_INT_ARRAY),
+                ),
                 $queryBuilder->expr()->eq(
                     'sf.type',
                     $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
@@ -467,6 +485,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
     private function buildSteps(int $targetLanguage): StepCollection
     {
+        $storageUids = $this->getAccessibleStorageUids();
+        if ($storageUids === []) {
+            return new StepCollection([]);
+        }
+
         $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
         $queryBuilder->getRestrictions()->removeAll();
 
@@ -480,6 +503,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 $queryBuilder->expr()->eq('sf.uid', $queryBuilder->quoteIdentifier('sfm.file')),
             )
             ->where(
+                $queryBuilder->expr()->in(
+                    'sf.storage',
+                    $queryBuilder->createNamedParameter($storageUids, Connection::PARAM_INT_ARRAY),
+                ),
                 $queryBuilder->expr()->eq(
                     'sf.type',
                     $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
