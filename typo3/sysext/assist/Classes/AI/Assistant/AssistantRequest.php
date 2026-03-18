@@ -58,7 +58,7 @@ final readonly class AssistantRequest
         }
         try {
             $data = json_decode($this->headers['x-typo3-assist-subject'], true, flags: JSON_THROW_ON_ERROR);
-            return match($data['kind'] ?? '') {
+            return match ($data['kind'] ?? '') {
                 'tca'      => TcaSubject::fromString($this->headers['x-typo3-assist-subject']),
                 'resource' => ResourceSubject::fromString($this->headers['x-typo3-assist-subject']),
                 'page'     => PageSubject::fromString($this->headers['x-typo3-assist-subject']),

@@ -34,7 +34,7 @@ final readonly class SubjectResolver
             return null;
         }
         // @todo this might also be usable with a path prefix, e.g. for `/module/web/*`
-        return match($route->getPath()) {
+        return match ($route->getPath()) {
             '/module/web/layout' => $this->resolvePageSubject($request),
             default => null,
         };
