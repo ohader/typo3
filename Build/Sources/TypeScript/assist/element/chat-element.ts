@@ -276,6 +276,9 @@ export class ChatElement extends LitElement {
     if (this.progressUuid) {
       headers['x-typo3-assist-progress'] = this.progressUuid;
     }
+    if (this.subject) {
+      headers['x-typo3-assist-subject'] = this.subject;
+    }
     if (this.stepIndex !== null) {
       headers['x-typo3-assist-step'] = String(this.stepIndex);
     }

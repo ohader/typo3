@@ -19,6 +19,10 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\Domain\Dto\PageSubject;
+use TYPO3\CMS\Assist\Domain\Dto\ResourceSubject;
+use TYPO3\CMS\Assist\Domain\Dto\SubjectInterface;
+use TYPO3\CMS\Assist\Domain\Dto\TcaSubject;
 
 final readonly class AssistantRequest
 {
@@ -45,6 +49,24 @@ final readonly class AssistantRequest
             return null;
         }
         return Uuid::fromString($this->headers['x-typo3-assist-progress']);
+    }
+
+    public function getSubject(): ?SubjectInterface
+    {
+        if (empty($this->headers['x-typo3-assist-subject'])) {
+            return null;
+        }
+        try {
+            $data = json_decode($this->headers['x-typo3-assist-subject'], true, flags: JSON_THROW_ON_ERROR);
+            return match($data['kind'] ?? '') {
+                'tca'      => TcaSubject::fromString($this->headers['x-typo3-assist-subject']),
+                'resource' => ResourceSubject::fromString($this->headers['x-typo3-assist-subject']),
+                'page'     => PageSubject::fromString($this->headers['x-typo3-assist-subject']),
+                default    => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function getStepIndex(): ?int
