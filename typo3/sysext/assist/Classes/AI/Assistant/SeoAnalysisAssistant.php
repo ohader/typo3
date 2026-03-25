@@ -22,13 +22,14 @@ use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
+use TYPO3\CMS\Assist\AI\Assistant\Type\MarkdownType;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
-use TYPO3\CMS\Assist\AI\Tool\FetchContentElements;
-use TYPO3\CMS\Assist\AI\Tool\FetchPageRecords;
-use TYPO3\CMS\Assist\AI\Tool\PerformFrontendRequest;
+use TYPO3\CMS\Assist\AI\Tool\FetchContentElementsTool;
+use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
+use TYPO3\CMS\Assist\AI\Tool\PerformFrontendRequestTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Dto\PageSubject;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
@@ -83,14 +84,18 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
             '- typo3-assist-fetchContentElements: fetches raw content elements (header, bodytext) for a page UID',
             '- typo3-assist-performFrontendRequest: renders the full frontend HTML of a page by UID (use to inspect meta tags and rendered output)',
             '',
-            'Respond in markdown format with clear sections and specific, actionable recommendations.',
             $this->getBackendUserLanguageHint(),
+            'Respond with a markdown table. Each row represents one SEO criterion (e.g. Page title, Meta description, Keywords, Headings, Body text).',
+            'Columns: Criterion | Current value | Status | Recommendation. Use ✅ / ⚠️ / ❌ for the status column.',
+            'Add specific, actionable recommendations in the last column.',
+            'Respond with JSON, using the following schema:',
+            (string)MarkdownType::toJsonSchema(),
         ]);
     }
 
     public function getToolPolicy(): ToolPolicy
     {
-        return new StaticToolPolicy([FetchPageRecords::class, FetchContentElements::class, PerformFrontendRequest::class]);
+        return new StaticToolPolicy([FetchPageRecordsTool::class, FetchContentElementsTool::class, PerformFrontendRequestTool::class]);
     }
 
     public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest

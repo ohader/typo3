@@ -29,7 +29,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
     name: 'typo3-assist-fetchContentElements',
     description: 'Fetch content elements (tt_content) for a given page UID. Returns headers and body text.',
 )]
-final readonly class FetchContentElements
+final readonly class FetchContentElementsTool
 {
     private const FIELDS = ['uid', 'pid', 'CType', 'header', 'subheader', 'bodytext'];
 

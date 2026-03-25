@@ -29,7 +29,7 @@ use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
     description: 'Fetch pages records from the database table `pages`. ' .
         'The result is best visualized in a markdown table if not request in a different format.'
 )]
-final readonly class FetchPageRecords
+final readonly class FetchPageRecordsTool
 {
     private const FIELDS = ['uid', 'pid', 'title', 'subtitle', 'keywords', 'description', 'abstract'];
 

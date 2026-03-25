@@ -20,6 +20,7 @@ namespace TYPO3\CMS\Assist\AI\Tool;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Assist\Service\BackendUserPermissionService;
+use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Frontend\Http\Application;
@@ -30,12 +31,13 @@ use TYPO3\CMS\Frontend\Http\Application;
     description: 'Fetches the rendered HTML of a TYPO3 page by page UID. ' .
         'Returns the visible text content (tags stripped) including title, headings, and body text.',
 )]
-final readonly class PerformFrontendRequest
+final readonly class PerformFrontendRequestTool
 {
     public function __construct(
         private Application $application,
         private SiteFinder $siteFinder,
         private BackendUserPermissionService $permissionService,
+        private Context $context,
     ) {}
 
     /**
@@ -60,7 +62,21 @@ final readonly class PerformFrontendRequest
 
         $subRequest = (new ServerRequest($uri, 'GET'))
             ->withAttribute('site', $site);
-        $response = $this->application->handle($subRequest);
+
+        $savedBeUser = $GLOBALS['BE_USER'] ?? null;
+        $savedTypo3Request = $GLOBALS['TYPO3_REQUEST'] ?? null;
+        // @todo this should be encapsulated better
+        $savedBackendUserAspect = $this->context->getAspect('backend.user');
+        $savedWorkspaceAspect = $this->context->getAspect('workspace');
+
+        try {
+            $response = $this->application->handle($subRequest);
+        } finally {
+            $GLOBALS['BE_USER'] = $savedBeUser;
+            $GLOBALS['TYPO3_REQUEST'] = $savedTypo3Request;
+            $this->context->setAspect('backend.user', $savedBackendUserAspect);
+            $this->context->setAspect('workspace', $savedWorkspaceAspect);
+        }
 
         if ($response->getStatusCode() >= 300) {
             return '';

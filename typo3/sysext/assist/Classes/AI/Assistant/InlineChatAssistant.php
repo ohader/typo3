@@ -26,7 +26,7 @@ use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
-use TYPO3\CMS\Assist\AI\Tool\FetchPageRecords;
+use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
@@ -81,7 +81,7 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
     public function getToolPolicy(): ToolPolicy
     {
-        return new StaticToolPolicy([FetchPageRecords::class]);
+        return new StaticToolPolicy([FetchPageRecordsTool::class]);
     }
 
     public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
