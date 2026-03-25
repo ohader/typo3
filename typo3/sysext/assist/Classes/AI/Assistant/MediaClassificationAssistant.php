@@ -28,6 +28,8 @@ use TYPO3\CMS\Assist\AI\Assistant\Feedback\ErrorFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\MediaFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\QuickActionFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\QuickActionItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ResultConverter;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\TextFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Type\AggregateInterface;
@@ -55,7 +57,6 @@ use TYPO3\CMS\Backend\Configuration\TranslationConfigurationProvider;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
-use TYPO3\CMS\Core\Resource\FileInterface;
 use TYPO3\CMS\Core\Resource\FileType;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
@@ -80,6 +81,12 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         'image/png',
         'image/gif',
         'image/webp',
+    ];
+
+    private const ASPECT_LABELS = [
+        'title' => 'Title',
+        'description' => 'Description',
+        'alternative' => 'Alt text',
     ];
 
     public function __construct(
@@ -123,6 +130,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
 
         $stepChoice = $request->params['step-choice'] ?? null;
         $languageChoice = $request->params['language-choice'] ?? null;
+        $aspectChoice = $request->params['aspect-choice'] ?? null;
 
         if ($languageChoice === '') {
             return new AssistantResponse(feedback: [new TextFeedback("Cancelled. We're done here...")]);
@@ -133,23 +141,15 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             return $this->initializeProcess();
         }
 
-        // initialize progress and steps
-        if ($progressUuid === null && MathUtility::canBeInterpretedAsInteger($languageChoice)) {
+        // language chosen but aspect not yet selected → create progress (to carry language in state), show aspect options
+        if ($progressUuid === null && MathUtility::canBeInterpretedAsInteger($languageChoice) && $aspectChoice === null) {
             $progress = $this->createProgress();
-            $steps = $this->buildSteps((int)$languageChoice);
             // @todo steps persistence should be handled more generic in an upper layer
-            $this->progressRepository->appendSteps($progress->uuid, $steps);
             $this->progressRepository->appendState(
                 $progress->uuid,
                 new StateCollection(['language-choice' => $languageChoice]),
             );
-            return new AssistantResponse(
-                feedback: [new TextFeedback("Alright, let's get started...")],
-                steps: $steps,
-                progress: $progress,
-                state: new StateCollection(['language-choice' => $languageChoice]),
-                boomerang: true,
-            );
+            return $this->showAspectOptions((int)$languageChoice, $progress);
         }
 
         if ($progressUuid === null) {
@@ -159,6 +159,39 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         $languageChoice = $languageChoice ?? $progress->state?->get('language-choice');
         if (!MathUtility::canBeInterpretedAsInteger($languageChoice)) {
             return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No language choice submitted.')]);
+        }
+
+        // aspect-choice='' with progress means the user declined to switch aspect → offer new language
+        if ($aspectChoice === '') {
+            return $this->offerNewLanguage([]);
+        }
+
+        // aspect selected or switched within the same progress (same chat history)
+        if ($aspectChoice !== null) {
+            if (!array_key_exists($aspectChoice, self::ASPECT_LABELS)) {
+                return new AssistantResponse(feedback: [new ErrorFeedback('Invalid aspect choice.')]);
+            }
+            $hadPreviousAspect = $progress->state?->get('aspect-choice') !== null;
+            $newSteps = $this->buildSteps((int)$languageChoice, $aspectChoice);
+            $this->progressRepository->appendSteps($progress->uuid, $newSteps);
+            $this->progressRepository->appendState(
+                $progress->uuid,
+                new StateCollection(['language-choice' => $languageChoice, 'aspect-choice' => $aspectChoice]),
+            );
+            $progress = $this->progressRepository->findByUuid($progressUuid);
+            return new AssistantResponse(
+                feedback: [new TextFeedback($hadPreviousAspect
+                    ? sprintf('Switching to %s...', self::ASPECT_LABELS[$aspectChoice])
+                    : "Alright, let's get started...")],
+                steps: $progress->steps,
+                progress: $progress,
+                boomerang: true,
+            );
+        }
+
+        $aspectChoice = $progress->state?->get('aspect-choice');
+        if ($aspectChoice === null || !array_key_exists($aspectChoice, self::ASPECT_LABELS)) {
+            return new AssistantResponse(feedback: [new ErrorFeedback('Unexpected state: No aspect choice submitted.')]);
         }
 
         $step = $stepIndex !== null ? $progress->steps->find($stepIndex) : null;
@@ -172,7 +205,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             $progress->steps->markDone($step);
             $this->progressRepository->appendSteps($progress->uuid, $progress->steps);
         } elseif ($stepChoice !== null) {
-            $metadataStructure = $this->createMetadataStructure();
+            $metadataStructure = $this->createMetadataStructure($aspectChoice);
             $decoded = $this->validateStepChoice($metadataStructure, $stepChoice);
             if ($decoded === null) {
                 return new AssistantResponse(feedback: [new ErrorFeedback('Invalid step choice.')]);
@@ -207,16 +240,10 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         do {
             $nextStep = $progress->steps?->findNext();
             if ($nextStep === null) {
-                return new AssistantResponse(
-                    feedback: [
-                        ...$feedback,
-                        new TextFeedback('All done!'),
-                    ],
-                    steps: $progress->steps,
-                );
+                return $this->checkRemainingAspects($progress, (int)$languageChoice, $aspectChoice, $feedback);
             }
             try {
-                return $this->processStep($progress, $nextStep, (int)$languageChoice, $feedback);
+                return $this->processStep($progress, $nextStep, (int)$languageChoice, $aspectChoice, $feedback);
             } catch (StepSkippedException) {
                 continue;
             }
@@ -244,13 +271,85 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return new AssistantResponse(feedback: $feedback, model: (string)$model);
     }
 
-    private function processStep(Progress $progress, Step $step, int $languageChoice, array $feedback = []): AssistantResponse
+    private function showAspectOptions(int $languageId, Progress $progress): AssistantResponse
+    {
+        $options = $this->buildAspectOptionItems($languageId);
+        if ($options === []) {
+            return $this->offerNewLanguage([new TextFeedback('All image files are already fully classified for this language.')]);
+        }
+        return new AssistantResponse(
+            feedback: [new QuickActionFeedback(
+                key: 'aspect-choice',
+                text: 'What would you like to classify?',
+                items: array_map(
+                    static fn(OptionItem $o): QuickActionItem => new QuickActionItem($o->identifier, $o->getTextAndDetails()),
+                    $options,
+                ),
+            )],
+            progress: $progress,
+        );
+    }
+
+    private function checkRemainingAspects(Progress $progress, int $languageChoice, string $currentAspect, array $feedback): AssistantResponse
+    {
+        $remainingOptions = array_values(array_filter(
+            $this->buildAspectOptionItems($languageChoice),
+            static fn(OptionItem $o): bool => $o->identifier !== $currentAspect,
+        ));
+
+        if ($remainingOptions !== []) {
+            $aspectOptions = count($remainingOptions) >= 2
+                ? new OptionsFeedback(key: 'aspect-choice', text: 'Would you like to focus on another aspect?', options: $remainingOptions)
+                : new ConfirmationFeedback(
+                    key: 'aspect-choice',
+                    text: $remainingOptions[0]->getTextAndDetails(),
+                    accept: new ConfirmationItem($remainingOptions[0]->identifier, 'Continue'),
+                    decline: new ConfirmationItem('', 'Done'),
+                );
+            return new AssistantResponse(
+                feedback: [...$feedback, new TextFeedback('Done with this aspect!'), $aspectOptions],
+                steps: $progress->steps,
+                progress: $progress,
+            );
+        }
+
+        return $this->offerNewLanguage([...$feedback, new TextFeedback('All done for this language!')]);
+    }
+
+    private function offerNewLanguage(array $leadingFeedback): AssistantResponse
+    {
+        $model = $this->configurationResolver->getDefaultAssistantModel(self::IDENTIFIER);
+        $options = $this->buildTargetLanguageOptionItems();
+        if ($options === []) {
+            return new AssistantResponse(
+                feedback: [...$leadingFeedback, new TextFeedback('All image files across all languages are now fully classified.')],
+                model: (string)$model,
+            );
+        }
+        if (count($options) >= 2) {
+            $languageFeedback = [new OptionsFeedback(key: 'language-choice', text: 'Would you like to continue with another language?', options: $options)];
+        } else {
+            $languageFeedback = [new ConfirmationFeedback(
+                key: 'language-choice',
+                text: $options[0]->getTextAndDetails(),
+                accept: new ConfirmationItem($options[0]->identifier, 'Continue'),
+                decline: new ConfirmationItem('', 'Done'),
+            )];
+        }
+        // progress: null signals the client to start a fresh chat session
+        return new AssistantResponse(
+            feedback: [...$leadingFeedback, ...$languageFeedback],
+            model: (string)$model,
+        );
+    }
+
+    private function processStep(Progress $progress, Step $step, int $languageChoice, string $aspect, array $feedback = []): AssistantResponse
     {
         $model = $progress->model;
 
         $languageLabel = $this->resolveLanguageLabel($languageChoice);
         $file = $this->resourceFactory->getFileObject((int)$step->identifier);
-        $metadataStructure = $this->createMetadataStructure($file);
+        $metadataStructure = $this->createMetadataStructure($aspect);
 
         $metaDataQueryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
         $currentMetadata = $metaDataQueryBuilder
@@ -267,6 +366,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             IntersectionAggregate::of($metadataStructure)
         );
 
+        $currentTitle = (string)($currentMetadata['title'] ?? '');
+        $currentDescription = (string)($currentMetadata['description'] ?? '');
+        $currentAlt = (string)($currentMetadata['alternative'] ?? '');
+        $aspectLabel = self::ASPECT_LABELS[$aspect];
+
         $messages = [
             Message::forSystem(implode("\n", [
                 'You are a friendly and helpful assistant in the TYPO3 CMS backend.',
@@ -280,10 +384,14 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 'Do not return the schema itself. Return actual metadata content that matches the schema.',
             ])),
             Message::ofUser(
-                sprintf(
-                    'Classify image metadata for language "%s" for the following image:',
-                    $languageLabel,
-                ),
+                implode("\n", [
+                    sprintf('Classify image metadata for language "%s" for the following image.', $languageLabel),
+                    sprintf('Focus on the field: %s.', $aspectLabel),
+                    'Current values (for context):',
+                    sprintf('- Title: %s', $currentTitle !== '' ? $currentTitle : '(empty)'),
+                    sprintf('- Description: %s', $currentDescription !== '' ? $currentDescription : '(empty)'),
+                    sprintf('- Alt text: %s', $currentAlt !== '' ? $currentAlt : '(empty)'),
+                ]),
                 new Image($file->getContents(), $file->getMimeType()),
             ),
         ];
@@ -314,14 +422,14 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             }
             foreach ($json['items'] as $rawItem) {
                 $value = $rawItem['value'] ?? [];
-                $lines = [];
-                foreach ($value as $fieldName => $fieldValue) {
-                    $lines[] = sprintf('**%s:** %s', ucfirst((string)$fieldName), $fieldValue);
+                $aspectValue = (string)($value[$aspect] ?? '');
+                if ($aspectValue === '') {
+                    continue;
                 }
                 $optionItems[] = new OptionItem(
                     identifier: json_encode($rawItem, JSON_THROW_ON_ERROR),
-                    text: reset($value) ?? '',
-                    details: implode("  \n", $lines),
+                    text: $aspectValue,
+                    details: '',
                 );
             }
         }
@@ -344,20 +452,16 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             details: 'Skip this item and continue with the next one.',
         );
 
-        $currentValueLines = [];
-        foreach (['title', 'description', 'alternative'] as $field) {
-            $value = (string)($currentMetadata[$field] ?? '');
-            $currentValueLines[] = sprintf('**%s:** %s', ucfirst($field), $value !== '' ? $value : '_(empty)_');
-        }
-        $currentValuesText = implode("  \n", $currentValueLines);
+        $currentValue = (string)($currentMetadata[$aspect] ?? '');
+        $currentValueText = $currentValue !== '' ? $currentValue : '_(empty)_';
 
         return new AssistantResponse(
             feedback: [
                 ...$feedback,
-                new TextFeedback('Select a metadata suggestion to apply:'),
+                new TextFeedback(sprintf('Select a %s suggestion to apply:', $aspectLabel)),
                 new OptionsFeedback(
                     key: 'step-choice',
-                    text: sprintf("Current values:\n%s", $currentValuesText),
+                    text: sprintf("Current value: %s", $currentValueText),
                     options: $optionItems,
                     heading: $file->getName(),
                     image: $file->getPublicUrl(),
@@ -469,6 +573,67 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return $options;
     }
 
+    /**
+     * @return list<OptionItem>
+     */
+    private function buildAspectOptionItems(int $languageId): array
+    {
+        $storageUids = $this->getAccessibleStorageUids();
+        if ($storageUids === []) {
+            return [];
+        }
+
+        $options = [];
+        foreach (self::ASPECT_LABELS as $field => $label) {
+            $queryBuilder = $this->connectionPool->getQueryBuilderForTable('sys_file_metadata');
+            $queryBuilder->getRestrictions()->removeAll();
+
+            $count = (int)$queryBuilder
+                ->addSelectLiteral('COUNT(DISTINCT sfm.file) AS missing_count')
+                ->from('sys_file_metadata', 'sfm')
+                ->innerJoin(
+                    'sfm',
+                    'sys_file',
+                    'sf',
+                    $queryBuilder->expr()->eq('sf.uid', $queryBuilder->quoteIdentifier('sfm.file')),
+                )
+                ->where(
+                    $queryBuilder->expr()->in(
+                        'sf.storage',
+                        $queryBuilder->createNamedParameter($storageUids, Connection::PARAM_INT_ARRAY),
+                    ),
+                    $queryBuilder->expr()->eq(
+                        'sf.type',
+                        $queryBuilder->createNamedParameter(FileType::IMAGE->value, Connection::PARAM_INT),
+                    ),
+                    $queryBuilder->expr()->in(
+                        'sf.mime_type',
+                        $queryBuilder->createNamedParameter(self::MIME_TYPES, Connection::PARAM_STR_ARRAY),
+                    ),
+                    $queryBuilder->expr()->eq(
+                        'sfm.sys_language_uid',
+                        $queryBuilder->createNamedParameter($languageId, Connection::PARAM_INT),
+                    ),
+                    $queryBuilder->expr()->or(
+                        $queryBuilder->expr()->isNull('sfm.' . $field),
+                        $queryBuilder->expr()->eq('sfm.' . $field, $queryBuilder->createNamedParameter('')),
+                    ),
+                )
+                ->executeQuery()
+                ->fetchOne();
+
+            if ($count > 0) {
+                $options[] = new OptionItem(
+                    identifier: $field,
+                    text: sprintf('Focus on %s', $label),
+                    details: sprintf('%d %s', $count, $count === 1 ? 'file' : 'files'),
+                );
+            }
+        }
+
+        return $options;
+    }
+
     private function resolveLanguageLabel(int $languageId, int $pageId = 0): string
     {
         $languages = $this->translationConfigurationProvider->getSystemLanguages($pageId);
@@ -483,7 +648,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return $language['ISOcode'] ?? null;
     }
 
-    private function buildSteps(int $targetLanguage): StepCollection
+    private function buildSteps(int $targetLanguage, string $aspect): StepCollection
     {
         $storageUids = $this->getAccessibleStorageUids();
         if ($storageUids === []) {
@@ -520,12 +685,8 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                     $queryBuilder->createNamedParameter($targetLanguage, Connection::PARAM_INT),
                 ),
                 $queryBuilder->expr()->or(
-                    $queryBuilder->expr()->isNull('sfm.title'),
-                    $queryBuilder->expr()->eq('sfm.title', $queryBuilder->createNamedParameter('')),
-                    $queryBuilder->expr()->isNull('sfm.description'),
-                    $queryBuilder->expr()->eq('sfm.description', $queryBuilder->createNamedParameter('')),
-                    $queryBuilder->expr()->isNull('sfm.alternative'),
-                    $queryBuilder->expr()->eq('sfm.alternative', $queryBuilder->createNamedParameter('')),
+                    $queryBuilder->expr()->isNull('sfm.' . $aspect),
+                    $queryBuilder->expr()->eq('sfm.' . $aspect, $queryBuilder->createNamedParameter('')),
                 ),
             )
             ->orderBy('sf.identifier', 'ASC')
@@ -545,7 +706,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
     /**
      * @todo ugly and hardcoded, should use a generic subject pointer for resolving resources
      */
-    private function createMetadataStructure(?FileInterface $file = null): StructureAggregate
+    private function createMetadataStructure(?string $aspect = null): StructureAggregate
     {
         $props = [
             'title' => new PropertyDefinition(name: 'title', comment: 'Description used in title attribute in markup for this image.'),
@@ -553,17 +714,9 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             'alternative' => new PropertyDefinition(name: 'alternative', comment: 'Alternative description used as substitute in a web accessibility context.'),
         ];
 
-        if ($file !== null) {
-            $values = [
-                'title' => $file->getProperty('title'),
-                'description' => $file->getProperty('description'),
-                'alternative' => $file->getProperty('alternative'),
-            ];
-            $emptyProperties = array_filter($values, static fn(?string $value): bool => $value === null || $value === '');
-            $properties = array_intersect_key($props, $emptyProperties);
-        } else {
-            $properties = $props;
-        }
+        $properties = $aspect !== null && array_key_exists($aspect, $props)
+            ? [$aspect => $props[$aspect]]
+            : $props;
 
         $tcaSchema = $this->schemaFactory->get('sys_file_metadata');
         return StructureAggregate::fromTcaSchema($tcaSchema, ...$properties);

@@ -13,6 +13,7 @@
 
 import { customElement, property, state } from 'lit/decorators.js';
 import { html, LitElement, nothing, type TemplateResult } from 'lit';
+import { markdown } from '@typo3/core/directive/markdown';
 // import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import labels from '~labels/assist.elements';
 
@@ -107,14 +108,10 @@ export class OptionsElement extends LitElement {
     `;
   }
 
-  private nl2br(text: string): TemplateResult {
-    return html`${text.split('\n').flatMap((line, i, arr) => i < arr.length - 1 ? [line, html`<br>`] : [line])}`;
-  }
-
   private renderListItems(): TemplateResult {
     return html`
       <div class="assist-chat__alt-text">
-        <p class="assist-chat__option-alt-text">${this.nl2br(this.text)}</p>
+        <p class="assist-chat__option-alt-text">${markdown(this.text, 'minimal')}</p>
         <div class="assist-chat__options">
           ${this.items.map((item, index) => html`
             <article class="panel panel-default assist-chat__option">
@@ -136,7 +133,7 @@ export class OptionsElement extends LitElement {
 
   private renderImages(): TemplateResult {
     return html`
-      <p class="assist-chat__text">${this.nl2br(this.text)}</p>
+      <p class="assist-chat__text">${markdown(this.text, 'minimal')}</p>
       <div class="row g-3 assist-chat__media-row assist-chat__media-row--images">
         ${this.items.map(item => html`
           <div class="col-12 col-md-6 col-xl-4">
@@ -164,7 +161,7 @@ export class OptionsElement extends LitElement {
 
   private renderVideos(): TemplateResult {
     return html`
-      <p class="assist-chat__text">${this.nl2br(this.text)}</p>
+      <p class="assist-chat__text">${markdown(this.text, 'minimal')}</p>
       <div class="row g-3 assist-chat__media-row assist-chat__media-row--videos">
         ${this.items.map(item => html`
           <div class="col-12 col-lg-6">
