@@ -51,4 +51,23 @@ final readonly class ToolboxFactory
             toolbox: $this->createToolbox(...$toolClassNames),
         );
     }
+
+    /**
+     * Creates an {@see AgentProcessor} whose toolbox checks for user approval before
+     * executing each tool call. Pass the current request params and the list of
+     * session-scoped always-approved tool names.
+     *
+     * @param array<string, mixed> $requestParams
+     * @param list<string>         $alwaysApprovedTools
+     * @param list<class-string>   $toolClassNames
+     */
+    public function createApprovingAgentProcessor(
+        array $requestParams,
+        array $alwaysApprovedTools,
+        string ...$toolClassNames,
+    ): AgentProcessor {
+        $inner = $this->createToolbox(...$toolClassNames);
+        $approving = new ApprovingToolbox($inner, $requestParams, $alwaysApprovedTools);
+        return new AgentProcessor(toolbox: $approving);
+    }
 }

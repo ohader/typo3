@@ -39,8 +39,16 @@ final readonly class AssistantOrchestrator
         private ContainerInterface $container,
     ) {}
 
-    public function process(Assistant $assistant, AgentInputInterface $input, AgentOutputInterface $output): void
-    {
+    /**
+     * @param array<string, mixed> $requestParams  Current request params forwarded from AssistantRequest::$params.
+     *                                             Used by the approving toolbox to check tool-call approvals.
+     */
+    public function process(
+        Assistant $assistant,
+        AgentInputInterface $input,
+        AgentOutputInterface $output,
+        array $requestParams = [],
+    ): void {
         $handler = $this->buildHandler($assistant);
         $handler->process($input, $output);
 
@@ -54,7 +62,7 @@ final readonly class AssistantOrchestrator
             $request = $request->withSystemMessage($systemPrompt);
         }
 
-        $request = $this->withToolPolicy($handler, $assistant, $input, $request);
+        $request = $this->withToolPolicy($handler, $assistant, $input, $request, $requestParams);
 
         $result = $this->agentService->call($request);
         $output->add($result);
@@ -83,6 +91,7 @@ final readonly class AssistantOrchestrator
         Assistant $assistant,
         AgentInputInterface $input,
         AgentCallRequest $request,
+        array $requestParams,
     ): AgentCallRequest {
         $policy = $handler->getToolPolicy();
         if ($policy === null) {
@@ -92,7 +101,12 @@ final readonly class AssistantOrchestrator
         if ($tools === []) {
             return $request;
         }
-        $agentProcessor = $this->toolboxFactory->createAgentProcessor(...$tools);
+        $alwaysApproved = json_decode($requestParams['assistToolApprovals'] ?? '[]', true) ?? [];
+        $agentProcessor = $this->toolboxFactory->createApprovingAgentProcessor(
+            $requestParams,
+            $alwaysApproved,
+            ...$tools,
+        );
         return $request->withProcessors([$agentProcessor], [$agentProcessor]);
     }
 }

@@ -75,7 +75,17 @@ interface ConfirmationFeedbackItem {
   decline: ConfirmationItemData;
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
+interface ToolApprovalFeedbackItem {
+  type: 'tool-approval';
+  key: string;
+  toolName: string;
+  parameters: Record<string, unknown>;
+  approve: ConfirmationItemData;
+  decline: ConfirmationItemData;
+  alwaysApprove: ConfirmationItemData;
+}
+
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | ToolApprovalFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -491,6 +501,30 @@ export class ChatElement extends LitElement {
           <div class="assist-chat__confirmation-actions">
             <button type="button" class="btn btn-primary" ?disabled=${disabled} @click=${() => handleConfirmation(item.accept)}>${item.accept.text}</button>
             <button type="button" class="btn btn-default" ?disabled=${disabled} @click=${() => handleConfirmation(item.decline)}>${item.decline.text}</button>
+          </div>
+        </div>
+      `;
+    }
+    if (item.type === 'tool-approval') {
+      const disabled = this.disabledKeys.has(item.key);
+      const handleApproval = (choice: ConfirmationItemData) => {
+        this.disabledKeys = new Set([...this.disabledKeys, item.key]);
+        const recover = () => { this.disabledKeys = new Set([...this.disabledKeys].filter(k => k !== item.key)); };
+        this.sendRequest(choice.text, { [item.key]: choice.identifier }, recover);
+      };
+      const params = Object.entries(item.parameters);
+      return html`
+        <div class="assist-chat__response">
+          <div class="assist-chat__tool-approval">
+            <div class="assist-chat__tool-approval-header">
+              <code class="assist-chat__tool-name">${item.toolName}</code>
+            </div>
+            ${params.length > 0 ? html`<dl class="assist-chat__tool-parameters">${params.map(([name, value]) => html`<dt>${name}</dt><dd><code>${JSON.stringify(value)}</code></dd>`)}</dl>` : nothing}
+            <div class="assist-chat__confirmation-actions">
+              <button type="button" class="btn btn-primary" ?disabled=${disabled} @click=${() => handleApproval(item.approve)}>${item.approve.text}</button>
+              <button type="button" class="btn btn-default" ?disabled=${disabled} @click=${() => handleApproval(item.alwaysApprove)}>${item.alwaysApprove.text}</button>
+              <button type="button" class="btn btn-default" ?disabled=${disabled} @click=${() => handleApproval(item.decline)}>${item.decline.text}</button>
+            </div>
           </div>
         </div>
       `;

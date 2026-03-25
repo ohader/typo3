@@ -27,10 +27,15 @@ use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
+use TYPO3\CMS\Assist\AI\Agent\ApprovingToolbox;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
+use TYPO3\CMS\Assist\AI\Assistant\Feedback\ToolApprovalFeedback;
 use TYPO3\CMS\Assist\AI\Tool\FetchContentElementsTool;
 use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
 use TYPO3\CMS\Assist\AI\Tool\PerformFrontendRequestTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
+use TYPO3\CMS\Assist\Domain\Model\StateCollection;
+use TYPO3\CMS\Assist\Exception\ToolApprovalRequiredException;
 use TYPO3\CMS\Assist\Domain\Dto\PageSubject;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
@@ -191,11 +196,21 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         $output = new AgentOutput();
 
         $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
-        $this->orchestrator->process($assistant, $input, $output);
+        try {
+            $this->orchestrator->process($assistant, $input, $output, $request->params);
+        } catch (ToolApprovalRequiredException $e) {
+            return $this->buildToolApprovalResponse($e, $input->getProgress(), $request->params);
+        }
 
         $feedback = $this->parseFeedback($output);
 
-        return new AssistantResponse(feedback: $feedback, progress: $progress, model: (string)$model, showInput: false);
+        return new AssistantResponse(
+            feedback: $feedback,
+            progress: $progress,
+            model: (string)$model,
+            showInput: false,
+            state: $this->buildAlwaysApprovedState($request->params),
+        );
     }
 
     private function continueProgress(Uuid $uuid, AssistantRequest $request): AssistantResponse
@@ -229,11 +244,51 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         $output = new AgentOutput();
 
         $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
-        $this->orchestrator->process($assistant, $input, $output);
+        try {
+            $this->orchestrator->process($assistant, $input, $output, $request->params);
+        } catch (ToolApprovalRequiredException $e) {
+            return $this->buildToolApprovalResponse($e, $input->getProgress(), $request->params);
+        }
 
         $feedback = $this->parseFeedback($output);
 
-        return new AssistantResponse(feedback: $feedback, progress: $progress);
+        return new AssistantResponse(
+            feedback: $feedback,
+            progress: $progress,
+            state: $this->buildAlwaysApprovedState($request->params),
+        );
+    }
+
+    private function buildToolApprovalResponse(
+        ToolApprovalRequiredException $e,
+        ?Progress $progress,
+        array $params,
+    ): AssistantResponse {
+        return new AssistantResponse(
+            feedback: [new ToolApprovalFeedback(
+                key: ApprovingToolbox::PARAM_PREFIX . $e->toolName,
+                toolName: $e->toolName,
+                parameters: $e->parameters,
+                approve: new ConfirmationItem('approve', 'Allow'),
+                alwaysApprove: new ConfirmationItem('always-approve', 'Always allow'),
+                decline: new ConfirmationItem('decline', 'Decline'),
+            )],
+            progress: $progress,
+            state: $this->buildAlwaysApprovedState($params),
+        );
+    }
+
+    private function buildAlwaysApprovedState(array $params): ?StateCollection
+    {
+        $prev = json_decode($params['assistToolApprovals'] ?? '[]', true) ?? [];
+        $new = [];
+        foreach ($params as $key => $value) {
+            if (str_starts_with($key, ApprovingToolbox::PARAM_PREFIX) && $value === 'always-approve') {
+                $new[] = substr($key, strlen(ApprovingToolbox::PARAM_PREFIX));
+            }
+        }
+        $all = array_values(array_unique([...$prev, ...$new]));
+        return $all !== [] ? new StateCollection(['assistToolApprovals' => json_encode($all)]) : null;
     }
 
     /**
