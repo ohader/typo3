@@ -31,6 +31,7 @@ use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Resource\ProcessedFile;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Type\Bitmask\Permission;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -122,8 +123,6 @@ class FileReferenceContainer extends AbstractContainer
                         . '[' . htmlspecialchars($hiddenFieldName) . ']" value="' . (int)$isHidden . '" />';
                 }
             }
-            // If this file reference should be shown collapsed
-            $classes[] = $this->data['isInlineChildExpanded'] ? 'panel-visible' : 'panel-collapsed';
         }
         $hiddenFieldHtml = implode("\n", $resultArray['additionalHiddenFields'] ?? []);
 
@@ -141,14 +140,14 @@ class FileReferenceContainer extends AbstractContainer
             $classes[] = 'panel-hidden';
         }
         if ($isNewRecord) {
-            $classes[] = 'isNewFileReference';
+            $classes[] = 'inlineIsNewRecord';
         }
 
         // The hashed object id needs a non-numeric prefix, the value is used as ID selector in JavaScript
         $hashedObjectId = 'hash-' . md5($objectId);
         $containerAttributes = [
             'id' => $objectId . '_div',
-            'class' => 'form-irre-object panel panel-default panel-condensed ' . trim(implode(' ', $classes)),
+            'class' => 'form-irre-object panel panel-default ' . trim(implode(' ', $classes)),
             'data-object-uid' => $record['uid'] ?? 0,
             'data-object-id' => $objectId,
             'data-object-id-hash' => $hashedObjectId,
@@ -159,18 +158,16 @@ class FileReferenceContainer extends AbstractContainer
             'data-placeholder-record' => $this->data['isInlineDefaultLanguageRecordInLocalizedParentContext'] ? '1' : '0',
         ];
 
+        $isExpanded = $this->data['isInlineChildExpanded'] ?? false;
         $ariaControls = htmlspecialchars($objectId . '_fields', ENT_QUOTES | ENT_HTML5);
         $resultArray['html'] = '
             <div ' . GeneralUtility::implodeAttributes($containerAttributes, true) . '>
-                <div class="panel-heading" data-bs-toggle="formengine-file" id="' . htmlspecialchars($hashedObjectId, ENT_QUOTES | ENT_HTML5) . '_header" data-expandSingle="' . (($this->data['inlineParentConfig']['appearance']['expandSingle'] ?? false) ? 1 : 0) . '">
-                    <div class="form-irre-header">
-                        <div class="form-irre-header-cell form-irre-header-icon">
-                            <span class="caret"></span>
-                        </div>
-                        ' . $this->renderFileHeader('aria-expanded="' . (($this->data['isInlineChildExpanded'] ?? false) ? 'true' : 'false') . '" aria-controls="' . $ariaControls . '"') . '
+                <div class="panel-heading">
+                    <div class="panel-heading-row">
+                        ' . $this->renderFileHeader($isExpanded, $ariaControls) . '
                     </div>
                 </div>
-                <div class="panel-collapse" id="' . $ariaControls . '">' . $html . $hiddenFieldHtml . $combinationHtml . '</div>
+                <div class="panel-collapse collapse' . ($isExpanded ? ' show' : '') . '" id="' . $ariaControls . '">' . $html . $hiddenFieldHtml . $combinationHtml . '</div>
             </div>';
 
         return $resultArray;
@@ -197,7 +194,7 @@ class FileReferenceContainer extends AbstractContainer
      * Renders the HTML header for the file, such as the title, toggle-function, drag'n'drop, etc.
      * Later on the command-icons are inserted here, too.
      */
-    protected function renderFileHeader(string $ariaAttributesString): string
+    protected function renderFileHeader(bool $isExpanded, string $ariaControls): string
     {
         $languageService = $this->getLanguageService();
 
@@ -208,26 +205,34 @@ class FileReferenceContainer extends AbstractContainer
             $recordTitle = '<em>[' . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.no_title')) . ']</em>';
         }
 
-        $objectId = $this->inlineStackProcessor->getDomObjectIdPrefixFromStructure($this->data['inlineStructure'], $this->data['inlineFirstPid'])
+        $objectId = htmlspecialchars($this->inlineStackProcessor->getDomObjectIdPrefixFromStructure($this->data['inlineStructure'], $this->data['inlineFirstPid'])
             . '-' . self::FILE_REFERENCE_TABLE
-            . '-' . ($databaseRow['uid'] ?? 0);
+            . '-' . ($databaseRow['uid'] ?? 0));
 
         $altText = BackendUtility::getRecordIconAltText($databaseRow, self::FILE_REFERENCE_TABLE, false);
 
-        // Renders a thumbnail for the header
-        $thumbnail = '';
+        // Renders the header image (thumbnail, icon, or missing file indicator)
+        $headerImage = '';
+        $headerBadge = '';
+        $isMissing = false;
         if ($GLOBALS['TYPO3_CONF_VARS']['GFX']['thumbnails'] ?? false) {
             $fileUid = $databaseRow[self::FOREIGN_SELECTOR][0]['uid'] ?? null;
             if (!empty($fileUid)) {
                 try {
                     $fileObject = $this->resourceFactory->getFileObject($fileUid);
                     if ($fileObject->isMissing()) {
-                        $thumbnail = '
-                            <span class="badge badge-danger">'
-                                . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_missing')) . '
-                            </span>&nbsp;
-                            ' . htmlspecialchars($fileObject->getName()) . '
-                            <br />';
+                        $isMissing = true;
+                        $recordTitle = htmlspecialchars($fileObject->getName());
+                        $headerImage = '
+                            <div class="panel-icon" id="' . $objectId . '_iconcontainer">
+                                ' . $this->iconFactory->getIcon('default-not-found', IconSize::SMALL)->render() . '
+                            </div>';
+                        $headerBadge = '
+                            <div class="panel-badge">
+                                <span class="badge badge-danger">'
+                                    . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:warning.file_missing')) . '
+                                </span>
+                            </div>';
                     } elseif ($fileObject->isImage() || $fileObject->isMediaFile()) {
                         $imageSetup = $this->data['inlineParentConfig']['appearance']['headerThumbnail'] ?? [];
                         $cropVariantCollection = CropVariantCollection::create($databaseRow['crop'] ?? '');
@@ -236,17 +241,20 @@ class FileReferenceContainer extends AbstractContainer
                         }
                         $processedImage = $fileObject->process(
                             ProcessedFile::CONTEXT_IMAGECROPSCALEMASK,
-                            array_merge(['maxWidth' => 145, 'maxHeight' => 45], $imageSetup)
+                            array_merge(['maxWidth' => 60, 'maxHeight' => 45], $imageSetup)
                         );
                         // Only use a thumbnail if the processing process was successful by checking if image width is set
                         if ($processedImage->getProperty('width')) {
                             $imageUrl = $processedImage->getPublicUrl() ?? '';
-                            $thumbnail = '<img src="' . htmlspecialchars($imageUrl) . '" ' .
-                                'width="' . $processedImage->getProperty('width') . '" ' .
-                                'height="' . $processedImage->getProperty('height') . '" ' .
-                                'alt="" ' .
-                                'title="' . htmlspecialchars($altText) . '" ' .
-                                'loading="lazy">';
+                            $headerImage = '
+                                <div class="panel-thumbnail" id="' . $objectId . '_thumbnailcontainer">
+                                    <img src="' . htmlspecialchars($imageUrl) . '" ' .
+                                        'width="' . $processedImage->getProperty('width') . '" ' .
+                                        'height="' . $processedImage->getProperty('height') . '" ' .
+                                        'alt="" ' .
+                                        'title="' . htmlspecialchars($altText) . '" ' .
+                                        'loading="lazy">
+                                </div>';
                         }
                     }
                 } catch (\InvalidArgumentException $e) {
@@ -255,14 +263,9 @@ class FileReferenceContainer extends AbstractContainer
             }
         }
 
-        if ($thumbnail !== '') {
+        if ($headerImage === '' && !$isMissing) {
             $headerImage = '
-                <div class="form-irre-header-thumbnail" id="' . $objectId . '_thumbnailcontainer">
-                    ' . $thumbnail . '
-                </div>';
-        } else {
-            $headerImage = '
-                <div class="form-irre-header-icon" id="' . $objectId . '_iconcontainer">
+                <div class="panel-icon" id="' . $objectId . '_iconcontainer">
                     ' . $this->iconFactory
                         ->getIconForRecord(self::FILE_REFERENCE_TABLE, $databaseRow, IconSize::SMALL)
                         ->setTitle($altText)
@@ -270,15 +273,16 @@ class FileReferenceContainer extends AbstractContainer
                 </div>';
         }
 
-        // @todo check classes and change to dedicated file related ones if possible
         return '
-            <button class="form-irre-header-cell form-file-header-button" ' . $ariaAttributesString . '>
-                <div class="form-irre-header-body">
-                    <span id="' . $objectId . '_label">' . $recordTitle . '</span>
-                </div>
+            <button class="panel-button' . ($isExpanded ? '' : ' collapsed') . '" type="button"
+                    data-bs-toggle="collapse" data-bs-target="#' . $ariaControls . '"
+                    aria-expanded="' . ($isExpanded ? 'true' : 'false') . '" aria-controls="' . $ariaControls . '">
+                <span class="caret"></span>
                 ' . $headerImage . '
+                <div class="panel-title"><span id="' . $objectId . '_label">' . $recordTitle . '</span></div>
+                ' . $headerBadge . '
             </button>
-            <div class="form-irre-header-cell form-irre-header-control t3js-formengine-file-header-control">
+            <div class="panel-actions t3js-formengine-irre-control">
                 ' . $this->renderFileReferenceHeaderControl() . '
             </div>';
     }
@@ -297,7 +301,7 @@ class FileReferenceContainer extends AbstractContainer
         $languageService = $this->getLanguageService();
         $backendUser = $this->getBackendUserAuthentication();
         $isNewItem = str_starts_with((string)$databaseRow['uid'], 'NEW');
-        $fileReferenceTableTca = $GLOBALS['TCA'][self::FILE_REFERENCE_TABLE];
+        $fileReferenceTableTca = $this->data['tcaSchemata']->get(self::FILE_REFERENCE_TABLE);
         $calcPerms = new Permission(
             $backendUser->calcPerms(BackendUtility::readPageAccess(
                 (int)($this->data['parentPageRow']['uid'] ?? 0),
@@ -328,7 +332,7 @@ class FileReferenceContainer extends AbstractContainer
         }
         // If the table is NOT a read-only table, then show these links:
         if (!($parentConfig['readOnly'] ?? false)
-            && !($fileReferenceTableTca['ctrl']['readOnly'] ?? false)
+            && !($fileReferenceTableTca->getCapability(TcaSchemaCapability::AccessReadOnly)->getValue() ?? false)
             && !($this->data['isInlineDefaultLanguageRecordInLocalizedParentContext'] ?? false)
         ) {
             if ($event->isControlEnabled('sort')) {
@@ -354,8 +358,9 @@ class FileReferenceContainer extends AbstractContainer
                         ' . $this->iconFactory->getIcon($icon, IconSize::SMALL)->render() . '
                     </button>';
             }
+            $sysFileMetadataTableTca = $this->data['tcaSchemata']->has('sys_file_metadata') ? $this->data['tcaSchemata']->get('sys_file_metadata') : null;
             if (!$isNewItem
-                && ($languageField = ($GLOBALS['TCA']['sys_file_metadata']['ctrl']['languageField'] ?? false))
+                && ($languageField = ($sysFileMetadataTableTca?->getRawConfiguration()['languageField'] ?? false))
                 && $backendUser->check('tables_modify', 'sys_file_metadata')
                 && $event->isControlEnabled('edit')
             ) {
@@ -397,15 +402,15 @@ class FileReferenceContainer extends AbstractContainer
                     $recordInfo .= ' [' . $this->data['tableName'] . ':' . $this->data['vanillaUid'] . ']';
                 }
                 $controls['delete'] = '
-                    <button type="button" class="btn btn-default t3js-editform-delete-file-reference" data-record-info="' . htmlspecialchars(trim($recordInfo)) . '" title="' . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:delete')) . '">
+                    <button type="button" class="btn btn-default t3js-editform-delete-inline-record" data-record-info="' . htmlspecialchars(trim($recordInfo)) . '" title="' . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_mod_web_list.xlf:delete')) . '">
                         ' . $this->iconFactory->getIcon('actions-edit-delete', IconSize::SMALL)->render() . '
                     </button>';
             }
-            if (($hiddenField = (string)($fileReferenceTableTca['ctrl']['enablecolumns']['disabled'] ?? '')) !== ''
-                && ($fileReferenceTableTca['columns'][$hiddenField] ?? false)
+            if (($hiddenField = ($fileReferenceTableTca->getCapability(TcaSchemaCapability::RestrictionDisabledField)->getFieldName())) !== ''
+                && ($fileReferenceTableTca->hasField($hiddenField))
                 && $event->isControlEnabled('hide')
                 && (
-                    !($fileReferenceTableTca['columns'][$hiddenField]['exclude'] ?? false)
+                    !($fileReferenceTableTca->getField($hiddenField)->getConfiguration()['exclude'] ?? false)
                     || $backendUser->check('non_exclude_fields', self::FILE_REFERENCE_TABLE . ':' . $hiddenField)
                 )
             ) {
@@ -486,7 +491,7 @@ class FileReferenceContainer extends AbstractContainer
 
         // In debug mode, add the table name to the record title
         if ($this->getBackendUserAuthentication()->shallDisplayDebugInformation()) {
-            $title .= ' <code>[' . self::FILE_REFERENCE_TABLE . ']</code>';
+            $title .= ' <span class="panel-meta"><code>[' . self::FILE_REFERENCE_TABLE . ']</code></span>';
         }
 
         return $title;
@@ -499,7 +504,7 @@ class FileReferenceContainer extends AbstractContainer
         if (isset($databaseRow[$field])) {
             $value = htmlspecialchars((string)$databaseRow[$field]);
         } elseif (isset($fileRecord[$field])) {
-            $value = BackendUtility::getRecordTitlePrep($fileRecord[$field]);
+            $value = htmlspecialchars((string)$fileRecord[$field]);
         }
 
         return $value;

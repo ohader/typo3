@@ -57,6 +57,7 @@ use TYPO3\CMS\Form\Service\DatabaseService;
 use TYPO3\CMS\Form\Service\FormEditorEnrichmentService;
 use TYPO3\CMS\Form\Service\TranslationService;
 use TYPO3\CMS\Form\Type\FormDefinitionArray;
+use TYPO3\CMS\Form\Utility\DateRangeValidatorPatterns;
 
 /**
  * The form editor controller
@@ -93,13 +94,13 @@ class FormEditorController extends ActionController
      *
      * @throws PersistenceManagerException
      */
-    protected function indexAction(string $formPersistenceIdentifier = '', ?string $prototypeName = null): ResponseInterface
+    protected function indexAction(string $formPersistenceIdentifier = '', ?string $prototypeName = null, string $returnUrl = ''): ResponseInterface
     {
         if ($formPersistenceIdentifier === '') {
             return new RedirectResponse((string)$this->coreUriBuilder->buildUriFromRoute('form_manager'));
         }
         $formSettings = $this->getFormSettings();
-        if (!$this->formPersistenceManager->isAllowedPersistencePath($formPersistenceIdentifier, $formSettings)) {
+        if (!$this->formPersistenceManager->isAllowedPersistenceIdentifier($formPersistenceIdentifier)) {
             throw new PersistenceManagerException(sprintf('Read "%s" is not allowed', $formPersistenceIdentifier), 1614500662);
         }
         if (PathUtility::isExtensionPath($formPersistenceIdentifier)
@@ -120,7 +121,7 @@ class FormEditorController extends ActionController
         }
         $formDefinition['prototypeName'] = $prototypeName;
         $prototypeConfiguration = $this->configurationService->getPrototypeConfiguration($prototypeName);
-        $formDefinition = $this->transformFormDefinitionForFormEditor($prototypeConfiguration, $formDefinition);
+        $formDefinition = $this->transformFormDefinitionForFormEditor($prototypeConfiguration, $formDefinition, $formPersistenceIdentifier);
         $formEditorDefinitions = $this->getFormEditorDefinitions($prototypeConfiguration);
         $additionalViewModelJavaScriptModules = array_map(
             static fn(string $name) => JavaScriptModuleInstruction::create($name),
@@ -139,7 +140,7 @@ class FormEditorController extends ActionController
             'additionalViewModelModules' => $additionalViewModelJavaScriptModules,
             'maximumUndoSteps' => $prototypeConfiguration['formEditor']['maximumUndoSteps'],
         ];
-        $moduleTemplate = $this->initializeModuleTemplate($this->request);
+        $moduleTemplate = $this->initializeModuleTemplate($this->request, $returnUrl);
         $moduleTemplate->assign('formEditorTemplates', $this->renderFormEditorTemplates($prototypeConfiguration, $formEditorDefinitions));
         $moduleTemplate->getDocHeaderComponent()->addBreadcrumbSuffixNode(new BreadcrumbNode(
             identifier: $formPersistenceIdentifier,
@@ -149,6 +150,9 @@ class FormEditorController extends ActionController
         $addInlineSettings = [
             'FormEditor' => [
                 'typo3WinBrowserUrl' => (string)$this->coreUriBuilder->buildUriFromRoute('wizard_element_browser'),
+                'dateEditor' => [
+                    'absolutePattern' => DateRangeValidatorPatterns::RFC3339_FULL_DATE,
+                ],
             ],
         ];
         $addInlineSettings = array_replace_recursive(
@@ -211,14 +215,13 @@ class FormEditorController extends ActionController
             'status' => 'success',
         ];
         try {
-            $formSettings = $this->getFormSettings();
-            if (!$this->formPersistenceManager->isAllowedPersistencePath($formPersistenceIdentifier, $formSettings)) {
+            if (!$this->formPersistenceManager->isAllowedPersistenceIdentifier($formPersistenceIdentifier)) {
                 throw new PersistenceManagerException(sprintf('Save "%s" is not allowed', $formPersistenceIdentifier), 1614500663);
             }
-            $this->formPersistenceManager->save($formPersistenceIdentifier, $formDefinition, $formSettings);
+            $this->formPersistenceManager->save($formPersistenceIdentifier, $formDefinition, []);
             $this->flushPageCache($formPersistenceIdentifier);
             $prototypeConfiguration = $this->configurationService->getPrototypeConfiguration($formDefinition['prototypeName']);
-            $formDefinition = $this->transformFormDefinitionForFormEditor($prototypeConfiguration, $formDefinition);
+            $formDefinition = $this->transformFormDefinitionForFormEditor($prototypeConfiguration, $formDefinition, $formPersistenceIdentifier);
             $response['formDefinition'] = $formDefinition;
         } catch (PersistenceManagerException $e) {
             $response = [
@@ -250,8 +253,8 @@ class FormEditorController extends ActionController
     ): ResponseInterface {
         $prototypeName = $prototypeName ?: $formDefinition['prototypeName'] ?? 'standard';
         $formDefinition = $formDefinition->getArrayCopy();
+        $formDefinition['renderingOptions']['previewMode'] = true;
         $formDefinition = $this->arrayFormFactory->build($formDefinition, $prototypeName, $this->request);
-        $formDefinition->setRenderingOption('previewMode', true);
 
         if ($formPersistenceIdentifier !== null) {
             $formDefinition->setRenderingOption('formPersistenceIdentifier', $formPersistenceIdentifier);
@@ -378,12 +381,13 @@ class FormEditorController extends ActionController
     /**
      * Initialize ModuleTemplate and register docheader icons.
      */
-    protected function initializeModuleTemplate(RequestInterface $request): ModuleTemplate
+    protected function initializeModuleTemplate(RequestInterface $request, string $returnUrl = ''): ModuleTemplate
     {
         $moduleTemplate = $this->moduleTemplateFactory->create($request);
         $getVars = $request->getArguments();
         if (isset($getVars['action']) && $getVars['action'] === 'index') {
-            $closeButton = $this->componentFactory->createCloseButton((string)$this->coreUriBuilder->buildUriFromRoute('web_FormFormbuilder'))
+            $closeUrl = $returnUrl !== '' ? $returnUrl : (string)$this->coreUriBuilder->buildUriFromRoute('web_FormFormbuilder');
+            $closeButton = $this->componentFactory->createCloseButton($closeUrl)
                 ->setDataAttributes(['identifier' => 'closeButton'])
                 ->setClasses('formeditor-element-close-form-button hidden');
             $moduleTemplate->addButtonToButtonBar($closeButton, ButtonBar::BUTTON_POSITION_LEFT, 2);
@@ -453,7 +457,7 @@ class FormEditorController extends ActionController
     /**
      * @todo move this to FormDefinitionConversionService
      */
-    protected function transformFormDefinitionForFormEditor(array $prototypeConfiguration, array $formDefinition): array
+    protected function transformFormDefinitionForFormEditor(array $prototypeConfiguration, array $formDefinition, string $formPersistenceIdentifier): array
     {
         /** @var array<string, list<string>> $multiValueFormElementProperties */
         $multiValueFormElementProperties = [];
@@ -502,7 +506,7 @@ class FormEditorController extends ActionController
         }
 
         $formDefinition = $this->formDefinitionConversionService->sanitizeHtml($formDefinition, $rtePropertyPaths);
-        $formDefinition = $this->formDefinitionConversionService->addHmacData($formDefinition);
+        $formDefinition = $this->formDefinitionConversionService->addHmacData($formDefinition, $formPersistenceIdentifier);
         return $this->formDefinitionConversionService->migrateFinisherConfiguration($formDefinition);
     }
 

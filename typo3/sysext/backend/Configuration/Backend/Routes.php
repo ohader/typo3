@@ -272,6 +272,7 @@ return [
             'enable' => true,
             'parameters' => [
                 'edit' => true,
+                'defVals' => true,
                 'columnsOnly' => true,
                 'module' => true,
             ],
@@ -279,6 +280,12 @@ return [
         'options' => [
             'requestPageContext' => true,
         ],
+    ],
+
+    // Lightweight contextual edit form for the context panel
+    'record_edit_contextual' => [
+        'path' => '/record/edit/contextual',
+        'target' => Controller\ContextualRecordEditController::class . '::mainAction',
     ],
 
     // Image processing

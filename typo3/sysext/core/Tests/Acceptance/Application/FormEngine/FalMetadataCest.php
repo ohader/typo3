@@ -31,6 +31,9 @@ final class FalMetadataCest
      */
     public function _before(ApplicationTester $I, PageTree $pageTree): void
     {
+        // Ensure we are in the top-level frame (a prior test may have ended
+        // inside a context-panel iframe which would break navigation).
+        $I->switchToMainFrame();
         $I->useExistingSession('admin');
         $this->goToPageModule($I, $pageTree);
     }
@@ -56,7 +59,7 @@ final class FalMetadataCest
         $I->executeJS("document.querySelector('typo3-backend-new-record-wizard').shadowRoot.querySelector('button[data-identifier=\"default\"]').click()");
         $I->executeJS("document.querySelector('typo3-backend-new-record-wizard').shadowRoot.querySelector('button[data-identifier=\"default_textpic\"]').click()");
         $I->switchToContentFrame();
-        $I->waitForText('Create new Page Content on page');
+        $I->waitForText('Create new Text & Images', 3, 'h1');
         $I->fillField('//input[contains(@data-formengine-input-name, "data[tt_content]") and contains(@data-formengine-input-name, "[header]")]', 'tt_content with image');
 
         $I->click('Images');
@@ -92,7 +95,7 @@ final class FalMetadataCest
         $I->switchToContentFrame();
         $I->see('styleguide', 'h1');
         $I->click('bus_lane.jpg');
-        $I->waitForText('Edit File Metadata "bus_lane.jpg" on root level');
+        $I->waitForText('bus_lane.jpg', 3, 'h1');
         $I->fillField('//input[contains(@data-formengine-input-name, "data[sys_file_metadata]") and contains(@data-formengine-input-name, "[title]")]', 'Test title');
         $I->fillField('//textarea[contains(@data-formengine-input-name, "data[sys_file_metadata]") and contains(@data-formengine-input-name, "[description]")]', 'Test description');
         $I->fillField('//input[contains(@data-formengine-input-name, "data[sys_file_metadata]") and contains(@data-formengine-input-name, "[alternative]")]', 'Test alternative');
@@ -104,13 +107,10 @@ final class FalMetadataCest
         $I->amGoingTo('Check metadata of sys_file_reference displayed in tt_content');
         $this->goToPageModule($I, $pageTree);
         $I->switchToWindow('typo3-backend');
-        $I->switchToContentFrame();
-        $I->click('tt_content with image');
-        $I->waitForElementNotVisible('#t3js-ui-block');
-        $I->waitForText('Edit Page Content "tt_content with image" on page "styleguide TCA demo"');
+        $this->openRecordInContextPanel($I, 'tt_content with image');
         $I->click('Images');
-        if (count($I->grabMultiple('.panel-collapsed .form-irre-header')) > 0) {
-            $I->click('.panel-collapsed .form-irre-header');
+        if (count($I->grabMultiple('.panel-button.collapsed')) > 0) {
+            $I->click('.panel-button.collapsed');
         }
         $I->waitForElement('.t3js-form-field-eval-null-placeholder-checkbox');
 
@@ -151,7 +151,7 @@ final class FalMetadataCest
         $I->executeJS("document.querySelector('typo3-backend-new-record-wizard').shadowRoot.querySelector('button[data-identifier=\"default\"]').click()");
         $I->executeJS("document.querySelector('typo3-backend-new-record-wizard').shadowRoot.querySelector('button[data-identifier=\"default_textpic\"]').click()");
         $I->switchToContentFrame();
-        $I->waitForText('Create new Page Content on page');
+        $I->waitForText('Create new Text & Images', 3, 'h1');
         $I->fillField('//input[contains(@data-formengine-input-name, "data[tt_content]") and contains(@data-formengine-input-name, "[header]")]', 'tt_content with image with filled metadata');
 
         $I->click('Images');
@@ -203,13 +203,10 @@ final class FalMetadataCest
         $I->amGoingTo('Check if deactivating null checkboxes focuses text fields');
         $this->goToPageModule($I, $pageTree);
         $I->switchToWindow('typo3-backend');
-        $I->switchToContentFrame();
-        $I->click('tt_content with image');
-        $I->waitForElementNotVisible('#t3js-ui-block');
-        $I->waitForText('Edit Page Content "tt_content with image" on page "styleguide TCA demo"');
+        $this->openRecordInContextPanel($I, 'tt_content with image');
         $I->click('Images');
-        if (count($I->grabMultiple('.panel-collapsed .form-irre-header')) > 0) {
-            $I->click('.panel-collapsed .form-irre-header');
+        if (count($I->grabMultiple('.panel-button.collapsed')) > 0) {
+            $I->click('.panel-button.collapsed');
         }
         $I->waitForElement('.t3js-form-field-eval-null-placeholder-checkbox');
 
@@ -233,7 +230,7 @@ final class FalMetadataCest
             $I->assertEquals(true, $focus);
 
             // Remove focus from field, otherwise codeception can't find other checkboxes
-            $I->click('.form-irre-object .form-section');
+            $I->executeJS('document.activeElement?.blur()');
         }
     }
 
@@ -247,5 +244,20 @@ final class FalMetadataCest
         $pageTree->openPath(['styleguide TCA demo']);
         $I->switchToContentFrame();
         $I->waitForText('styleguide TCA demo');
+    }
+
+    /**
+     * Click a content element in the page module to open it in the modal,
+     * then switch into the modal iframe.
+     */
+    private function openRecordInContextPanel(ApplicationTester $I, string $recordTitle): void
+    {
+        $I->switchToContentFrame();
+        $I->click('//typo3-backend-contextual-record-edit-trigger[contains(., "' . $recordTitle . '")]');
+        $I->switchToMainFrame();
+        $I->waitForElement('iframe[name="modal_frame"]', 10);
+        $I->switchToIFrame('modal_frame');
+        $I->waitForElementNotVisible('#t3js-ui-block');
+        $I->waitForText($recordTitle);
     }
 }

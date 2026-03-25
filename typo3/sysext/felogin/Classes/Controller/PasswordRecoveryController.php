@@ -18,7 +18,6 @@ declare(strict_types=1);
 namespace TYPO3\CMS\FrontendLogin\Controller;
 
 use Psr\Http\Message\ResponseInterface;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
 use TYPO3\CMS\Core\Configuration\Features;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Context\Exception\AspectNotFoundException;
@@ -30,6 +29,7 @@ use TYPO3\CMS\Core\PasswordPolicy\Event\EnrichPasswordValidationContextDataEvent
 use TYPO3\CMS\Core\PasswordPolicy\PasswordPolicyAction;
 use TYPO3\CMS\Core\PasswordPolicy\PasswordPolicyValidator;
 use TYPO3\CMS\Core\PasswordPolicy\Validator\Dto\ContextData;
+use TYPO3\CMS\Core\RateLimiter\RateLimiterFactoryInterface;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Error\Error;
@@ -55,7 +55,7 @@ class PasswordRecoveryController extends ActionController
         protected RecoveryConfiguration $recoveryConfiguration,
         protected readonly Features $features,
         protected readonly PageRepository $pageRepository,
-        protected readonly RateLimiterFactory $rateLimiterFactory
+        protected RateLimiterFactoryInterface $rateLimiterFactory
     ) {}
 
     /**
@@ -220,11 +220,13 @@ class PasswordRecoveryController extends ActionController
             ->getDefaultHashInstance('FE')
             ->getHashedPassword($newPass);
 
-        $user = $this->userRepository->findOneByForgotPasswordHash($this->hashService->hmac($hash, self::class, HashAlgo::SHA3_256));
+        $hmac = $this->hashService->hmac($hash, self::class, HashAlgo::SHA3_256);
+        $user = $this->userRepository->findOneByForgotPasswordHash($hmac);
+
         $event = new PasswordChangeEvent($user, $hashedPassword, $newPass, $this->request);
         $this->eventDispatcher->dispatch($event);
 
-        $this->userRepository->updatePasswordAndInvalidateHash($this->hashService->hmac($hash, self::class, HashAlgo::SHA3_256), $hashedPassword);
+        $this->userRepository->updatePasswordAndInvalidateHash($hmac, $hashedPassword);
         $this->invalidateUserSessions($user['uid']);
 
         $this->addFlashMessage($this->getTranslation('change_password_done_message'));

@@ -72,7 +72,7 @@ final class FormDefinitionConversionServiceTest extends UnitTestCase
             ],
         ];
 
-        $data = $formDefinitionConversionService->addHmacData($input);
+        $data = $formDefinitionConversionService->addHmacData($input, '1:/form_definitions/test.form.yaml');
 
         $expected = [
             'prototypeName' => 'standard',
@@ -124,6 +124,7 @@ final class FormDefinitionConversionServiceTest extends UnitTestCase
                 'value' => 1,
                 'hmac' => $data['_orig_heinz']['hmac'],
             ],
+            '_formPersistenceIdentifier' => '1:/form_definitions/test.form.yaml',
         ];
 
         self::assertSame($expected, $data);
@@ -386,5 +387,59 @@ final class FormDefinitionConversionServiceTest extends UnitTestCase
         self::assertStringContainsString('Überschrift', $result['label']);
         self::assertStringContainsString('Ümläutén', $result['label']);
         self::assertStringContainsString('émojis', $result['label']);
+    }
+
+    #[Test]
+    public function extractRtePropertyPathsFindsFinisherEditorInPropertyCollections(): void
+    {
+        $formDefinitionConversionService = $this->createFormDefinitionConversionService();
+
+        $prototypeConfiguration = [
+            'formElementsDefinition' => [
+                'Form' => [
+                    'formEditor' => [
+                        'propertyCollections' => [
+                            'finishers' => [
+                                10 => [
+                                    'identifier' => 'EmailToSender',
+                                    'editors' => [
+                                        200 => [
+                                            'identifier' => 'subject',
+                                            'templateName' => 'Inspector-TextEditor',
+                                            'propertyPath' => 'options.subject',
+                                        ],
+                                        250 => [
+                                            'identifier' => 'message',
+                                            'templateName' => 'Inspector-TextareaEditor',
+                                            'propertyPath' => 'options.message',
+                                            'enableRichtext' => true,
+                                            'richtextConfiguration' => 'form-content',
+                                        ],
+                                    ],
+                                ],
+                                50 => [
+                                    'identifier' => 'Confirmation',
+                                    'editors' => [
+                                        300 => [
+                                            'identifier' => 'message',
+                                            'templateName' => 'Inspector-TextareaEditor',
+                                            'propertyPath' => 'options.message',
+                                            'enableRichtext' => true,
+                                        ],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = $formDefinitionConversionService->extractRtePropertyPaths($prototypeConfiguration);
+
+        self::assertArrayHasKey('_finishers', $result);
+        self::assertSame('form-content', $result['_finishers']['EmailToSender']['options.message']);
+        self::assertSame('form-label', $result['_finishers']['Confirmation']['options.message']);
+        self::assertArrayNotHasKey('options.subject', $result['_finishers']['EmailToSender'] ?? []);
     }
 }

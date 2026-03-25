@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Extbase\Reflection\ClassSchema;
 
-use TYPO3\CMS\Extbase\Attribute\RateLimit;
 use TYPO3\CMS\Extbase\Reflection\ClassSchema\Exception\NoSuchMethodParameterException;
 
 /**
@@ -38,7 +37,6 @@ class Method
             'public' => false,
             'protected' => false,
             'private' => false,
-            'rateLimit' => null,
         ];
 
         foreach ($defaults as $key => $defaultValue) {
@@ -81,11 +79,6 @@ class Method
         }
 
         return $this->parameters[$parameterName];
-    }
-
-    public function getRateLimit(): ?RateLimit
-    {
-        return $this->definition['rateLimit'];
     }
 
     public function isPublic(): bool

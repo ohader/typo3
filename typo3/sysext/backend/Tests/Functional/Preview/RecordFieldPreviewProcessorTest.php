@@ -27,6 +27,7 @@ use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Domain\RawRecord;
 use TYPO3\CMS\Core\Domain\Record;
 use TYPO3\CMS\Core\Domain\Record\ComputedProperties;
+use TYPO3\CMS\Core\Html\SanitizerBuilderFactory;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -53,7 +54,8 @@ final class RecordFieldPreviewProcessorTest extends FunctionalTestCase
         $this->subject = new RecordFieldPreviewProcessor(
             $this->get(TcaSchemaFactory::class),
             $this->get(UriBuilder::class),
-            $this->get(IconFactory::class)
+            $this->get(IconFactory::class),
+            $this->get(SanitizerBuilderFactory::class),
         );
     }
 
@@ -203,8 +205,10 @@ final class RecordFieldPreviewProcessorTest extends FunctionalTestCase
 
         $result = $this->subject->linkToEditForm($linkText, $record, $request);
 
-        self::assertStringContainsString('<a href="', $result, 'The result is wrapped in an anchor tag');
-        self::assertStringContainsString('&amp;', $result, 'The result URL is escaped');
+        self::assertStringContainsString('<typo3-backend-contextual-record-edit-trigger', $result, 'The result is wrapped in a record-edit-panel component');
+        self::assertStringContainsString('url="', $result, 'URL attribute is present');
+        self::assertStringContainsString('/record/edit/contextual', $result, 'URL uses the contextual edit route');
+        self::assertStringContainsString('edit-url="', $result, 'Edit URL attribute is present');
         self::assertStringContainsString('title="', $result, 'Title attribute is present and escaped');
     }
 

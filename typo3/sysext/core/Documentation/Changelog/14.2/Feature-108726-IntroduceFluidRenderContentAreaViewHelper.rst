@@ -24,6 +24,7 @@ By default, the ViewHelper renders the content area as-is, but EventListeners
 can listen to the :php:`\TYPO3\CMS\Fluid\Event\ModifyRenderedContentAreaEvent` and modify the output.
 
 You need to use the `PAGEVIEW` config like this:
+
 ..  code-block:: typoscript
 
     page = PAGE
@@ -36,6 +37,18 @@ You need to use the `PAGEVIEW` config like this:
     <f:render.contentArea contentArea="{content.left}"/>
     or
     {content.left -> f:render.contentArea()}
+
+The ViewHelper also supports wrapping each content element with additional markup
+if combined with the `<f:render.record> ViewHelper <https://docs.typo3.org/permalink/t3viewhelper:typo3-fluid-render-record>`_:
+
+..  code-block:: html
+    :caption: MyPage.fluid.html
+
+    <f:render.contentArea contentArea="{content.main}" recordAs="record">
+        before {record.fullType}
+        <f:render.record record="{record}" />
+        after {record.fullType}
+    </f:render.contentArea>
 
 
 Impact

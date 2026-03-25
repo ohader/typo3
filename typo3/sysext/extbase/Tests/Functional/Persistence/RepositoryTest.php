@@ -20,11 +20,21 @@ namespace TYPO3\CMS\Extbase\Tests\Functional\Persistence;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Http\ServerRequest;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Persistence\Exception\IllegalObjectTypeException;
+use TYPO3\CMS\Extbase\Persistence\Generic\PersistenceManager;
 use TYPO3\CMS\Extbase\Persistence\Generic\QuerySettingsInterface;
 use TYPO3\CMS\Extbase\Persistence\QueryInterface;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
+use TYPO3Tests\BlogExample\Domain\Model\Blog;
+use TYPO3Tests\BlogExample\Domain\Model\Person;
 use TYPO3Tests\BlogExample\Domain\Model\Post;
+use TYPO3Tests\BlogExample\Domain\Repository\BlogRepository;
+use TYPO3Tests\BlogExample\Domain\Repository\PersonRepository;
 use TYPO3Tests\BlogExample\Domain\Repository\PostRepository;
 
 final class RepositoryTest extends FunctionalTestCase
@@ -32,6 +42,18 @@ final class RepositoryTest extends FunctionalTestCase
     protected array $testExtensionsToLoad = [
         'typo3/sysext/extbase/Tests/Functional/Fixtures/Extensions/blog_example',
     ];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['features']['extbase.enableHistoryTracking'] = true;
+    }
+
+    protected function tearDown(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['features']['extbase.enableHistoryTracking'] = false;
+        parent::tearDown();
+    }
 
     #[Test]
     public function constructSetsObjectTypeFromClassName(): void
@@ -74,8 +96,7 @@ final class RepositoryTest extends FunctionalTestCase
         $this->expectException(IllegalObjectTypeException::class);
         $this->expectExceptionCode(1248363335);
         $subject = $this->get(PostRepository::class);
-        /** @phpstan-ignore-next-line */
-        $subject->add(new \stdClass());
+        $subject->add(new \stdClass()); // @phpstan-ignore argument.type (intentionally passing wrong type to test type checking)
     }
 
     #[Test]
@@ -84,8 +105,7 @@ final class RepositoryTest extends FunctionalTestCase
         $this->expectException(IllegalObjectTypeException::class);
         $this->expectExceptionCode(1248363336);
         $subject = $this->get(PostRepository::class);
-        /** @phpstan-ignore-next-line */
-        $subject->remove(new \stdClass());
+        $subject->remove(new \stdClass()); // @phpstan-ignore argument.type (intentionally passing wrong type to test type checking)
     }
 
     #[Test]
@@ -94,8 +114,7 @@ final class RepositoryTest extends FunctionalTestCase
         $this->expectException(IllegalObjectTypeException::class);
         $this->expectExceptionCode(1249479625);
         $subject = $this->get(PostRepository::class);
-        /** @phpstan-ignore-next-line */
-        $subject->update(new \stdClass());
+        $subject->update(new \stdClass()); // @phpstan-ignore argument.type (intentionally passing wrong type to test type checking)
     }
 
     #[Test]
@@ -367,5 +386,73 @@ final class RepositoryTest extends FunctionalTestCase
                 ['blog' => 1, 'author' => 3],
             )
         );
+    }
+
+    #[Test]
+    public function removeObjectWritesHistoryEntry(): void
+    {
+        $GLOBALS['BE_USER'] = new BackendUserAuthentication();
+        $request = (new ServerRequest())->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
+        $this->get(ConfigurationManagerInterface::class)->setRequest($request);
+
+        $persistenceManager = $this->get(PersistenceManager::class);
+        $blogRepository = $this->get(BlogRepository::class);
+
+        $blog = new Blog();
+        $blog->setTitle('A test blog');
+        $blogRepository->add($blog);
+        $persistenceManager->persistAll();
+
+        $insertedBlog = $blogRepository->findByUid($blog->getUid());
+        $blogRepository->remove($insertedBlog);
+        $persistenceManager->persistAll();
+
+        $this->assertCSVDataSet(__DIR__ . '/Fixtures/TestResultRemoveObjectWritesHistoryEntry.csv');
+    }
+
+    #[Test]
+    public function removeObjectDoesNotWriteHistoryEntryWhenTrackingIsDisabled(): void
+    {
+        $GLOBALS['BE_USER'] = new BackendUserAuthentication();
+        $request = (new ServerRequest())->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
+        $this->get(ConfigurationManagerInterface::class)->setRequest($request);
+
+        $persistenceManager = $this->get(PersistenceManager::class);
+        $personRepository = $this->get(PersonRepository::class);
+
+        $person = new Person('Firstname', 'Lastname', 'test@example.com');
+        $personRepository->add($person);
+        $persistenceManager->persistAll();
+
+        $insertedPerson = $personRepository->findByUid($person->getUid());
+        $personRepository->remove($insertedPerson);
+        $persistenceManager->persistAll();
+
+        $connection = $this->get(ConnectionPool::class)->getConnectionForTable('sys_history');
+        $count = (int)$connection->count('uid', 'sys_history', []);
+        self::assertSame(0, $count);
+    }
+
+    #[Test]
+    public function removeObjectDoesNotWriteHistoryEntryWhenFeatureFlagDisabled(): void
+    {
+        $GLOBALS['TYPO3_CONF_VARS']['SYS']['features']['extbase.enableHistoryTracking'] = false;
+        $GLOBALS['BE_USER'] = new BackendUserAuthentication();
+        $request = (new ServerRequest())->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE);
+        $this->get(ConfigurationManagerInterface::class)->setRequest($request);
+
+        $persistenceManager = $this->get(PersistenceManager::class);
+        $blogRepository = $this->get(BlogRepository::class);
+
+        $blog = new Blog();
+        $blog->setTitle('A test blog');
+        $blogRepository->add($blog);
+        $persistenceManager->persistAll();
+
+        $insertedBlog = $blogRepository->findByUid($blog->getUid());
+        $blogRepository->remove($insertedBlog);
+        $persistenceManager->persistAll();
+
+        $this->assertCSVDataSet(__DIR__ . '/Fixtures/TestResultRemoveObjectDoesNotWriteHistoryEntry.csv');
     }
 }

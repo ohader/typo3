@@ -27,12 +27,12 @@
             <f:if condition="{demand.constraints}">
                 <f:then>
                     <f:render section="filter" arguments="{_all}" />
-                    <f:be.infobox state="{f:constant(name: 'TYPO3\CMS\Core\Type\ContextualFeedbackSeverity::NOTICE')}" title="{f:translate(id: 'not_found.title', domain: 'redirects.qrcode')}">
+                    <f:be.infobox state="{f:constant(name: 'TYPO3\CMS\Core\Type\ContextualFeedbackSeverity::NOTICE')}" title="{f:translate(id: 'not_found.title', domain: 'redirects.modules.qrcodes')}">
                         <p><f:translate id="not_found_with_filter.message" domain="redirects.modules.qrcodes"/></p>
                         <a class="btn btn-default" href="{f:be.uri(route:'qrcodes')}">
                             <f:translate key="LLL:EXT:redirects/Resources/Private/Language/locallang_module_redirect.xlf:redirect_no_filter"/>
                         </a>
-                        <be:link.newRecord returnUrl="{returnUrl}" class="btn btn-primary" table="sys_redirect" defaultValues="{sys_redirect: {redirect_type: 'qrcode'}}" >
+                        <be:link.newRecord returnUrl="{returnUrl}" class="btn btn-primary" table="sys_redirect" module="qrcodes" defaultValues="{sys_redirect: {redirect_type: 'qrcode'}}" >
                             <f:translate id="create" domain="redirects.modules.qrcodes"/>
                         </be:link.newRecord>
                     </f:be.infobox>

@@ -1,0 +1,68 @@
+//
+// Contextual record editing layout
+// Used when FormEngine is rendered inside a modal or context panel
+//
+
+.contextual-record-edit {
+    --contextual-record-edit-bg: var(--typo3-surface-base);
+    --contextual-record-edit-border-color: color-mix(in srgb, var(--contextual-record-edit-bg), var(--typo3-text-color-base) 15%);
+    --contextual-record-edit-success-color: var(--typo3-state-success-color);
+    --contextual-record-edit-success-bg: var(--typo3-state-success-bg);
+}
+
+.contextual-record-edit-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 1rem;
+    overflow: hidden;
+    background: var(--contextual-record-edit-bg);
+    border-bottom: 1px solid var(--contextual-record-edit-border-color);
+}
+
+.contextual-record-edit-title-group {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.contextual-record-edit-title {
+    font-weight: bold;
+    font-size: .875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.contextual-record-edit-actions {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-shrink: 0;
+}
+
+.contextual-record-edit-button-label {
+    @media (max-width: 500px) {
+        display: none;
+    }
+}
+
+.contextual-record-edit-saved-indicator {
+    font-size: .75rem;
+    padding: .125rem .5rem;
+    border-radius: .25rem;
+    color: var(--contextual-record-edit-success-color);
+    background-color: var(--contextual-record-edit-success-bg);
+    opacity: 1;
+    transition: opacity .5s ease;
+}
+
+.contextual-record-edit-body {
+    padding: 1rem;
+}

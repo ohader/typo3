@@ -95,10 +95,14 @@ return [
                 ],
             ],
         ],
+        'SystemResources' => [
+            'filesystemPublishingType' => 'link',
+        ],
         'fileCreateMask' => '0664',
         'folderCreateMask' => '2775',
         'features' => [
             'extbase.consistentDateTimeHandling' => true,
+            'extbase.enableHistoryTracking' => false,
             'frontend.cache.autoTagging' => false,
             'redirects.hitCount' => false,
             'security.backend.htmlSanitizeRte' => false,
@@ -280,8 +284,10 @@ return [
                 ],
             ],
         ],
+        'rateLimiter' => [],
         'htmlSanitizer' => [
             'default' => \TYPO3\CMS\Core\Html\DefaultSanitizerBuilder::class,
+            'preview' => \TYPO3\CMS\Core\Html\PreviewSanitizerBuilder::class,
             'i18n' => \TYPO3\CMS\Core\Html\I18nSanitizerBuilder::class,
         ],
         'displayErrors' => -1,
@@ -872,7 +878,12 @@ return [
                     ],
                 ],
                 'tcaSelectTreeAjaxFieldData' => [
-                    \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseEditRow::class => [],
+                    \TYPO3\CMS\Backend\Form\FormDataProvider\InitializeProcessedTca::class => [],
+                    \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseEditRow::class => [
+                        'depends' => [
+                            \TYPO3\CMS\Backend\Form\FormDataProvider\InitializeProcessedTca::class,
+                        ],
+                    ],
                     \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseParentPageRow::class => [
                         'depends' => [
                             \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseEditRow::class,
@@ -883,14 +894,9 @@ return [
                             \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseParentPageRow::class,
                         ],
                     ],
-                    \TYPO3\CMS\Backend\Form\FormDataProvider\InitializeProcessedTca::class => [
-                        'depends' => [
-                            \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseDefaultLanguagePageRow::class,
-                        ],
-                    ],
                     \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseUserPermissionCheck::class => [
                         'depends' => [
-                            \TYPO3\CMS\Backend\Form\FormDataProvider\InitializeProcessedTca::class,
+                            \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseDefaultLanguagePageRow::class,
                         ],
                     ],
                     \TYPO3\CMS\Backend\Form\FormDataProvider\DatabaseEffectivePid::class => [
@@ -1463,6 +1469,16 @@ return [
         ],
         'passwordPolicies' => [
             'installTool' => [
+                'generator' => [
+                    'className' => \TYPO3\CMS\Core\PasswordPolicy\Generator\PasswordGenerator::class,
+                    'options' => [
+                        'length' => 12,
+                        'upperCaseCharacters' => true,
+                        'lowerCaseCharacters' => true,
+                        'digitCharacters' => true,
+                        'specialCharacters' => true,
+                    ],
+                ],
                 'validators' => [
                     \TYPO3\CMS\Core\PasswordPolicy\Validator\CorePasswordValidator::class => [
                         'options' => [
@@ -1476,7 +1492,27 @@ return [
                     ],
                 ],
             ],
+            'secretToken' => [
+                'generator' => [
+                    'className' => \TYPO3\CMS\Core\PasswordPolicy\Generator\PasswordGenerator::class,
+                    'options' => [
+                        'length' => 40,
+                        'random' => 'hex',
+                    ],
+                ],
+                'validators' => [],
+            ],
             'default' => [
+                'generator' => [
+                    'className' => \TYPO3\CMS\Core\PasswordPolicy\Generator\PasswordGenerator::class,
+                    'options' => [
+                        'length' => 12,
+                        'upperCaseCharacters' => true,
+                        'lowerCaseCharacters' => true,
+                        'digitCharacters' => true,
+                        'specialCharacters' => true,
+                    ],
+                ],
                 'validators' => [
                     \TYPO3\CMS\Core\PasswordPolicy\Validator\CorePasswordValidator::class => [
                         'options' => [

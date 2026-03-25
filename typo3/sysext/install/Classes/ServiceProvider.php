@@ -36,17 +36,20 @@ use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Localization\TranslationDomainMapper;
 use TYPO3\CMS\Core\Log\LogManager;
 use TYPO3\CMS\Core\Mail\Mailer;
+use TYPO3\CMS\Core\Mail\TemplatedEmailFactory;
 use TYPO3\CMS\Core\Middleware\NormalizedParamsAttribute as NormalizedParamsMiddleware;
 use TYPO3\CMS\Core\Middleware\ResponsePropagation as ResponsePropagationMiddleware;
 use TYPO3\CMS\Core\Middleware\VerifyHostHeader;
 use TYPO3\CMS\Core\Package\AbstractServiceProvider;
 use TYPO3\CMS\Core\Package\FailsafePackageManager;
 use TYPO3\CMS\Core\Package\PackageManager;
+use TYPO3\CMS\Core\PasswordPolicy\Generator\PasswordGenerator;
 use TYPO3\CMS\Core\PasswordPolicy\PasswordService;
 use TYPO3\CMS\Core\Registry;
 use TYPO3\CMS\Core\Routing\BackendEntryPointResolver;
 use TYPO3\CMS\Core\Service\DatabaseUpgradeWizardsService;
 use TYPO3\CMS\Core\Service\SilentConfigurationUpgradeService;
+use TYPO3\CMS\Core\SystemResource\Publishing\SystemResourcePublisherInterface;
 use TYPO3\CMS\Core\TypoScript\AST\CommentAwareAstBuilder;
 use TYPO3\CMS\Core\TypoScript\AST\Traverser\AstTraverser;
 use TYPO3\CMS\Core\TypoScript\Tokenizer\LosslessTokenizer;
@@ -93,6 +96,7 @@ class ServiceProvider extends AbstractServiceProvider
             Service\SetupDatabaseService::class => self::getSetupDatabaseService(...),
             Middleware\Installer::class => self::getInstallerMiddleware(...),
             Middleware\Maintenance::class => self::getMaintenanceMiddleware(...),
+            Middleware\AssetPublishing::class => self::getAssetPublishing(...),
             Middleware\JavaScriptLanguageDomainProvider::class => self::getJavaScriptLanguageDomainProvider(...),
             Controller\EnvironmentController::class => self::getEnvironmentController(...),
             Controller\IconController::class => self::getIconController(...),
@@ -106,6 +110,7 @@ class ServiceProvider extends AbstractServiceProvider
             Command\SetupCommand::class => self::getSetupCommand(...),
             Command\SetupDefaultBackendUserGroupsCommand::class => self::getSetupDefaultBackendUserGroupsCommand(...),
             Database\PermissionsCheck::class => self::getPermissionsCheck(...),
+            PasswordGenerator::class => self::getPasswordGenerator(...),
             Random::class => self::getRandom(...),
         ];
     }
@@ -123,7 +128,8 @@ class ServiceProvider extends AbstractServiceProvider
     public static function getAuthenticationService(ContainerInterface $container): Authentication\AuthenticationService
     {
         return new Authentication\AuthenticationService(
-            $container->get(Mailer::class)
+            $container->get(Mailer::class),
+            $container->get(TemplatedEmailFactory::class)
         );
     }
 
@@ -136,6 +142,7 @@ class ServiceProvider extends AbstractServiceProvider
         $dispatcher->lazy(ResponsePropagationMiddleware::class);
         $dispatcher->lazy(Middleware\Installer::class);
         $dispatcher->add($container->get(Middleware\Maintenance::class));
+        $dispatcher->add($container->get(Middleware\AssetPublishing::class));
         $dispatcher->add($container->get(Middleware\JavaScriptLanguageDomainProvider::class));
         $dispatcher->lazy(NormalizedParamsMiddleware::class);
 
@@ -268,12 +275,21 @@ class ServiceProvider extends AbstractServiceProvider
         );
     }
 
+    public static function getAssetPublishing(ContainerInterface $container): Middleware\AssetPublishing
+    {
+        return new Middleware\AssetPublishing(
+            $container->get(PackageManager::class),
+            $container->get(SystemResourcePublisherInterface::class),
+        );
+    }
+
     public static function getEnvironmentController(ContainerInterface $container): Controller\EnvironmentController
     {
         return new Controller\EnvironmentController(
             $container->get(Service\LateBootService::class),
             $container->get(FormProtectionFactory::class),
-            $container->get(Mailer::class)
+            $container->get(Mailer::class),
+            $container->get(TemplatedEmailFactory::class),
         );
     }
 
@@ -384,7 +400,6 @@ class ServiceProvider extends AbstractServiceProvider
             'install:password:set',
             $container->get(PasswordHashFactory::class),
             $container->get(ConfigurationManager::class),
-            $container->get(Random::class),
             $container->get(LanguageServiceFactory::class),
             $container->get(PasswordService::class),
         );
@@ -393,6 +408,11 @@ class ServiceProvider extends AbstractServiceProvider
     public static function getPermissionsCheck(ContainerInterface $container): Database\PermissionsCheck
     {
         return new Database\PermissionsCheck();
+    }
+
+    public static function getPasswordGenerator(ContainerInterface $container): PasswordGenerator
+    {
+        return self::new($container, PasswordGenerator::class, [$container->get(Random::class)]);
     }
 
     public static function getRandom(ContainerInterface $container): Random

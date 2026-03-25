@@ -215,14 +215,14 @@ class AuthenticationService extends AbstractAuthenticationService implements Mim
      * If a marker ###IP### is present in the message, it is automatically replaced with the REMOTE_ADDR
      *
      * @param string $message Message to output
-     * @param array<int,mixed> $params
+     * @param array<int,string> $params
      */
     protected function writeLogMessage(string $message, ...$params): void
     {
         if (!empty($params)) {
             $message = vsprintf($message, $params);
         }
-        $message = str_replace('###IP###', (string)GeneralUtility::getIndpEnv('REMOTE_ADDR'), $message);
+        $message = str_replace('###IP###', (string)($this->authInfo['REMOTE_ADDR'] ?? ''), $message);
         if ($this->pObj->loginType === 'FE') {
             $timeTracker = GeneralUtility::makeInstance(TimeTracker::class);
             $timeTracker->setTSlogMessage($message, LogLevel::INFO);

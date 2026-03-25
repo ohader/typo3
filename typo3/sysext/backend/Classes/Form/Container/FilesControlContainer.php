@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Backend\Form\Container;
 
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Form\Event\CustomFileControlsEvent;
+use TYPO3\CMS\Backend\Form\Event\CustomFileSelectorsEvent;
 use TYPO3\CMS\Backend\Form\InlineStackProcessor;
 use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Imaging\IconFactory;
@@ -30,7 +31,6 @@ use TYPO3\CMS\Core\Resource\Filter\FileExtensionFilter;
 use TYPO3\CMS\Core\Resource\Folder;
 use TYPO3\CMS\Core\Resource\OnlineMedia\Helpers\OnlineMediaHelperRegistry;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
-use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
@@ -60,12 +60,6 @@ class FilesControlContainer extends AbstractContainer
      */
     protected array $javaScriptModules = [];
 
-    protected $defaultFieldInformation = [
-        'tcaDescription' => [
-            'renderType' => 'tcaDescription',
-        ],
-    ];
-
     protected $defaultFieldWizard = [
         'localizationStateSelector' => [
             'renderType' => 'localizationStateSelector',
@@ -79,7 +73,6 @@ class FilesControlContainer extends AbstractContainer
         private readonly OnlineMediaHelperRegistry $onlineMediaHelperRegistry,
         private readonly DefaultUploadFolderResolver $defaultUploadFolderResolver,
         private readonly HashService $hashService,
-        private readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {}
 
     /**
@@ -105,8 +98,8 @@ class FilesControlContainer extends AbstractContainer
         $config = $parameterArray['fieldConf']['config'];
         $isReadOnly = (bool)($config['readOnly'] ?? false);
         $language = 0;
-        if ($this->tcaSchemaFactory->has($table) && $this->tcaSchemaFactory->get($table)->hasCapability(TcaSchemaCapability::Language)) {
-            $languageFieldName = $this->tcaSchemaFactory->get($table)->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName();
+        if ($this->data['tcaSchemata']->has($table) && $this->data['tcaSchemata']->get($table)->hasCapability(TcaSchemaCapability::Language)) {
+            $languageFieldName = $this->data['tcaSchemata']->get($table)->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName();
             $language = isset($row[$languageFieldName][0]) ? (int)$row[$languageFieldName][0] : (int)$row[$languageFieldName];
         }
 
@@ -183,7 +176,11 @@ class FilesControlContainer extends AbstractContainer
         $resultArray['inlineData'] = $this->fileReferenceData;
 
         // @todo: It might be a good idea to have something like "isLocalizedRecord" or similar set by a data provider
-        $uidOfDefaultRecord = $row[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] ?? ''] ?? 0;
+        $uidOfDefaultRecord = 0;
+        if ($this->data['tcaSchemata']->has($table) && $this->data['tcaSchemata']->get($table)->hasCapability(TcaSchemaCapability::Language)) {
+            $originPointerField = $this->data['tcaSchemata']->get($table)->getCapability(TcaSchemaCapability::Language)->getTranslationOriginPointerField()->getName();
+            $uidOfDefaultRecord = $row[$originPointerField] ?? 0;
+        }
         $isLocalizedParent = $language > 0
             && ($uidOfDefaultRecord[0] ?? $uidOfDefaultRecord) > 0
             && MathUtility::canBeInterpretedAsInteger($row['uid']);
@@ -233,16 +230,15 @@ class FilesControlContainer extends AbstractContainer
         $view->assignMultiple([
             'formFieldIdentifier' => $formFieldIdentifier,
             'formFieldName' => $formFieldName,
-            'formGroupAttributes' => GeneralUtility::implodeAttributes([
-                'class' => 'form-group',
+            'webComponentAttributes' => GeneralUtility::implodeAttributes([
                 'id' => $formFieldIdentifier,
-                'data-uid' => (string)$row['uid'],
-                'data-local-table' => (string)$top['table'],
-                'data-local-field' => (string)$top['field'],
-                'data-foreign-table' => self::FILE_REFERENCE_TABLE,
+                'data-type' => 'file',
                 'data-object-group' => $formFieldIdentifier . '-' . self::FILE_REFERENCE_TABLE,
                 'data-form-field' => $formFieldName,
-                'data-appearance' => (string)json_encode($config['appearance'] ?? ''),
+                'data-expand-single' => (bool)($config['appearance']['expandSingle'] ?? false) ? 'true' : 'false',
+                'data-sortable' => (bool)($config['appearance']['useSortable'] ?? false) ? 'true' : 'false',
+                'data-min' => (int)($config['minitems'] ?? 0),
+                'data-max' => (int)($config['maxitems'] ?? 0),
             ], true),
             'fieldInformation' => $fieldInformationResult['html'],
             'fieldWizard' => $fieldWizardResult['html'],
@@ -296,7 +292,7 @@ class FilesControlContainer extends AbstractContainer
         $resultArray['javaScriptModules'] = array_merge(
             $resultArray['javaScriptModules'],
             $this->javaScriptModules,
-            [JavaScriptModuleInstruction::create('@typo3/backend/form-engine/container/files-control-container.js')]
+            [JavaScriptModuleInstruction::create('@typo3/backend/form-engine/container/inline-control-container.js')]
         );
 
         $resultArray['html'] = $this->wrapWithFieldsetAndLegend($view->render('Form/FilesControlContainer'));
@@ -325,7 +321,7 @@ class FilesControlContainer extends AbstractContainer
             $attributes = [
                 'type' => 'button',
                 'class' => 'btn btn-default t3js-element-browser',
-                'style' => !($inlineConfiguration['inline']['showCreateNewRelationButton'] ?? true) ? 'display: none;' : '',
+                'hidden' => !($inlineConfiguration['inline']['showCreateNewRelationButton'] ?? true) ? 'hidden' : null,
                 'title' => $buttonText,
                 'data-mode' => 'file',
                 'data-allowed-types' => implode(',', $fileExtensionFilter->getAllowedFileExtensions() ?? []),
@@ -334,9 +330,9 @@ class FilesControlContainer extends AbstractContainer
             ];
             $controls[] = '
                 <button ' . GeneralUtility::implodeAttributes($attributes, true) . '>
-				    ' . $this->iconFactory->getIcon('actions-insert-record', IconSize::SMALL)->render() . '
-				    ' . htmlspecialchars($buttonText) . '
-			    </button>';
+                    ' . $this->iconFactory->getIcon('actions-insert-record', IconSize::SMALL)->render() . '
+                    ' . htmlspecialchars($buttonText) . '
+                </button>';
         }
 
         $onlineMediaAllowed = [];
@@ -372,7 +368,7 @@ class FilesControlContainer extends AbstractContainer
                         'type' => 'button',
                         'class' => 'btn btn-default t3js-drag-uploader',
                         'title' => $buttonText,
-                        'style' => !($inlineConfiguration['inline']['showCreateNewRelationButton'] ?? true) ? 'display: none;' : '',
+                        'hidden' => !($inlineConfiguration['inline']['showCreateNewRelationButton'] ?? true) ? 'hidden' : null,
                         'data-dropzone-target' => '#' . StringUtility::escapeCssSelector($currentStructureDomObjectIdPrefix),
                         'data-insert-dropzone-before' => '1',
                         'data-file-irre-object' => $objectPrefix,
@@ -383,7 +379,7 @@ class FilesControlContainer extends AbstractContainer
                     ];
                     $controls[] = '
                         <button ' . GeneralUtility::implodeAttributes($attributes, true) . '>
-					        ' . $this->iconFactory->getIcon('actions-upload', IconSize::SMALL)->render() . '
+                            ' . $this->iconFactory->getIcon('actions-upload', IconSize::SMALL)->render() . '
                             ' . htmlspecialchars($buttonText) . '
                         </button>';
 
@@ -400,7 +396,7 @@ class FilesControlContainer extends AbstractContainer
                         'type' => 'button',
                         'class' => 'btn btn-default t3js-online-media-add-btn',
                         'title' => $buttonText,
-                        'style' => !($inlineConfiguration['inline']['showOnlineMediaAddButtonStyle'] ?? true) ? 'display: none;' : '',
+                        'hidden' => !($inlineConfiguration['inline']['showOnlineMediaAddButtonStyle'] ?? true) ? 'hidden' : null,
                         'data-target-folder' => $folder->getCombinedIdentifier(),
                         'data-file-irre-object' => $objectPrefix,
                         'data-online-media-allowed' => implode(',', $onlineMediaAllowed),
@@ -412,8 +408,8 @@ class FilesControlContainer extends AbstractContainer
                     // @todo Should be implemented as web component
                     $controls[] = '
                         <button ' . GeneralUtility::implodeAttributes($attributes, true) . '>
-							' . $this->iconFactory->getIcon('actions-online-media-add', IconSize::SMALL)->render() . '
-							' . htmlspecialchars($buttonText) . '
+                            ' . $this->iconFactory->getIcon('actions-online-media-add', IconSize::SMALL)->render() . '
+                            ' . htmlspecialchars($buttonText) . '
                         </button>';
 
                     $this->javaScriptModules[] = JavaScriptModuleInstruction::create('@typo3/backend/online-media.js');
@@ -421,7 +417,11 @@ class FilesControlContainer extends AbstractContainer
             }
         }
 
-        return $controls;
+        $event = $this->eventDispatcher->dispatch(
+            new CustomFileSelectorsEvent($controls, $this->javaScriptModules, $this->data['tableName'], $this->data['fieldName'], $this->data['databaseRow'], $inlineConfiguration, $fileExtensionFilter, $objectPrefix)
+        );
+        $this->javaScriptModules = $event->getJavaScriptModules();
+        return $event->getSelectors();
     }
 
     /**

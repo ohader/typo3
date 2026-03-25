@@ -87,7 +87,7 @@ class StandardContentPreviewRenderer implements PreviewRendererInterface, Logger
     public function renderPageModulePreviewHeader(GridColumnItem $item): string
     {
         $this->initialize();
-        $record = $item->getRecord();
+        $record = $item->getRecord()->getRawRecord() ?? $item->getRecord();
         $request = $item->getContext()->getCurrentRequest();
         $schema = $this->tcaSchemaFactory->get($item->getTable());
         $outHeader = '';
@@ -244,7 +244,7 @@ class StandardContentPreviewRenderer implements PreviewRendererInterface, Logger
                 $html = (string)$this->fieldProcessor->preparePlainHtml($recordObj, 'bodytext');
                 return $this->fieldProcessor->linkToEditForm($html, $recordObj, $request);
             default:
-                $content = (string)$this->fieldProcessor->prepareText($recordObj, 'bodytext');
+                $content = (string)$this->fieldProcessor->preparePreviewableHtml($recordObj, 'bodytext');
                 foreach ($subSchema->getFieldsOfType(TableColumnType::FILE) as $field) {
                     $fieldName = $field->getName();
                     if ($recordObj->has($fieldName) && ($image = $recordObj->get($fieldName))) {
@@ -263,7 +263,7 @@ class StandardContentPreviewRenderer implements PreviewRendererInterface, Logger
     {
         $this->initialize();
         $info = [];
-        $record = $item->getRecord();
+        $record = $item->getRecord()->getRawRecord() ?? $item->getRecord();
         $schema = $this->tcaSchemaFactory->get($item->getTable());
         if ($schema->hasCapability(TcaSchemaCapability::RestrictionStartTime)) {
             $info[] = $this->fieldProcessor->prepareFieldWithLabel($record, $schema->getCapability(TcaSchemaCapability::RestrictionStartTime)->getFieldName());
@@ -325,7 +325,7 @@ class StandardContentPreviewRenderer implements PreviewRendererInterface, Logger
     {
         $fieldArr = is_array($fieldList) ? $fieldList : explode(',', $fieldList);
         foreach ($fieldArr as $field) {
-            $fieldValue = $this->fieldProcessor->prepareFieldWithLabel($item->getRecord(), $field);
+            $fieldValue = $this->fieldProcessor->prepareFieldWithLabel($item->getRecord()->getRawRecord() ?? $item->getRecord(), $field);
             if ($fieldValue !== null) {
                 $info[] = $fieldValue;
             }
@@ -401,18 +401,17 @@ class StandardContentPreviewRenderer implements PreviewRendererInterface, Logger
             && $backendUser->checkRecordEditAccess($table, $record)->isAllowed
             && (new Permission($backendUser->calcPerms(BackendUtility::getRecord('pages', $record->getPid()) ?? [])))->editContentPermissionIsGranted()
         ) {
-            $urlParameters = [
-                'edit' => [
-                    $table => [
-                        $record->getUid() => 'edit',
-                    ],
-                ],
-                'module' => 'web_layout',
-                'returnUrl' => $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getRequestUri() . '#element-' . $table . '-' . $record->getUid(),
-            ];
+            $returnUrl = $GLOBALS['TYPO3_REQUEST']->getAttribute('normalizedParams')->getRequestUri() . '#element-' . $table . '-' . $record->getUid();
             $uriBuilder = GeneralUtility::makeInstance(UriBuilder::class);
-            $url = (string)$uriBuilder->buildUriFromRoute('record_edit', $urlParameters);
-            return '<a href="' . htmlspecialchars($url) . '" title="' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_layout.xlf:edit')) . '">' . $linkText . '</a>';
+            $editParams = [
+                'edit' => [$table => [$record->getUid() => 'edit']],
+                'returnUrl' => $returnUrl,
+            ];
+            return '<typo3-backend-contextual-record-edit-trigger'
+                . ' url="' . htmlspecialchars((string)$uriBuilder->buildUriFromRoute('record_edit_contextual', $editParams)) . '"'
+                . ' edit-url="' . htmlspecialchars((string)$uriBuilder->buildUriFromRoute('record_edit', $editParams)) . '"'
+                . ' title="' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_layout.xlf:edit')) . '"'
+                . '>' . $linkText . '</typo3-backend-contextual-record-edit-trigger>';
         }
         return $linkText;
     }

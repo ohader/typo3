@@ -2,10 +2,10 @@
 	"name": "typo3tests/fixture-fluid-test",
 	"type": "typo3-cms-extension",
 	"description": "Some Fluid rendering tests",
+	"version": "1.0.0",
 	"license": "GPL-2.0-or-later",
 	"require": {
-		"typo3/cms-core": "14.2.*@dev",
-		"typo3tests/fixture-fluid-namespace": "*"
+		"typo3/cms-core": "14.2.*@dev"
 	},
 	"autoload": {
 		"psr-4": {
@@ -14,7 +14,10 @@
 	},
 	"extra": {
 		"typo3/cms": {
-			"extension-key": "fluid_test"
+			"extension-key": "fluid_test",
+			"Package": {
+				"providesPackages": []
+			}
 		}
 	}
 }

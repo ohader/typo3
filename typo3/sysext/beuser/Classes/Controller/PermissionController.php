@@ -420,6 +420,7 @@ class PermissionController
             }
             $viewModeButton = $this->componentFactory->createDropDownButton()
                 ->setLabel($lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.view'))
+                ->setIcon($this->iconFactory->getIcon('actions-cog'))
                 ->setShowLabelText(true);
             foreach ($viewModeItems as $viewModeItem) {
                 $viewModeButton->addItem($viewModeItem);
@@ -428,9 +429,9 @@ class PermissionController
         }
 
         $view->getDocHeaderComponent()->setShortcutContext(
-            routeIdentifier: 'permissions_pages',
-            displayName: $this->getShortcutTitle(),
-            arguments: ['id' => $this->id, 'action' => $action]
+            'permissions_pages',
+            $this->getShortcutTitle(),
+            ['id' => $this->id, 'action' => $action]
         );
     }
 

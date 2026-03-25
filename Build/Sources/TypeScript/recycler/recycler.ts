@@ -56,6 +56,7 @@ class Recycler {
   };
   public markedRecordsForMassAction: RecordToDelete[] = [];
   private progressBar: ProgressBarElement | null = null;
+  private currentDeletedElementsRequest: AjaxRequest | null = null;
 
   constructor() {
     DocumentService.ready().then((): void => {
@@ -174,13 +175,8 @@ class Recycler {
   private initialize(): void {
     this.registerEvents();
 
-    if (TYPO3.settings.Recycler.depthSelection > 0) {
-      (document.querySelector(Identifiers.depthSelector) as HTMLInputElement).value = String(TYPO3.settings.Recycler.depthSelection);
-    }
-
-    this.loadAvailableTables().then((): void => {
-      this.loadDeletedElements();
-    });
+    const totalItems = TYPO3.settings.Recycler.totalItems ?? 0;
+    this.buildPaginator(totalItems);
   }
 
   /**
@@ -241,6 +237,7 @@ class Recycler {
   private async loadAvailableTables(): Promise<AjaxResponse> {
     const tableSelector = document.querySelector(Identifiers.tableSelector) as HTMLSelectElement;
     const depthSelector = document.querySelector(Identifiers.depthSelector) as HTMLSelectElement;
+    const currentTableSelection = tableSelector.options.length > 0 ? tableSelector.value : TYPO3.settings.Recycler.tableSelection;
 
     this.getProgress().start();
     tableSelector.value = '';
@@ -270,8 +267,8 @@ class Recycler {
 
       if (tables.length > 0) {
         tableSelector.append(...tables);
-        if (TYPO3.settings.Recycler.tableSelection !== '') {
-          tableSelector.value = TYPO3.settings.Recycler.tableSelection;
+        if (currentTableSelection !== '') {
+          tableSelector.value = currentTableSelection;
         }
       }
 
@@ -286,7 +283,11 @@ class Recycler {
   /**
    * Loads the deleted elements, based on the filters
    */
-  private async loadDeletedElements(): Promise<AjaxResponse> {
+  private async loadDeletedElements(): Promise<AjaxResponse | void> {
+    // Cancel any in-flight request to prevent overlapping responses
+    // from re-rendering the table while the user interacts with it.
+    this.currentDeletedElementsRequest?.abort();
+
     const depthSelector = document.querySelector(Identifiers.depthSelector) as HTMLSelectElement;
     const tableSelector = document.querySelector(Identifiers.tableSelector) as HTMLSelectElement;
     const searchTextField = document.querySelector(Identifiers.searchText) as HTMLInputElement;
@@ -294,7 +295,10 @@ class Recycler {
     this.getProgress().start();
     this.resetMassActionButtons();
 
-    return new AjaxRequest(TYPO3.settings.ajaxUrls['recycler.getDeletedRecords']).withQueryArguments({
+    const request = new AjaxRequest(TYPO3.settings.ajaxUrls['recycler.getDeletedRecords']);
+    this.currentDeletedElementsRequest = request;
+
+    return request.withQueryArguments({
       depth: depthSelector.value,
       startUid: TYPO3.settings.Recycler.startUid,
       table: tableSelector.value,
@@ -325,6 +329,11 @@ class Recycler {
       this.buildPaginator(data.totalItems);
 
       return response;
+    }).catch((error: Error) => {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      throw error;
     }).finally(() => {
       if (this.progressBar) {
         this.progressBar.done();

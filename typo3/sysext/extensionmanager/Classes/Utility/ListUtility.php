@@ -20,10 +20,12 @@ namespace TYPO3\CMS\Extensionmanager\Utility;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Package\Event\PackagesMayHaveChangedEvent;
+use TYPO3\CMS\Core\Package\MetaData;
 use TYPO3\CMS\Core\Package\PackageInterface;
 use TYPO3\CMS\Core\Package\PackageManager;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\SystemResource\Publishing\SystemResourcePublisherInterface;
+use TYPO3\CMS\Core\SystemResource\SystemResourceFactory;
 use TYPO3\CMS\Core\Utility\VersionNumberUtility;
 use TYPO3\CMS\Extensionmanager\Domain\Model\Extension;
 use TYPO3\CMS\Extensionmanager\Domain\Repository\ExtensionRepository;
@@ -65,6 +67,8 @@ class ListUtility implements SingletonInterface
      */
     protected $eventDispatcher;
 
+    protected SystemResourceFactory $resourceFactory;
+
     protected SystemResourcePublisherInterface $resourcePublisher;
 
     /**
@@ -97,6 +101,11 @@ class ListUtility implements SingletonInterface
         $this->dependencyUtility = $dependencyUtility;
     }
 
+    public function injectResourceFactory(SystemResourceFactory $resourceFactory)
+    {
+        $this->resourceFactory = $resourceFactory;
+    }
+
     public function injectResourcePublisher(SystemResourcePublisherInterface $resourcePublisher)
     {
         $this->resourcePublisher = $resourcePublisher;
@@ -126,9 +135,25 @@ class ListUtility implements SingletonInterface
                         'key' => $package->getPackageKey(),
                         'version' => $version,
                         'state' => str_starts_with($version, 'dev-') ? 'alpha' : 'stable',
-                        'icon' => $icon ? (string)$this->resourcePublisher->generateUri($icon, null) : '',
+                        'icon' => $icon ? (string)$this->resourcePublisher->generateUri($this->resourceFactory->createPublicResource($icon), null) : '',
                         'title' => $package->getPackageMetaData()->getTitle(),
                     ];
+                    $constraints = $package->getPackageMetaData()->getConstraints();
+                    if (count($constraints) > 0) {
+                        $extensionData['constraints'] = [];
+                        foreach ($constraints as $type => $typeConstraints) {
+                            foreach ($typeConstraints as $constraint) {
+                                $packageName = $constraint->getValue();
+                                if ($packageName === 'typo3/cms-core') {
+                                    $extKey = 'typo3';
+                                } else {
+                                    $extKey = $this->packageManager->getPackageKeyFromComposerName($constraint->getValue());
+                                }
+                                /** @var MetaData\PackageConstraint $constraint */
+                                $extensionData['constraints'][$type][$extKey] = $type === 'suggests' ? '' : $constraint->getVersionRange();
+                            }
+                        }
+                    }
                     $this->availableExtensions[$package->getPackageKey()] = $extensionData;
                 }
             }

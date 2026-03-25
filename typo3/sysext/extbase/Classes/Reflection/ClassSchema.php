@@ -215,7 +215,6 @@ class ClassSchema
             $this->methods[$methodName]['protected'] = $reflectionMethod->isProtected();
             $this->methods[$methodName]['public'] = $reflectionMethod->isPublic();
             $this->methods[$methodName]['params'] = [];
-            $this->methods[$methodName]['rateLimit'] = null;
             $isAction = $this->bitSet->get(self::BIT_CLASS_IS_CONTROLLER) && str_ends_with($methodName, 'Action');
 
             /** @var array<string, list<Attribute\Validate>> $validateAttributes */
@@ -225,19 +224,15 @@ class ClassSchema
 
             // @todo Remove validation attribute and annotation parts with v15
             if ($isAction) {
-                $rateLimit = null;
                 foreach ($reflectionMethod->getAttributes() as $attribute) {
                     $attributeInstance = $attribute->newInstance();
 
                     match ($attribute->getName()) {
                         Attribute\Validate::class, Annotation\Validate::class => $validateAttributes[$attributeInstance->param ?? ''][] = $attributeInstance,
                         Attribute\IgnoreValidation::class, Annotation\IgnoreValidation::class => $ignoreValidationAttributes[$attributeInstance->argumentName ?? ''][] = $attributeInstance,
-                        Attribute\RateLimit::class => $rateLimit = $attributeInstance,
                         default => '' // non-extbase attributes
                     };
                 }
-
-                $this->methods[$methodName]['rateLimit'] = $rateLimit;
             }
 
             $docComment = $reflectionMethod->getDocComment();

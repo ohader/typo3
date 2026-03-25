@@ -510,6 +510,20 @@ return [
             'Deprecation-73606-DeprecateIconRegistrygetDeprecationSettings.rst',
         ],
     ],
+    'TYPO3\CMS\Core\Log\Writer\DatabaseWriter->getLogTable' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109295-DatabaseWriterSetLogTableGetLogTable.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Log\Writer\DatabaseWriter->setLogTable' => [
+        'numberOfMandatoryArguments' => 1,
+        'maximumNumberOfArguments' => 1,
+        'restFiles' => [
+            'Deprecation-109295-DatabaseWriterSetLogTableGetLogTable.rst',
+        ],
+    ],
     'TYPO3\CMS\Core\Messaging\FlashMessage->getIconName' => [
         'numberOfMandatoryArguments' => 0,
         'maximumNumberOfArguments' => 0,
@@ -6846,6 +6860,90 @@ return [
         'maximumNumberOfArguments' => 1,
         'restFiles' => [
             'Deprecation-108963-DeprecatePageRenderer-addInlineLanguageDomain.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getDocType' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getHtmlTag' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getHeadTag' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getFavIcon' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getIconMimeType' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getTemplateFile' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getMoveJsFromHeaderToFooter' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getBodyContent' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getInlineLanguageLabels' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getInlineLanguageLabelFiles' => [
+        'numberOfMandatoryArguments' => 0,
+        'maximumNumberOfArguments' => 0,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->getMetaTag' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
+        ],
+    ],
+    'TYPO3\CMS\Core\Page\PageRenderer->removeMetaTag' => [
+        'numberOfMandatoryArguments' => 2,
+        'maximumNumberOfArguments' => 2,
+        'restFiles' => [
+            'Deprecation-109329-PageRendererGetMethods.rst',
         ],
     ],
     /** Note (leave this at the bottom):

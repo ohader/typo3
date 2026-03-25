@@ -31,12 +31,14 @@ use TYPO3\CMS\Backend\Form\NodeFactory;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\ComponentFactory;
+use TYPO3\CMS\Backend\Template\Enum\ModuleLayout;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\SetupModuleViewMode;
 use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Configuration\Exception\SiteConfigurationWriteException;
+use TYPO3\CMS\Core\Configuration\Processor\Placeholder\EnvPlaceholderProcessor;
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
 use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Database\ConnectionPool;
@@ -49,6 +51,7 @@ use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Messaging\FlashMessage;
 use TYPO3\CMS\Core\Messaging\FlashMessageService;
+use TYPO3\CMS\Core\Schema\TcaSchemaBuilder;
 use TYPO3\CMS\Core\Settings\Category;
 use TYPO3\CMS\Core\Settings\SettingDefinition;
 use TYPO3\CMS\Core\Settings\SettingsTypeRegistry;
@@ -92,6 +95,9 @@ readonly class SiteConfigurationController
         private SiteSettingsService $siteSettingsService,
         private FlashMessageService $flashMessageService,
         private ConnectionPool $connectionPool,
+        private TcaSchemaBuilder $tcaSchemaBuilder,
+        private EnvPlaceholderProcessor $envPlaceholderProcessor,
+        private SiteTcaConfiguration $siteTcaConfiguration,
     ) {}
 
     /**
@@ -143,6 +149,7 @@ readonly class SiteConfigurationController
         );
         $this->addDocHeaderViewModeButton($view, $viewMode);
         $view->setTitle($this->getLanguageService()->translate('title', 'backend.modules.site_configuration'));
+        $view->setLayout(ModuleLayout::NORMAL);
         $view->assignMultiple([
             'pages' => $pages,
             'viewMode' => $viewMode,
@@ -200,6 +207,7 @@ readonly class SiteConfigurationController
         $view->setTitle(
             $this->getLanguageService()->translate('title', 'backend.modules.site_settings')
         );
+        $view->setLayout(ModuleLayout::NORMAL);
         $view->assignMultiple([
             'site' => $site,
             'page' => $pageRecord,
@@ -221,10 +229,7 @@ readonly class SiteConfigurationController
         // which is used later by FormEngine (implicit behavior)
         $allSites = $this->siteFinder->getAllSites(false);
 
-        // Put site and friends TCA into global TCA
-        // @todo: We might be able to get rid of that later
-        $GLOBALS['TCA'] = array_merge($GLOBALS['TCA'], GeneralUtility::makeInstance(SiteTcaConfiguration::class)->getTca());
-
+        $fullTca = array_merge($GLOBALS['TCA'], $this->siteTcaConfiguration->getTca());
         $pageUid = (int)($request->getQueryParams()['pageUid'] ?? 0);
         $siteIdentifier = $request->getQueryParams()['site'] ?? null;
 
@@ -258,10 +263,15 @@ readonly class SiteConfigurationController
                 'siteIdentifier' => $isNewConfig ? '' : $siteIdentifier,
             ],
             'defaultValues' => $defaultValues,
+            'tcaSchemata' => $this->tcaSchemaBuilder->buildFromStructure($fullTca),
+            'fullTca' => $fullTca,
         ];
         $formData = $this->formDataCompiler->compile($formDataCompilerInput, GeneralUtility::makeInstance(SiteConfigurationDataGroup::class));
-        $formData['renderType'] = 'outerWrapContainer';
+        $formData['renderType'] = 'formWrapContainer';
         $formResult = $this->nodeFactory->create($formData)->render();
+        $languageService = $this->getLanguageService();
+        $documentTitle = $this->resolveDocumentTitle($languageService, $isNewConfig, $siteIdentifier);
+        $formResult['html'] = '<h1>' . htmlspecialchars($documentTitle) . '</h1>' . $formResult['html'];
         $formResult = $this->formResultFactory->create($formResult);
         $this->formResultHandler->addAssets($formResult);
 
@@ -271,14 +281,13 @@ readonly class SiteConfigurationController
             'rootPageId' => $isNewConfig ? $pageUid : $allSites[$siteIdentifier]->getRootPageId(),
             'returnUrl' => $returnUrl,
             'formEngineHtml' => $formResult->html,
+            // @deprecated since v14.2, will be removed in v15. Kept for BC with third-party FormEngine elements.
             'formEngineFooter' => implode(LF, $formResult->hiddenFieldsHtml),
         ]);
-        $this->configureEditViewDocHeader($view, $siteIdentifier);
+        $this->configureEditViewDocHeader($view, $siteIdentifier, $documentTitle);
         $view->getDocHeaderComponent()->setPageBreadcrumb($pageRecord);
-        $view->setTitle(
-            $this->getLanguageService()->translate('title', 'backend.modules.site_configuration'),
-            $siteIdentifier ?? ''
-        );
+        $view->setTitle($documentTitle);
+        $view->setLayout(ModuleLayout::NORMAL);
         return $view->renderResponse('SiteConfiguration/Edit');
     }
 
@@ -296,12 +305,6 @@ readonly class SiteConfigurationController
         foreach ($allSites as $site) {
             $mappingRootPageToSite[$site->getRootPageId()] = $site;
         }
-
-        // Put site and friends TCA into global TCA
-        // @todo We might be able to get rid of that later
-        $GLOBALS['TCA'] = array_merge($GLOBALS['TCA'], GeneralUtility::makeInstance(SiteTcaConfiguration::class)->getTca());
-
-        $siteTca = GeneralUtility::makeInstance(SiteTcaConfiguration::class)->getTca();
 
         $parsedBody = $request->getParsedBody();
         $returnUrl = $this->resolveReturnUrl($request);
@@ -322,7 +325,12 @@ readonly class SiteConfigurationController
 
         $data = $parsedBody['data'];
         // This can be NEW123 for new records
-        $pageId = (int)key($data['site']);
+        $unprocessedPageId = key($data['site']);
+        $isRootPageIdPlaceholder = $this->envPlaceholderProcessor->canProcess((string)$unprocessedPageId);
+        $pageId = $isRootPageIdPlaceholder
+            ? (int)$this->envPlaceholderProcessor->process($unprocessedPageId)
+            : (int)$unprocessedPageId;
+
         $sysSiteRow = current($data['site']);
         $siteIdentifier = $sysSiteRow['identifier'] ?? '';
 
@@ -342,14 +350,15 @@ readonly class SiteConfigurationController
             }
         }
 
+        $siteTca = $this->siteTcaConfiguration->getTca();
         // Validate site identifier and do not store or further process it
-        $siteIdentifier = $this->validateAndProcessIdentifier($isNewConfiguration, $siteIdentifier, $pageId, $allSites, $mappingRootPageToSite);
+        $siteIdentifier = $this->validateAndProcessIdentifier($isNewConfiguration, $siteIdentifier, $pageId, $allSites, $mappingRootPageToSite, $siteTca);
         unset($sysSiteRow['identifier']);
 
         try {
             $newSysSiteData = [];
             // Hard set rootPageId: This is TCA readOnly and not transmitted by FormEngine, but is also the "uid" of the site record
-            $newSysSiteData['rootPageId'] = $pageId;
+            $newSysSiteData['rootPageId'] = $isRootPageIdPlaceholder ? $unprocessedPageId : $pageId;
             foreach ($sysSiteRow as $fieldName => $fieldValue) {
                 $type = $siteTca['site']['columns'][$fieldName]['config']['type'];
                 $renderType = $siteTca['site']['columns'][$fieldName]['config']['renderType'] ?? '';
@@ -361,7 +370,7 @@ readonly class SiteConfigurationController
                     case 'datetime':
                     case 'color':
                     case 'text':
-                        $fieldValue = $this->validateAndProcessValue('site', $fieldName, $fieldValue);
+                        $fieldValue = $this->validateAndProcessValue('site', $fieldName, $fieldValue, $siteTca);
                         $newSysSiteData[$fieldName] = $fieldValue;
                         break;
 
@@ -542,13 +551,14 @@ readonly class SiteConfigurationController
      * @param int $rootPageId Page uid this identifier is bound to
      * @param array<non-empty-string, Site> $allSites All sites loaded without `settings.yaml`.
      * @param array<int, Site> $mappingRootPageToSite Identifier site mapping as lookup. Not loaded `settings.yaml`.
+     * @param array $siteTca TCA for site
      * @return mixed Verified / modified value
      */
-    protected function validateAndProcessIdentifier(bool $isNew, string $identifier, int $rootPageId, array $allSites, array $mappingRootPageToSite)
+    protected function validateAndProcessIdentifier(bool $isNew, string $identifier, int $rootPageId, array $allSites, array $mappingRootPageToSite, array $siteTca)
     {
         $languageService = $this->getLanguageService();
         // Normal "eval" processing of field first
-        $identifier = $this->validateAndProcessValue('site', 'identifier', $identifier);
+        $identifier = $this->validateAndProcessValue('site', 'identifier', $identifier, $siteTca);
         if ($isNew) {
             // Verify no other site with this identifier exists. If so, find a new unique name as
             // identifier and show a flash message the identifier has been adapted
@@ -649,14 +659,15 @@ readonly class SiteConfigurationController
      * @param string $tableName Table name
      * @param string $fieldName Field name
      * @param mixed $fieldValue Incoming value from FormEngine
+     * @param array $siteTca TCA for site
      * @return mixed Verified / modified value
      * @throws SiteValidationErrorException
      * @throws \RuntimeException
      */
-    protected function validateAndProcessValue(string $tableName, string $fieldName, $fieldValue)
+    protected function validateAndProcessValue(string $tableName, string $fieldName, $fieldValue, array $siteTca)
     {
         $languageService = $this->getLanguageService();
-        $fieldConfig = $GLOBALS['TCA'][$tableName]['columns'][$fieldName]['config'];
+        $fieldConfig = $siteTca[$tableName]['columns'][$fieldName]['config'];
         $handledEvals = [];
 
         if (!$this->validateValueForRequired($fieldConfig, $fieldValue)) {
@@ -866,7 +877,7 @@ readonly class SiteConfigurationController
     /**
      * Create document header buttons of "edit" action
      */
-    protected function configureEditViewDocHeader(ModuleTemplate $view, ?string $siteIdentifier): void
+    protected function configureEditViewDocHeader(ModuleTemplate $view, ?string $siteIdentifier, string $documentTitle = ''): void
     {
         $lang = $this->getLanguageService();
         $closeButton = $this->componentFactory->createCloseButton('#')
@@ -890,9 +901,21 @@ readonly class SiteConfigurationController
         // Set shortcut context - reload button is added automatically
         $view->getDocHeaderComponent()->setShortcutContext(
             'site_configuration.edit',
-            sprintf($this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_siteconfiguration.xlf:labels.edit'), $siteIdentifier),
-            ['site' => $siteIdentifier]
+            $documentTitle,
+            ['site' => $siteIdentifier],
         );
+    }
+
+    /**
+     * Resolves the document title used for the browser tab and shortcut.
+     */
+    protected function resolveDocumentTitle(LanguageService $languageService, bool $isNewConfig, ?string $siteIdentifier): string
+    {
+        $typeLabel = $languageService->sL('backend.siteconfiguration:edit.typeLabel');
+        if ($isNewConfig) {
+            return $languageService->sL('backend.siteconfiguration:edit.createNewSite');
+        }
+        return implode(' · ', array_filter([$siteIdentifier, $typeLabel]));
     }
 
     /**
@@ -903,6 +926,7 @@ readonly class SiteConfigurationController
         $languageService = $this->getLanguageService();
         $viewModeButton = $this->componentFactory->createDropDownButton()
             ->setLabel($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.view'))
+            ->setIcon($this->iconFactory->getIcon('actions-cog'))
             ->setShowLabelText(true);
 
         $viewModeButton->addItem(
@@ -1089,6 +1113,10 @@ readonly class SiteConfigurationController
             ...get_object_vars($definition),
             'label' => $languageService->sL($definition->label),
             'description' => $definition->description !== null ? $languageService->sL($definition->description) : null,
+            'enum' => array_map(
+                static fn(string|int|float|bool $label): string => $languageService->sL((string)$label),
+                $definition->enum
+            ),
         ]);
     }
 

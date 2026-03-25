@@ -127,10 +127,10 @@ readonly class LoginController
         }
 
         if (($backgroundImageStyles = $this->authenticationStyleInformation->getBackgroundImageStyles($request)) !== '') {
-            $this->pageRenderer->addCssInlineBlock('loginBackgroundImage', $backgroundImageStyles, useNonce: true);
+            $this->pageRenderer->addCssInlineBlock('loginBackgroundImage', $backgroundImageStyles, null, false, true);
         }
         if (($highlightColorStyles = $this->authenticationStyleInformation->getHighlightColorStyles()) !== '') {
-            $this->pageRenderer->addCssInlineBlock('loginHighlightColor', $highlightColorStyles, useNonce: true);
+            $this->pageRenderer->addCssInlineBlock('loginHighlightColor', $highlightColorStyles, null, false, true);
         }
         $loginProviderIdentifier = $this->loginProviderResolver->resolveLoginProviderIdentifierFromRequest($request, 'be_lastLoginProvider');
         if (empty($backendUser->user['uid'])) {
@@ -181,7 +181,7 @@ readonly class LoginController
         $templateFile = $loginProvider->modifyView($request, $view);
         $content = $view->render($templateFile);
         $this->pageRenderer->setBodyContent('<body>' . $content);
-        $response = $this->pageRenderer->renderResponse();
+        $response = $this->pageRenderer->renderResponse($request);
         return $this->appendLoginProviderCookie($request, $response);
     }
 

@@ -402,6 +402,17 @@ class DataHandler
      */
     protected static array $recordPidsForDeletedRecords = [];
 
+    /**
+     * Remove system fields that should not be processed during record copying.
+     *
+     * @param array $row Record row to filter
+     * @return array Filtered row without nonFields (uid, perms_*, t3ver_*)
+     */
+    protected function removeNonCopyableFields(array $row): array
+    {
+        return array_diff_key($row, array_flip($this->nonFields));
+    }
+
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly CacheManager $cacheManager,
@@ -700,8 +711,7 @@ class DataHandler
                     if (method_exists($hookObj, 'processDatamap_preProcessFieldArray')) {
                         $hookObj->processDatamap_preProcessFieldArray($incomingFieldArray, $table, $id, $this);
                         // If a hook invalidated $incomingFieldArray, skip the record completely
-                        /** @phpstan-ignore-next-line */
-                        if (!is_array($incomingFieldArray)) {
+                        if (!is_array($incomingFieldArray)) { // @phpstan-ignore function.alreadyNarrowedType (hook may modify variable type by reference)
                             continue 2;
                         }
                     }
@@ -1333,7 +1343,7 @@ class DataHandler
             'datetime' => $this->checkValueForDatetime($value, $tcaFieldConf),
             'email' => $this->checkValueForEmail((string)$value, $tcaFieldConf, $table, $id, (int)$realPid, $checkField),
             'flex' => $field ? $this->checkValueForFlex($res, $value, $tcaFieldConf, $table, $id, $curValue, $status, $realPid, $recFID, $tscPID, $field) : [],
-            'inline' => $this->checkValueForInline($res, $value, $tcaFieldConf, $table, $id, $status, $field, $additionalData) ?: [],
+            'inline' => $this->checkValueForInline($res, (string)$value, $tcaFieldConf, $table, $id, $status, $field, $additionalData) ?: [],
             'file' => $this->checkValueForFile($res, (string)$value, $tcaFieldConf, $table, $id, $field, $additionalData),
             'input' => $this->checkValueForInput($value, $tcaFieldConf, $table, $id, $realPid, $field),
             'language' => $this->checkValueForLanguage((int)$value, $table, $field),
@@ -1995,7 +2005,7 @@ class DataHandler
                 $value instanceof \DateTimeImmutable => $value,
                 $value instanceof \DateTimeInterface => \DateTimeImmutable::createFromInterface($value),
                 // Reprocessing of an existing database value (e.g. Unix timestamp for date/datetime or seconds for time fields)
-                is_int($value) => DateTimeFactory::createFomDatabaseValueAndTCAConfig($value, $tcaFieldConf),
+                is_int($value) => DateTimeFactory::createFromDatabaseValueAndTCAConfig($value, $tcaFieldConf),
                 // The value we receive from the backend form is an unqualified ISO 8601 date,
                 // for instance "1999-11-11T11:11:11".
                 // We can also accept an ISO8601 date with offsets,
@@ -2482,7 +2492,7 @@ class DataHandler
      * @param string $value The value to set.
      * @param array $tcaFieldConf Field configuration from TCA
      * @param string $table Table name
-     * @param int $id UID of record
+     * @param int|string $id UID of record
      * @param string $status 'update' or 'new' flag
      * @param string $field Field name
      * @param array|null $additionalData Additional data to be forwarded to sub-processors
@@ -3496,13 +3506,9 @@ class DataHandler
         }
 
         $data = [];
-        // @todo: make this configurable via an event
-        $nonFields = $this->nonFields;
+        $row = $this->removeNonCopyableFields($row);
         // Traverse ALL fields of the selected record:
         foreach ($row as $field => $value) {
-            if (in_array($field, $nonFields, true)) {
-                continue;
-            }
             // Preparation/Processing of the value:
             // "pid" is hardcoded of course:
             // isset() won't work here, since values can be NULL in each of the arrays
@@ -3792,16 +3798,18 @@ class DataHandler
 
         $schema = $this->tcaSchemaFactory->get($table);
 
-        // @todo: make this configurable via an event
-        $nonFields = $this->nonFields;
-
-        // Merge in override array.
+        // Merge in override array (t3ver_* overrides from versionizeRecord, etc.)
         $row = array_merge($row, $overrideArray);
+
+        // Preserve system field values (perms_*, t3ver_*) — they must reach insertNewCopyVersion
+        $preservedSystemFields = array_intersect_key($row, array_flip($this->nonFields));
+        unset($preservedSystemFields['uid']);
+
+        // Remove non-copyable fields for the processing loop
+        $row = $this->removeNonCopyableFields($row);
+
         // Traverse ALL fields of the selected record:
         foreach ($row as $field => $value) {
-            if (in_array($field, $nonFields, true)) {
-                continue;
-            }
             if ($field === 'pid') {
                 $value = $pid;
             } else {
@@ -3815,6 +3823,9 @@ class DataHandler
             // Add value to array.
             $row[$field] = $value;
         }
+
+        // Re-add preserved system fields for insertNewCopyVersion
+        $row = array_merge($row, $preservedSystemFields);
         // Setting original UID:
         if ($schema->hasCapability(TcaSchemaCapability::AncestorReferenceField)) {
             $row[$schema->getCapability(TcaSchemaCapability::AncestorReferenceField)->getFieldName()] = $uid;
@@ -3827,7 +3838,7 @@ class DataHandler
         // that refers e.g. to a tt_content record is marked as deleted. The tt_content record then needs a reference index update.
         // This scenario seems to currently only show up if in workspaces, so the refindex update is restricted to this for now.
         if ($workspaceOptions !== []) {
-            $this->referenceIndexUpdater->registerUpdateForReferencesToItem($table, (int)$row['uid'], $this->BE_USER->workspace);
+            $this->referenceIndexUpdater->registerUpdateForReferencesToItem($table, $uid, $this->BE_USER->workspace);
         }
 
         if ($theNewSQLID) {
@@ -4576,7 +4587,7 @@ class DataHandler
                 }
             }
         }
-        if ($recordWasMoved) {
+        if ($recordWasMoved) {// @phpstan-ignore if.alwaysFalse (hook result is not taken into account)
             // Return if a hook handled move
             return;
         }
@@ -4967,14 +4978,10 @@ class DataHandler
             ? $schema->getCapability(TcaSchemaCapability::RestrictionDisabledField)->getField()
             : null;
 
-        // @todo: make this configurable via an event
-        $nonFields = $this->nonFields;
+        $row = $this->removeNonCopyableFields($row);
         $data = [];
 
         foreach ($row as $field => $value) {
-            if (in_array($field, $nonFields, true)) {
-                continue;
-            }
             if ($field === 'pid') {
                 $value = $destPid;
             } elseif (array_key_exists($field, $overrideValues)) {
@@ -5200,7 +5207,7 @@ class DataHandler
         $value = implode(',', $dbAnalysisCurrent->getValueArray());
         $this->registerDBList[$table][$id][$field] = $value;
         // Remove child records (if synchronization requested it):
-        if (is_array($removeArray) && !empty($removeArray)) {
+        if ($removeArray !== []) {
             /** @var DataHandler $tce */
             $tce = GeneralUtility::makeInstance(self::class);
             $tce->enableLogging = $this->enableLogging;
@@ -5292,7 +5299,7 @@ class DataHandler
                 /** @var bool $recordWasDeleted */
             }
         }
-        if ($recordWasDeleted) {
+        if ($recordWasDeleted) { // @phpstan-ignore if.alwaysFalse (hook result is not taken into account)
             return;
         }
 
@@ -6145,7 +6152,7 @@ class DataHandler
         }
 
         $userWorkspace = $this->BE_USER->workspace;
-        if ($recordWasDiscarded
+        if ($recordWasDiscarded // @phpstan-ignore booleanOr.leftAlwaysFalse (hook result is not taken into account)
             || $userWorkspace === 0
             || !$this->tcaSchemaFactory->has($table)
             || !$this->tcaSchemaFactory->get($table)->hasCapability(TcaSchemaCapability::Workspace)

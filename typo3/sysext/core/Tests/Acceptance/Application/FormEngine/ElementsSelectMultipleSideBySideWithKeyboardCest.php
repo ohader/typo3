@@ -34,14 +34,14 @@ final class ElementsSelectMultipleSideBySideWithKeyboardCest
         $I->waitForText('elements select', 20);
         $editRecordLinkCssPath = '#recordlist-tx_styleguide_elements_select a[aria-label="Edit record"]';
         $I->click($editRecordLinkCssPath);
-        $I->waitForText('Edit Form', 3, 'h1');
+        $I->waitForElement('.typo3-TCEforms', 3);
 
         $I->click('renderType=selectMultipleSideBySide');
     }
 
     public function addElementsWithEnterKey(ApplicationTester $I): void
     {
-        $fieldset = 'div.typo3-TCEforms > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4) > fieldset:nth-of-type(1)';
+        $fieldset = '.tab-pane.active > fieldset:nth-of-type(1)';
         $formWizardsWrap = $fieldset . ' .form-wizards-item-element';
         $selectAvailable = $formWizardsWrap . ' > div:nth-of-type(1) > div:nth-of-type(2) select';
 
@@ -60,7 +60,7 @@ final class ElementsSelectMultipleSideBySideWithKeyboardCest
 
     public function removeElementWithDeleteKey(ApplicationTester $I): void
     {
-        $fieldset = 'div.typo3-TCEforms > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(4) > fieldset:nth-of-type(1)';
+        $fieldset = '.tab-pane.active > fieldset:nth-of-type(1)';
         $formWizardsWrap = $fieldset . ' .form-wizards-item-element';
         $selectSelected = $formWizardsWrap . ' > div:nth-of-type(1) > div:nth-of-type(1) select';
 

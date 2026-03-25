@@ -34,6 +34,7 @@
 @import "component/livesearch";
 @import "component/bookmark-manager";
 @import "component/wizard";
+@import "component/recordidentity";
 @import "component/recordlist";
 @import "component/resources";
 @import "component/recordsearchbox";
@@ -58,6 +59,7 @@
 @import "element/typo3-backend-security-csp-reports";
 @import "element/typo3-backend-security-sudo-mode";
 @import "element/typo3-backend-table-wizard";
+@import "element/typo3-formengine-container-inline";
 @import "element/typo3-formengine-element-link";
 @import "element/typo3-notification-message";
 @import "element/typo3-rte-ckeditor-ckeditor5";
@@ -66,6 +68,7 @@
 @import "element/typo3-backend-content-navigation";
 @import "element/typo3-qrcode";
 @import "element/typo3-backend-workspace-selector";
+@import "element/typo3-short-url";
 
 //
 // TYPO3 Backend Components
@@ -81,6 +84,7 @@
 @import "typo3/login_screen";
 @import "typo3/main_content";
 @import "typo3/main_form";
+@import "typo3/contextual_record_edit";
 @import "typo3/wizard_localization";
 @import "typo3/visual/element_typoscript";
 

@@ -44,6 +44,9 @@
 //
 // Components
 //
+typo3-backend-component-page-browser,
+typo3-backend-component-filestorage-browser,
+typo3-backend-component-page-position-select,
 typo3-backend-navigation-component-filestoragetree,
 typo3-backend-navigation-component-pagetree,
 typo3-backend-navigation-component-formeditortree {
@@ -501,6 +504,18 @@ typo3-backend-form-selecttree-toolbar {
 //
 // NEEDS WORK
 //
+.wizard-content:has(typo3-backend-component-page-position-select) {
+    padding: 0 !important;
+    --tree-toolbar-padding: calc(var(--wizard-padding) * .75) var(--wizard-padding);
+}
+
+typo3-backend-component-page-position-select {
+    > typo3-breadcrumb {
+        padding: var(--wizard-padding);
+        padding-bottom: 0;
+    }
+}
+
 .tree-element {
     border: var(--typo3-component-border-width) solid var(--typo3-component-border-color);
     border-radius: var(--typo3-input-border-radius);
@@ -528,9 +543,29 @@ typo3-backend-form-selecttree-toolbar {
         padding: var(--tree-toolbar-padding);
         min-height: var(--tree-toolbar-bar-height);
         box-shadow: var(--tree-toolbar-box-shadow);
+        flex-wrap: wrap;
 
-        .btn {
-            margin-inline-start: auto;
+        &-toggle {
+            margin-left: auto;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        &-items {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            row-gap: calc(var(--tree-toolbar-padding-y) / 2);
+            max-height: var(--tree-toolbar-element-height);
+
+            &--expanded {
+                max-height: none;
+            }
+
+            button {
+                margin-right: var(--tree-toolbar-padding-x);
+            }
         }
     }
 
@@ -559,6 +594,7 @@ typo3-backend-form-selecttree-toolbar {
         justify-content: center;
         align-items: center;
         border-radius: var(--typo3-input-border-radius);
+        min-height: var(--tree-toolbar-element-height);
         outline-offset: 0;
     }
 

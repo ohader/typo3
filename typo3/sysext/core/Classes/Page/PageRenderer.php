@@ -22,6 +22,7 @@ use Psr\Http\Message\StreamFactoryInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use TYPO3\CMS\Backend\Routing\Router;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Cache\Frontend\FrontendInterface;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Http\ApplicationType;
@@ -104,7 +105,7 @@ class PageRenderer implements SingletonInterface
      */
     protected array $cssInline = [];
     protected string $bodyContent = '';
-    protected string $templateFile = '';
+    protected string $templateFile = 'PKG:typo3/cms-core:Resources/Private/Templates/PageRenderer.html';
     protected array $inlineLanguageLabels = [];
     protected array $inlineLanguageLabelFiles = [];
     protected array $inlineSettings = [];
@@ -120,6 +121,7 @@ class PageRenderer implements SingletonInterface
     protected bool $applyNonceHint = false;
 
     public function __construct(
+        protected readonly Context $context,
         #[Autowire(service: 'cache.assets')]
         protected readonly FrontendInterface $assetsCache,
         protected readonly MarkerBasedTemplateService $templateService,
@@ -134,7 +136,22 @@ class PageRenderer implements SingletonInterface
         protected readonly SystemResourcePublisherInterface $resourcePublisher,
         protected readonly SystemResourceFactory $systemResourceFactory,
     ) {
-        $this->reset();
+        $this->locale = new Locale();
+        $this->docType = DocType::html5;
+        $this->xmlPrologAndDocType = DocType::html5->getDoctypeDeclaration();
+        $htmlTagAttributes = ['lang' => 'en'];
+        $backendUserAspect = $this->context->getAspect('backend.user');
+        if ($backendUserAspect->isLoggedIn()) {
+            // If a backend user is logged in, we assume BE context and add a default html tag
+            // with theme and color scheme attributes for this backend user.
+            // In case this is FE context, FE RequestHandler will later override with final html tag attributes again.
+            // This is done here for BE b/w compat reasons. Assuming BE context is done to prevent
+            // accessing Request in __construct() and application type is only available as Request attribute.
+            $themeAndColorSchemeAttributes = $this->getThemeAndColorSchemeHtmlTagAttributes($this->getBackendUser());
+            $htmlTagAttributes = array_merge($htmlTagAttributes, $themeAndColorSchemeAttributes);
+        }
+        $this->htmlTag = '<html ' . GeneralUtility::implodeAttributes($htmlTagAttributes, true) . '>';
+        $this->javaScriptRenderer = JavaScriptRenderer::create('EXT:core/Resources/Public/JavaScript/java-script-item-handler.js');
         $this->setMetaTag('name', 'generator', 'TYPO3 CMS');
     }
 
@@ -148,6 +165,7 @@ class PageRenderer implements SingletonInterface
                 case 'assetsCache':
                 case 'assetRenderer':
                 case 'assetCollector':
+                case 'context':
                 case 'templateService':
                 case 'relativeCssPathFixer':
                 case 'languageServiceFactory':
@@ -181,6 +199,7 @@ class PageRenderer implements SingletonInterface
             switch ($var) {
                 case 'assetsCache':
                 case 'assetRenderer':
+                case 'context':
                 case 'templateService':
                 case 'relativeCssPathFixer':
                 case 'languageServiceFactory':
@@ -213,10 +232,10 @@ class PageRenderer implements SingletonInterface
     /**
      * Reset all vars to initial values
      */
-    protected function reset(): void
+    protected function reset(ServerRequestInterface $request): void
     {
         $this->locale = new Locale();
-        $this->setDocType(DocType::html5);
+        $this->setDocType(DocType::html5, $request);
         $this->templateFile = 'PKG:typo3/cms-core:Resources/Private/Templates/PageRenderer.html';
         $this->bodyContent = '';
         $this->jsFiles = [];
@@ -227,7 +246,7 @@ class PageRenderer implements SingletonInterface
         $this->inlineComments = [];
         $this->headerData = [];
         $this->footerData = [];
-        $this->javaScriptRenderer = JavaScriptRenderer::create();
+        $this->javaScriptRenderer = JavaScriptRenderer::create('EXT:core/Resources/Public/JavaScript/java-script-item-handler.js');
     }
 
     /**
@@ -243,7 +262,7 @@ class PageRenderer implements SingletonInterface
      *
      * @param string $xmlPrologAndDocType Complete tags for xml prolog and docType
      */
-    public function setXmlPrologAndDocType($xmlPrologAndDocType)
+    public function setXmlPrologAndDocType(string $xmlPrologAndDocType): void
     {
         $this->xmlPrologAndDocType = $xmlPrologAndDocType;
     }
@@ -251,17 +270,28 @@ class PageRenderer implements SingletonInterface
     /**
      * Sets language
      */
-    public function setLanguage(Locale $locale): void
+    public function setLanguage(Locale $locale, ?ServerRequestInterface $request = null): void
     {
+        if ($request === null) {
+            // @deprecated since v14. Method signature in v15: setLanguage(Locale $locale, ServerRequestInterface $request)
+            //             Remove this if in v15.
+            trigger_error(
+                'PageRenderer->setLanguage() without ServerRequestInterface as second argument is deprecated since version 14.3. Argument will be mandatory in version 15.0',
+                E_USER_DEPRECATED
+            );
+            $request = $GLOBALS['TYPO3_REQUEST'];
+            if (!$request instanceof ServerRequestInterface) {
+                throw new \RuntimeException('Request not found in globals', 1765333738);
+            }
+        }
         $this->locale = $locale;
-        $this->setDefaultHtmlTag();
+        $this->setDefaultHtmlTag($request);
     }
 
     /**
-     * Internal method to set a basic <html> tag when in HTML5 with the proper language/locale and "dir"
-     * attributes.
+     * Internal method to set a basic <html> tag when in HTML5 with the proper language/locale and "dir" attributes.
      */
-    protected function setDefaultHtmlTag(): void
+    protected function setDefaultHtmlTag(ServerRequestInterface $request): void
     {
         if ($this->docType === DocType::html5) {
             $attributes = [
@@ -271,92 +301,83 @@ class PageRenderer implements SingletonInterface
                 $attributes['dir'] = 'rtl';
             }
             // @todo: build an API to add HTML attributes cleanly
-            if ($this->getApplicationType() === 'BE') {
-                $context = GeneralUtility::makeInstance(Context::class);
-                $backendUser = $context->getAspect('backend.user');
-
+            if ($this->getApplicationType($request) === 'BE') {
+                $backendUser = $this->context->getAspect('backend.user');
                 if ($backendUser->isLoggedIn()) {
-                    $userTS = $GLOBALS['BE_USER']->getTSConfig();
-
-                    $themeDisabled = $userTS['setup.']['fields.']['theme.']['disabled'] ?? '0';
-                    $theme = $GLOBALS['BE_USER']->uc['theme'] ?? $userTS['setup.']['fields.']['theme'] ?? 'fresh';
-                    if ($themeDisabled === '1') {
-                        $theme = $userTS['setup.']['fields.']['theme'] ?? 'fresh';
-                    }
-                    if ($theme !== 'modern') {
-                        $attributes['data-theme'] = $theme;
-                    }
-
-                    $colorSchemeDisabled = $userTS['setup.']['fields.']['colorScheme.']['disabled'] ?? '0';
-                    $colorScheme = $GLOBALS['BE_USER']->uc['colorScheme'] ?? $userTS['setup.']['fields.']['colorScheme'] ?? 'auto';
-                    if ($colorSchemeDisabled === '1') {
-                        $colorScheme = $userTS['setup.']['fields.']['colorScheme'] ?? 'light';
-                    }
-                    if ($colorScheme !== 'auto') {
-                        $attributes['data-color-scheme'] = $colorScheme;
-                    }
+                    $attributes = array_merge($attributes, $this->getThemeAndColorSchemeHtmlTagAttributes($this->getBackendUser()));
                 }
             }
             $this->setHtmlTag('<html ' . GeneralUtility::implodeAttributes($attributes, true) . '>');
         }
     }
 
+    private function getThemeAndColorSchemeHtmlTagAttributes(BackendUserAuthentication $backendUser): array
+    {
+        $attributes = [];
+        $userTS = $backendUser->getTSConfig();
+        $themeDisabled = $userTS['setup.']['fields.']['theme.']['disabled'] ?? '0';
+        $theme = $backendUser->uc['theme'] ?? $userTS['setup.']['fields.']['theme'] ?? 'fresh';
+        if ($themeDisabled === '1') {
+            $theme = $userTS['setup.']['fields.']['theme'] ?? 'fresh';
+        }
+        if ($theme !== 'modern') {
+            $attributes['data-theme'] = $theme;
+        }
+        $colorSchemeDisabled = $userTS['setup.']['fields.']['colorScheme.']['disabled'] ?? '0';
+        $colorScheme = $backendUser->uc['colorScheme'] ?? $userTS['setup.']['fields.']['colorScheme'] ?? 'auto';
+        if ($colorSchemeDisabled === '1') {
+            $colorScheme = $userTS['setup.']['fields.']['colorScheme'] ?? 'light';
+        }
+        if ($colorScheme !== 'auto') {
+            $attributes['data-color-scheme'] = $colorScheme;
+        }
+        return $attributes;
+    }
+
     /**
      * Sets html tag
-     *
-     * @param string $htmlTag Html tag
      */
-    public function setHtmlTag($htmlTag)
+    public function setHtmlTag(string $htmlTag): void
     {
         $this->htmlTag = $htmlTag;
     }
 
     /**
      * Sets HTML head tag
-     *
-     * @param string $headTag HTML head tag
      */
-    public function setHeadTag($headTag)
+    public function setHeadTag(string $headTag): void
     {
         $this->headTag = $headTag;
     }
 
     /**
      * Sets favicon
-     *
-     * @param string $favIcon
      */
-    public function setFavIcon($favIcon)
+    public function setFavIcon(string $favIcon): void
     {
         $this->favIcon = $favIcon;
     }
 
     /**
      * Sets icon mime type
-     *
-     * @param string $iconMimeType
      */
-    public function setIconMimeType($iconMimeType)
+    public function setIconMimeType(string $iconMimeType): void
     {
         $this->iconMimeType = $iconMimeType;
     }
 
     /**
      * Sets template file
-     *
-     * @param string $file
      */
-    public function setTemplateFile($file)
+    public function setTemplateFile(string $file): void
     {
         $this->templateFile = $file;
     }
 
     /**
      * Sets Content for Body
-     *
-     * @param string $content
      */
-    public function setBodyContent($content)
+    public function setBodyContent(string $content): void
     {
         $this->bodyContent = $content;
     }
@@ -369,7 +390,7 @@ class PageRenderer implements SingletonInterface
     /**
      * Enables MoveJsFromHeaderToFooter
      */
-    public function enableMoveJsFromHeaderToFooter()
+    public function enableMoveJsFromHeaderToFooter(): void
     {
         $this->moveJsFromHeaderToFooter = true;
     }
@@ -377,21 +398,26 @@ class PageRenderer implements SingletonInterface
     /**
      * Disables MoveJsFromHeaderToFooter
      */
-    public function disableMoveJsFromHeaderToFooter()
+    public function disableMoveJsFromHeaderToFooter(): void
     {
         $this->moveJsFromHeaderToFooter = false;
     }
 
+    /**
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
+     */
     public function getTitle(): string
     {
+        trigger_error('PageRenderer->getTitle() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->title;
     }
 
     /**
-     * Gets the language
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
     public function getLanguage(): string
     {
+        trigger_error('PageRenderer->getLanguage() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return (string)$this->locale;
     }
 
@@ -400,105 +426,112 @@ class PageRenderer implements SingletonInterface
         $this->nonce = $nonce;
     }
 
-    public function setDocType(DocType $docType): void
+    public function setDocType(DocType $docType, ?ServerRequestInterface $request = null): void
     {
+        if ($request === null) {
+            // @deprecated since v14. Method signature in v15: setDocType(DocType $docType, ServerRequestInterface $request): void
+            //             Remove this if in v15.
+            trigger_error(
+                'PageRenderer->setDocType() without ServerRequestInterface as second argument is deprecated since version 14.3. Argument will be mandatory in version 15.0',
+                E_USER_DEPRECATED
+            );
+            $request = $GLOBALS['TYPO3_REQUEST'];
+            if (!$request instanceof ServerRequestInterface) {
+                throw new \RuntimeException('Request not found in globals', 1765333739);
+            }
+        }
         $this->docType = $docType;
         $this->xmlPrologAndDocType = $docType->getDoctypeDeclaration();
-        $this->setDefaultHtmlTag();
+        $this->setDefaultHtmlTag($request);
     }
 
+    /**
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
+     */
     public function getDocType(): DocType
     {
+        trigger_error('PageRenderer->getDocType() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->docType;
     }
 
     /**
-     * Gets html tag
-     *
-     * @return string $htmlTag Html tag
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getHtmlTag()
+    public function getHtmlTag(): string
     {
+        trigger_error('PageRenderer->getHtmlTag() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->htmlTag;
     }
 
     /**
-     * Gets head tag
-     *
-     * @return string $tag Head tag
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getHeadTag()
+    public function getHeadTag(): string
     {
+        trigger_error('PageRenderer->getHeadTag() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->headTag;
     }
 
     /**
-     * Gets favicon
-     *
-     * @return string $favIcon
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getFavIcon()
+    public function getFavIcon(): string
     {
+        trigger_error('PageRenderer->getFavIcon() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->favIcon;
     }
 
     /**
-     * Gets icon mime type
-     *
-     * @return string $iconMimeType
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getIconMimeType()
+    public function getIconMimeType(): string
     {
+        trigger_error('PageRenderer->getIconMimeType() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->iconMimeType;
     }
 
     /**
-     * Gets template file
-     *
-     * @return string
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getTemplateFile()
+    public function getTemplateFile(): string
     {
+        trigger_error('PageRenderer->getTemplateFile() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->templateFile;
     }
 
     /**
-     * Gets MoveJsFromHeaderToFooter
-     *
-     * @return bool
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getMoveJsFromHeaderToFooter()
+    public function getMoveJsFromHeaderToFooter(): bool
     {
+        trigger_error('PageRenderer->getMoveJsFromHeaderToFooter() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->moveJsFromHeaderToFooter;
     }
 
     /**
-     * Gets content for body
-     *
-     * @return string
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getBodyContent()
+    public function getBodyContent(): string
     {
+        trigger_error('PageRenderer->getBodyContent() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->bodyContent;
     }
 
     /**
-     * Gets the inline language labels.
-     *
-     * @return array The inline language labels
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getInlineLanguageLabels()
+    public function getInlineLanguageLabels(): array
     {
+        trigger_error('PageRenderer->getInlineLanguageLabels() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->inlineLanguageLabels;
     }
 
     /**
-     * Gets the inline language files
-     *
-     * @return array
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function getInlineLanguageLabelFiles()
+    public function getInlineLanguageLabelFiles(): array
     {
+        trigger_error('PageRenderer->getInlineLanguageLabelFiles() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         return $this->inlineLanguageLabelFiles;
     }
 
@@ -510,9 +543,8 @@ class PageRenderer implements SingletonInterface
      * @param string $content The content of the meta tag
      * @param array $subProperties Subproperties of the meta tag (like e.g. og:image:width)
      * @param bool $replace Replace earlier set meta tag
-     * @throws \InvalidArgumentException
      */
-    public function setMetaTag(string $type, string $name, string $content, array $subProperties = [], $replace = true)
+    public function setMetaTag(string $type, string $name, string $content, array $subProperties = [], bool $replace = true): void
     {
         // Lowercase all the things
         $type = strtolower($type);
@@ -528,17 +560,16 @@ class PageRenderer implements SingletonInterface
     }
 
     /**
-     * Returns the requested meta tag
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
     public function getMetaTag(string $type, string $name): array
     {
+        trigger_error('PageRenderer->getMetaTag() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         // Lowercase all the things
         $type = strtolower($type);
         $name = strtolower($name);
-
         $manager = $this->metaTagRegistry->getManagerForProperty($name);
         $propertyContent = $manager->getProperty($name, $type);
-
         if (!empty($propertyContent[0])) {
             return [
                 'type' => $type,
@@ -550,24 +581,22 @@ class PageRenderer implements SingletonInterface
     }
 
     /**
-     * Unset the requested meta tag
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
-    public function removeMetaTag(string $type, string $name)
+    public function removeMetaTag(string $type, string $name): void
     {
+        trigger_error('PageRenderer->removeMetaTag() is deprecated since version 14.3. Use PageRenderer as data sink only.', E_USER_DEPRECATED);
         // Lowercase all the things
         $type = strtolower($type);
         $name = strtolower($name);
-
         $manager = $this->metaTagRegistry->getManagerForProperty($name);
         $manager->removeProperty($name, $type);
     }
 
     /**
      * Adds inline HTML comment
-     *
-     * @param string $comment
      */
-    public function addInlineComment($comment)
+    public function addInlineComment(string $comment): void
     {
         if (!in_array($comment, $this->inlineComments)) {
             $this->inlineComments[] = $comment;
@@ -579,7 +608,7 @@ class PageRenderer implements SingletonInterface
      *
      * @param string $data Free header data for HTML header
      */
-    public function addHeaderData($data)
+    public function addHeaderData(string $data): void
     {
         if (!in_array($data, $this->headerData)) {
             $this->headerData[] = $data;
@@ -591,7 +620,7 @@ class PageRenderer implements SingletonInterface
      *
      * @param string $data Free footer data for HTML footer before closing body tag
      */
-    public function addFooterData($data)
+    public function addFooterData(string $data): void
     {
         if (!in_array($data, $this->footerData)) {
             $this->footerData[] = $data;
@@ -614,7 +643,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $nomodule Flag if property 'nomodule="nomodule"' should be added to JavaScript tags
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addJsLibrary($name, $file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = [])
+    public function addJsLibrary($name, $file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $isUriResource = $resource instanceof UriResource;
@@ -658,7 +687,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $nomodule Flag if property 'nomodule="nomodule"' should be added to JavaScript tags
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addJsFooterLibrary($name, $file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = [])
+    public function addJsFooterLibrary($name, $file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $isUriResource = $resource instanceof UriResource;
@@ -702,7 +731,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $nomodule Flag if property 'nomodule="nomodule"' should be added to JavaScript tags
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addJsFile($file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = [])
+    public function addJsFile($file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $resourceIdentifier = (string)$resource;
@@ -746,7 +775,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $nomodule Flag if property 'nomodule="nomodule"' should be added to JavaScript tags
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addJsFooterFile($file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = [])
+    public function addJsFooterFile($file, $type = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $async = false, $integrity = '', $defer = false, $crossorigin = '', $nomodule = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $resourceIdentifier = (string)$resource;
@@ -782,7 +811,7 @@ class PageRenderer implements SingletonInterface
      * @param string $block
      * @param bool $forceOnTop
      */
-    public function addJsInlineCode($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false)
+    public function addJsInlineCode($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false): void
     {
         if (!isset($this->jsInline[$name]) && !empty($block)) {
             $this->jsInline[$name] = [
@@ -801,7 +830,7 @@ class PageRenderer implements SingletonInterface
      * @param string $block
      * @param bool $forceOnTop
      */
-    public function addJsFooterInlineCode($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false)
+    public function addJsFooterInlineCode($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false): void
     {
         if (!isset($this->jsInline[$name]) && !empty($block)) {
             $this->jsInline[$name] = [
@@ -826,7 +855,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $inline
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addCssFile($file, $rel = 'stylesheet', $media = 'all', $title = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $inline = false, array $tagAttributes = [])
+    public function addCssFile($file, $rel = 'stylesheet', $media = 'all', $title = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $inline = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $resourceIdentifier = (string)$resource;
@@ -858,7 +887,7 @@ class PageRenderer implements SingletonInterface
      * @param bool $inline
      * @param array<string, string> $tagAttributes Key => value list of tag attributes
      */
-    public function addCssLibrary($file, $rel = 'stylesheet', $media = 'all', $title = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $inline = false, array $tagAttributes = [])
+    public function addCssLibrary($file, $rel = 'stylesheet', $media = 'all', $title = '', mixed $_ = null, $forceOnTop = false, $allWrap = '', mixed $__ = null, $splitChar = '|', $inline = false, array $tagAttributes = []): void
     {
         $resource = $this->handleAddedResource($file);
         $resourceIdentifier = (string)$resource;
@@ -884,7 +913,7 @@ class PageRenderer implements SingletonInterface
      * @param string $block
      * @param bool $forceOnTop
      */
-    public function addCssInlineBlock($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false)
+    public function addCssInlineBlock($name, $block, mixed $_ = null, $forceOnTop = false, bool $useNonce = false): void
     {
         if (!isset($this->cssInline[$name]) && !empty($block)) {
             $this->cssInline[$name] = [
@@ -901,7 +930,7 @@ class PageRenderer implements SingletonInterface
      *
      * @param string $specifier Bare module identifier like @my/package/filename.js
      */
-    public function loadJavaScriptModule(string $specifier)
+    public function loadJavaScriptModule(string $specifier): void
     {
         $this->javaScriptRenderer->addJavaScriptModuleInstruction(
             JavaScriptModuleInstruction::create($specifier)
@@ -915,7 +944,7 @@ class PageRenderer implements SingletonInterface
      * @param string $key
      * @param string $value
      */
-    public function addInlineLanguageLabel($key, $value)
+    public function addInlineLanguageLabel($key, $value): void
     {
         $this->inlineLanguageLabels[$key] = $value;
     }
@@ -925,7 +954,7 @@ class PageRenderer implements SingletonInterface
      * The label can be used in scripts with TYPO3.lang.<key>
      * Array will be merged with existing array.
      */
-    public function addInlineLanguageLabelArray(array $array)
+    public function addInlineLanguageLabelArray(array $array): void
     {
         $this->inlineLanguageLabels = array_merge($this->inlineLanguageLabels, $array);
     }
@@ -937,7 +966,7 @@ class PageRenderer implements SingletonInterface
      * @param string $selectionPrefix Prefix to select the correct labels (default: '')
      * @param string $stripFromSelectionName String to be removed from the label names in the output. (default: '')
      */
-    public function addInlineLanguageLabelFile($fileRef, $selectionPrefix = '', $stripFromSelectionName = '')
+    public function addInlineLanguageLabelFile($fileRef, $selectionPrefix = '', $stripFromSelectionName = ''): void
     {
         $index = md5($fileRef . $selectionPrefix . $stripFromSelectionName);
         if ($fileRef && !isset($this->inlineLanguageLabelFiles[$index])) {
@@ -959,6 +988,7 @@ class PageRenderer implements SingletonInterface
      * Labels are accessible in JavaScript as TYPO3.lang['domain:key'], e.g. TYPO3.lang['core.common:notAvailableAbbreviation'].
      *
      * @param string $domain The domain name in format "extension.domain" (e.g. 'core.common', 'core.modules.media')
+     * @deprecated since TYPO3 v14, will be removed in TYPO3 v15.
      */
     public function addInlineLanguageDomain(string $domain): void
     {
@@ -966,10 +996,8 @@ class PageRenderer implements SingletonInterface
             'PageRenderer->addInlineLanguageDomain is deprecated and will be removed with TYPO3 v15. Use "~label/{language.dom}" imports instead',
             E_USER_DEPRECATED
         );
-
         $languageService = $this->languageServiceFactory->create($this->locale);
         $allLabels = $languageService->getLabelsFromResource($domain);
-
         foreach ($allLabels as $label => $value) {
             $this->inlineLanguageLabels[$domain . ':' . $label] = $value;
         }
@@ -983,7 +1011,7 @@ class PageRenderer implements SingletonInterface
      * @param string $key
      * @param mixed $value
      */
-    public function addInlineSetting($namespace, $key, $value)
+    public function addInlineSetting($namespace, $key, $value): void
     {
         if ($namespace !== null && $namespace !== '') {
             if (strpos($namespace, '.')) {
@@ -1008,7 +1036,7 @@ class PageRenderer implements SingletonInterface
      *
      * @param string $namespace
      */
-    public function addInlineSettingArray($namespace, array $array)
+    public function addInlineSettingArray($namespace, array $array): void
     {
         if ($namespace) {
             if (strpos($namespace, '.')) {
@@ -1028,10 +1056,8 @@ class PageRenderer implements SingletonInterface
 
     /**
      * Adds content to body content
-     *
-     * @param string $content
      */
-    public function addBodyContent($content)
+    public function addBodyContent(string $content): void
     {
         $this->bodyContent .= $content;
     }
@@ -1041,11 +1067,23 @@ class PageRenderer implements SingletonInterface
      *
      * @return string Content of rendered page
      */
-    public function render(): string
+    public function render(?ServerRequestInterface $request = null): string
     {
+        if ($request === null) {
+            // @deprecated since v14. Method signature in v15: render(ServerRequestInterface $request): string
+            //             Remove this if in v15.
+            trigger_error(
+                'PageRenderer->render() without ServerRequestInterface as first argument is deprecated since version 14.3. Argument will be mandatory in version 15.0',
+                E_USER_DEPRECATED
+            );
+            $request = $GLOBALS['TYPO3_REQUEST'];
+            if (!$request instanceof ServerRequestInterface) {
+                throw new \RuntimeException('Request not found in globals', 1765333737);
+            }
+        }
         $this->prepareRendering();
-        [$jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs] = $this->renderJavaScriptAndCss();
-        $metaTags = implode(LF, $this->renderMetaTagsFromAPI());
+        [$jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs] = $this->renderJavaScriptAndCss($request);
+        $metaTags = implode(LF, $this->renderMetaTagsFromAPI($this->docType));
         $markerArray = [
             'XMLPROLOG_DOCTYPE' => $this->xmlPrologAndDocType,
             'HTMLTAG' => $this->htmlTag,
@@ -1072,13 +1110,48 @@ class PageRenderer implements SingletonInterface
         $markerArray = array_map(trim(...), $markerArray);
         $template = $this->getTemplate();
         // The page renderer needs a full reset when the page was rendered
-        $this->reset();
+        $this->reset($request);
         return trim($this->templateService->substituteMarkerArray($template, $markerArray, '###|###'));
     }
 
-    public function renderResponse(int $code = 200, string $reasonPhrase = ''): ResponseInterface
-    {
-        $stream = $this->streamFactory->createStream($this->render());
+    public function renderResponse(
+        ServerRequestInterface|int $requestOrCode = 200,
+        int|string $codeOrReasonPhrase = '',
+        string $reasonPhrase = '',
+    ): ResponseInterface {
+        if (is_int($requestOrCode) && is_string($codeOrReasonPhrase)) {
+            // Old API usage
+            // @deprecated since v14. Method signature in v15:
+            //             renderResponse(ServerRequestInterface $request, int $code = 200, string $reasonPhrase = ''): ResponseInterface
+            //             Remove if/else and exception below in v15.
+            trigger_error(
+                'Calling PageRenderer->renderResponse() without ServerRequestInterface as first argument is deprecated since version 14.3. This will be mandatory in version 15.0',
+                E_USER_DEPRECATED
+            );
+            $request = $GLOBALS['TYPO3_REQUEST'];
+            $code = $requestOrCode;
+            $reasonPhrase = $codeOrReasonPhrase;
+        } else {
+            // New API usage
+            if (!$requestOrCode instanceof ServerRequestInterface) {
+                trigger_error(
+                    'Calling PageRenderer->renderResponse() without ServerRequestInterface as first argument is deprecated since version 14.3. This will be mandatory in version 15.0',
+                    E_USER_DEPRECATED
+                );
+                $request = $GLOBALS['TYPO3_REQUEST'];
+            } else {
+                $request = $requestOrCode;
+            }
+            $code = 200;
+            if (is_int($codeOrReasonPhrase)) {
+                $code = $codeOrReasonPhrase;
+            }
+        }
+        if (!$request instanceof ServerRequestInterface) {
+            throw new \RuntimeException('No request given and unable to get from globals', 1765333223);
+        }
+
+        $stream = $this->streamFactory->createStream($this->render($request));
         return $this->responseFactory->createResponse($code, $reasonPhrase)
             ->withHeader('Content-Type', 'text/html; charset=utf-8')
             ->withBody($stream);
@@ -1086,16 +1159,14 @@ class PageRenderer implements SingletonInterface
 
     /**
      * Renders metaTags based on tags added via the API
-     *
-     * @return array
      */
-    protected function renderMetaTagsFromAPI()
+    protected function renderMetaTagsFromAPI(DocType $docType): array
     {
         $metaTags = [];
         $metaTagManagers = $this->metaTagRegistry->getAllManagers();
-
         foreach ($metaTagManagers as $managerObject) {
-            $properties = $managerObject->renderAllProperties();
+            // @todo: Reflect $docType argument in MetaTagManagerInterface
+            $properties = $managerObject->renderAllProperties($docType); // @phpstan-ignore arguments.count
             if (!empty($properties)) {
                 $metaTags[] = $properties;
             }
@@ -1151,19 +1222,17 @@ class PageRenderer implements SingletonInterface
      * Renders the JavaScript and CSS files that have been added during processing
      * of uncached content objects (USER_INT, COA_INT)
      *
-     * @param string $cachedPageContent
      * @param string $substituteHash The hash that is used for the variables
      * @internal
-     * @return string
      */
-    public function renderJavaScriptAndCssForProcessingOfUncachedContentObjects($cachedPageContent, $substituteHash)
+    public function renderJavaScriptAndCssForProcessingOfUncachedContentObjects(ServerRequestInterface $request, string $cachedPageContent, string $substituteHash): string
     {
         $this->prepareRendering();
         // bodyContent is reset to empty string in FE both after render() and renderPageWithUncachedObjects().
         // $this->bodyContent is set to the "cached with placeholder" string here for renderJavaScriptAndCss()
         // hook to consistently receive bodyContent, otherwise it wouldn't be needed to do this here.
         $this->bodyContent = $cachedPageContent;
-        [$jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs] = $this->renderJavaScriptAndCss();
+        [$jsLibs, $jsFiles, $jsFooterFiles, $cssLibs, $cssFiles, $jsInline, $cssInline, $jsFooterInline, $jsFooterLibs] = $this->renderJavaScriptAndCss($request);
         $title = $this->title ? str_replace('|', htmlspecialchars($this->title), $this->titleTag) : '';
         $markerArray = [
             '<!-- ###TITLE' . $substituteHash . '### -->' => $title,
@@ -1173,7 +1242,7 @@ class PageRenderer implements SingletonInterface
             '<!-- ###JS_INLINE' . $substituteHash . '### -->' => $jsInline,
             '<!-- ###JS_INCLUDE' . $substituteHash . '### -->' => $jsFiles,
             '<!-- ###JS_LIBS' . $substituteHash . '### -->' => $jsLibs,
-            '<!-- ###META' . $substituteHash . '### -->' => implode(LF, $this->renderMetaTagsFromAPI()),
+            '<!-- ###META' . $substituteHash . '### -->' => implode(LF, $this->renderMetaTagsFromAPI($this->docType)),
             '<!-- ###HEADERDATA' . $substituteHash . '### -->' => implode(LF, $this->headerData),
             '<!-- ###FOOTERDATA' . $substituteHash . '### -->' => implode(LF, $this->footerData),
             '<!-- ###JS_LIBS_FOOTER' . $substituteHash . '### -->' => $jsFooterLibs,
@@ -1183,7 +1252,7 @@ class PageRenderer implements SingletonInterface
         foreach ($markerArray as $placeHolder => $content) {
             $cachedPageContent = str_replace($placeHolder, $content, $cachedPageContent);
         }
-        $this->reset();
+        $this->reset($request);
         return $cachedPageContent;
     }
 
@@ -1205,18 +1274,18 @@ class PageRenderer implements SingletonInterface
     /**
      * Renders all JavaScript and CSS
      *
-     * @return array|string[]
+     * @return string[]
      */
-    protected function renderJavaScriptAndCss()
+    protected function renderJavaScriptAndCss(ServerRequestInterface $request): array
     {
         $this->executePreRenderHook();
-        $mainJsLibs = $this->renderMainJavaScriptLibraries();
+        $mainJsLibs = $this->renderMainJavaScriptLibraries($request);
         $this->executeRenderPostTransformHook();
-        $cssLibs = $this->renderCssLibraries();
-        $cssFiles = $this->renderCssFiles();
+        $cssLibs = $this->renderCssLibraries($request);
+        $cssFiles = $this->renderCssFiles($request);
         $cssInline = $this->renderCssInline();
-        [$jsLibs, $jsFooterLibs] = $this->renderAdditionalJavaScriptLibraries();
-        [$jsFiles, $jsFooterFiles] = $this->renderJavaScriptFiles();
+        [$jsLibs, $jsFooterLibs] = $this->renderAdditionalJavaScriptLibraries($request);
+        [$jsFiles, $jsFooterFiles] = $this->renderJavaScriptFiles($request);
         [$jsInline, $jsFooterInline] = $this->renderInlineJavaScript();
         $jsLibs = $mainJsLibs . $jsLibs;
         if ($this->moveJsFromHeaderToFooter) {
@@ -1262,7 +1331,7 @@ class PageRenderer implements SingletonInterface
      *
      * @return string Content with JavaScript libraries
      */
-    protected function renderMainJavaScriptLibraries()
+    protected function renderMainJavaScriptLibraries(ServerRequestInterface $request): string
     {
         $out = '';
 
@@ -1276,20 +1345,19 @@ class PageRenderer implements SingletonInterface
             $this->javaScriptRenderer->addGlobalAssignment(['litNonce' => $this->nonce->consumeInline(Directive::ScriptSrcElem)]);
         }
 
-        // @todo hookup with PSR-7 request/response
-        $sitePath = GeneralUtility::getIndpEnv('TYPO3_SITE_PATH');
+        $sitePath = $request->getAttribute('normalizedParams')->getSitePath();
 
-        $useNonce = $this->getApplicationType() === 'BE';
+        $useNonce = $this->getApplicationType($request) === 'BE';
         $out .= $this->javaScriptRenderer->renderImportMap(
             $sitePath,
             $useNonce ? $this->nonce : null,
         );
 
         $this->loadJavaScriptLanguageStrings();
-        if ($this->getApplicationType() === 'BE') {
+        if ($this->getApplicationType($request) === 'BE') {
             $noBackendUserLoggedIn = empty($GLOBALS['BE_USER']->user['uid']);
             $this->addAjaxUrlsToInlineSettings($noBackendUserLoggedIn);
-            $this->addGlobalCSSUrlsToInlineSettings();
+            $this->addGlobalCSSUrlsToInlineSettings($request);
             $this->inlineSettings['cache']['iconCacheIdentifier'] = sha1($this->iconRegistry->getBackendIconsCacheIdentifier());
         }
         $assignments = array_filter([
@@ -1297,7 +1365,7 @@ class PageRenderer implements SingletonInterface
             'lang' => $this->parseLanguageLabelsForJavaScript(),
         ]);
         if ($assignments !== []) {
-            if ($this->getApplicationType() === 'BE') {
+            if ($this->getApplicationType($request) === 'BE') {
                 $this->javaScriptRenderer->addGlobalAssignment(['TYPO3' => $assignments]);
             } else {
                 $out .= $this->wrapInlineScript(
@@ -1343,10 +1411,23 @@ class PageRenderer implements SingletonInterface
     /**
      * Load the language strings into JavaScript
      */
-    protected function loadJavaScriptLanguageStrings()
+    protected function loadJavaScriptLanguageStrings(): void
     {
         foreach ($this->inlineLanguageLabelFiles as $languageLabelFile) {
-            $this->includeLanguageFileForInline($languageLabelFile['fileRef'], $languageLabelFile['selectionPrefix'], $languageLabelFile['stripFromSelectionName']);
+            $selectionPrefix = $languageLabelFile['selectionPrefix'];
+            $stripFromSelectionName = $languageLabelFile['stripFromSelectionName'];
+            $labelsFromFile = [];
+            $allLabels = $this->readLLfile($languageLabelFile['fileRef']);
+            // Iterate through all labels from the language file
+            foreach ($allLabels as $label => $value) {
+                // If $selectionPrefix is set, only respect labels that start with $selectionPrefix
+                if ($selectionPrefix === '' || str_starts_with($label, $selectionPrefix)) {
+                    // Remove substring $stripFromSelectionName from label
+                    $label = str_replace($stripFromSelectionName, '', $label);
+                    $labelsFromFile[$label] = $value;
+                }
+            }
+            $this->inlineLanguageLabels = array_merge($this->inlineLanguageLabels, $labelsFromFile);
         }
         $this->inlineLanguageLabelFiles = [];
     }
@@ -1354,7 +1435,7 @@ class PageRenderer implements SingletonInterface
     /**
      * Make URLs to all backend ajax handlers available as inline setting.
      */
-    protected function addAjaxUrlsToInlineSettings(bool $publicRoutesOnly = false)
+    protected function addAjaxUrlsToInlineSettings(bool $publicRoutesOnly = false): void
     {
         $ajaxUrls = [];
         // Add the ajax-based routes
@@ -1377,24 +1458,22 @@ class PageRenderer implements SingletonInterface
         $this->inlineSettings['ajaxUrls'] = $ajaxUrls;
     }
 
-    protected function addGlobalCSSUrlsToInlineSettings()
+    protected function addGlobalCSSUrlsToInlineSettings(ServerRequestInterface $request): void
     {
         $this->inlineSettings['cssUrls'] = [
-            'backend' => $this->getPublicUrlForFile('EXT:backend/Resources/Public/Css/backend.css'),
+            'backend' => $this->getPublicUrlForFile('EXT:backend/Resources/Public/Css/backend.css', $request),
         ];
     }
 
     /**
      * Render CSS library files
-     *
-     * @return string
      */
-    protected function renderCssLibraries()
+    protected function renderCssLibraries(ServerRequestInterface $request): string
     {
         $cssFiles = '';
         if (!empty($this->cssLibs)) {
             foreach ($this->cssLibs as $properties) {
-                $tag = $this->createCssTag($properties, $properties['file']);
+                $tag = $this->createCssTag($properties, $properties['file'], $request);
                 if ($properties['forceOnTop'] ?? false) {
                     $cssFiles = $tag . $cssFiles;
                 } else {
@@ -1407,15 +1486,13 @@ class PageRenderer implements SingletonInterface
 
     /**
      * Render CSS files
-     *
-     * @return string
      */
-    protected function renderCssFiles()
+    protected function renderCssFiles(ServerRequestInterface $request): string
     {
         $cssFiles = '';
         if (!empty($this->cssFiles)) {
             foreach ($this->cssFiles as $properties) {
-                $tag = $this->createCssTag($properties, $properties['file']);
+                $tag = $this->createCssTag($properties, $properties['file'], $request);
                 if ($properties['forceOnTop'] ?? false) {
                     $cssFiles = $tag . $cssFiles;
                 } else {
@@ -1429,7 +1506,7 @@ class PageRenderer implements SingletonInterface
     /**
      * Create link (inline=0) or style (inline=1) tag
      */
-    private function createCssTag(array $properties, string $file): string
+    private function createCssTag(array $properties, string $file, ServerRequestInterface $request): string
     {
         $includeInline = $properties['inline'] ?? false;
         $absolutePathToFile = $includeInline ? GeneralUtility::getFileAbsFileName($file) : '';
@@ -1440,7 +1517,7 @@ class PageRenderer implements SingletonInterface
             if ($properties['rel'] ?? false) {
                 $tagAttributes['rel'] = $properties['rel'];
             }
-            $tagAttributes['href'] = $this->getPublicUrlForFile($file);
+            $tagAttributes['href'] = $this->getPublicUrlForFile($file, $request);
             if ($properties['media'] ?? false) {
                 $tagAttributes['media'] = $properties['media'];
             }
@@ -1465,10 +1542,8 @@ class PageRenderer implements SingletonInterface
 
     /**
      * Render inline CSS
-     *
-     * @return string
      */
-    protected function renderCssInline()
+    protected function renderCssInline(): string
     {
         if (empty($this->cssInline)) {
             return '';
@@ -1494,16 +1569,16 @@ class PageRenderer implements SingletonInterface
     /**
      * Render JavaScript libraries
      *
-     * @return array|string[] jsLibs and jsFooterLibs strings
+     * @return string[] jsLibs and jsFooterLibs strings
      */
-    protected function renderAdditionalJavaScriptLibraries()
+    protected function renderAdditionalJavaScriptLibraries(ServerRequestInterface $request): array
     {
         $jsLibs = '';
         $jsFooterLibs = '';
         if (!empty($this->jsLibs)) {
             foreach ($this->jsLibs as $properties) {
                 $tagAttributes = [];
-                $tagAttributes['src'] = $this->getPublicUrlForFile($properties['file']);
+                $tagAttributes['src'] = $this->getPublicUrlForFile($properties['file'], $request);
                 if ($properties['type'] ?? false) {
                     $tagAttributes['type'] = $properties['type'];
                 }
@@ -1556,16 +1631,16 @@ class PageRenderer implements SingletonInterface
     /**
      * Render JavaScript files
      *
-     * @return array|string[] jsFiles and jsFooterFiles strings
+     * @return string[] jsFiles and jsFooterFiles strings
      */
-    protected function renderJavaScriptFiles()
+    protected function renderJavaScriptFiles(ServerRequestInterface $request): array
     {
         $jsFiles = '';
         $jsFooterFiles = '';
         if (!empty($this->jsFiles)) {
             foreach ($this->jsFiles as $properties) {
                 $tagAttributes = [];
-                $tagAttributes['src'] = $this->getPublicUrlForFile($properties['file']);
+                $tagAttributes['src'] = $this->getPublicUrlForFile($properties['file'], $request);
                 if ($properties['type'] ?? false) {
                     $tagAttributes['type'] = $properties['type'];
                 }
@@ -1618,9 +1693,9 @@ class PageRenderer implements SingletonInterface
     /**
      * Render inline JavaScript (must not apply `nonce="..."` if defined).
      *
-     * @return array|string[] jsInline and jsFooterInline string
+     * @return string[] jsInline and jsFooterInline string
      */
-    protected function renderInlineJavaScript()
+    protected function renderInlineJavaScript(): array
     {
         if (empty($this->jsInline)) {
             return ['', ''];
@@ -1662,30 +1737,6 @@ class PageRenderer implements SingletonInterface
     }
 
     /**
-     * Include language file for inline usage
-     *
-     * @param string $fileRef
-     * @param string $selectionPrefix
-     * @param string $stripFromSelectionName
-     */
-    protected function includeLanguageFileForInline($fileRef, $selectionPrefix = '', $stripFromSelectionName = '')
-    {
-        $labelsFromFile = [];
-        $allLabels = $this->readLLfile($fileRef);
-
-        // Iterate through all labels from the language file
-        foreach ($allLabels as $label => $value) {
-            // If $selectionPrefix is set, only respect labels that start with $selectionPrefix
-            if ($selectionPrefix === '' || str_starts_with($label, $selectionPrefix)) {
-                // Remove substring $stripFromSelectionName from label
-                $label = str_replace($stripFromSelectionName, '', $label);
-                $labelsFromFile[$label] = $value;
-            }
-        }
-        $this->inlineLanguageLabels = array_merge($this->inlineLanguageLabels, $labelsFromFile);
-    }
-
-    /**
      * Reads a locallang file.
      *
      * @param string $fileRef Reference to a relative filename to include.
@@ -1715,18 +1766,17 @@ class PageRenderer implements SingletonInterface
      * The file is also prepared as version numbered file and prefixed as absolute webpath
      *
      * @param string $file the filename to process
-     * @internal
      */
-    protected function getPublicUrlForFile(string $file): string
+    protected function getPublicUrlForFile(string $file, ServerRequestInterface $request): string
     {
         $resource = $this->systemResourceFactory->createPublicResource($file);
-        return (string)$this->resourcePublisher->generateUri($resource, null);
+        return (string)$this->resourcePublisher->generateUri($resource, $request);
     }
 
     /**
      * Execute PreRenderHook for possible manipulation
      */
-    protected function executePreRenderHook()
+    protected function executePreRenderHook(): void
     {
         $hooks = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_pagerenderer.php']['render-preProcess'] ?? false;
         if (!$hooks) {
@@ -1755,7 +1805,7 @@ class PageRenderer implements SingletonInterface
     /**
      * PostTransform for possible manipulation of concatenated and compressed files
      */
-    protected function executeRenderPostTransformHook()
+    protected function executeRenderPostTransformHook(): void
     {
         $hooks = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_pagerenderer.php']['render-postTransform'] ?? false;
         if (!$hooks) {
@@ -1794,7 +1844,7 @@ class PageRenderer implements SingletonInterface
      * @param string $jsFooterInline
      * @param string $jsFooterLibs
      */
-    protected function executePostRenderHook(&$jsLibs, &$jsFiles, &$jsFooterFiles, &$cssLibs, &$cssFiles, &$jsInline, &$cssInline, &$jsFooterInline, &$jsFooterLibs)
+    protected function executePostRenderHook(&$jsLibs, &$jsFiles, &$jsFooterFiles, &$cssLibs, &$cssFiles, &$jsInline, &$cssInline, &$jsFooterInline, &$jsFooterLibs): void
     {
         $hooks = $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_pagerenderer.php']['render-postProcess'] ?? false;
         if (!$hooks) {
@@ -1892,18 +1942,20 @@ class PageRenderer implements SingletonInterface
 
     /**
      * String 'FE' if in FrontendApplication, 'BE' otherwise (also in CLI without request object)
-     *
-     * @internal
      */
-    public function getApplicationType(): string
+    protected function getApplicationType(ServerRequestInterface $request): string
     {
-        if (
-            ($GLOBALS['TYPO3_REQUEST'] ?? null) instanceof ServerRequestInterface &&
-            ApplicationType::fromRequest($GLOBALS['TYPO3_REQUEST'])->isFrontend()
-        ) {
+        if (ApplicationType::fromRequest($request)->isFrontend()) {
             return 'FE';
         }
-
         return 'BE';
+    }
+
+    private function getBackendUser(): BackendUserAuthentication
+    {
+        if (!$GLOBALS['BE_USER'] instanceof BackendUserAuthentication) {
+            throw new \RuntimeException('No backend user found.', 1765402790);
+        }
+        return $GLOBALS['BE_USER'];
     }
 }

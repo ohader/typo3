@@ -34,6 +34,7 @@ use TYPO3\CMS\Core\Database\Platform\SQLitePlatform;
 use TYPO3\CMS\Core\Database\Schema\DefaultTcaSchema;
 use TYPO3\CMS\Core\Schema\FieldTypeFactory;
 use TYPO3\CMS\Core\Schema\RelationMapBuilder;
+use TYPO3\CMS\Core\Schema\TcaSchemaBuilder;
 use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\TestingFramework\Core\Unit\UnitTestCase;
@@ -2842,6 +2843,116 @@ final class DefaultTcaSchemaTest extends UnitTestCase
     }
 
     #[Test]
+    public function enrichAddsSelectSingleWithForeignTableAndNullItemValue(): void
+    {
+        $this->mockDefaultConnectionPlatformInConnectionPool();
+        $tca['aTable']['columns']['select'] = [
+            'label' => 'aLabel',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'foreign_table' => 'aTable',
+                'default' => null,
+                'items' => [
+                    [
+                        'label' => 'Please choose',
+                        'value' => null,
+                    ],
+                ],
+            ],
+        ];
+        $subject = new DefaultTcaSchema($this->getPreparedTcaSchemaFactory($tca));
+        $result = $subject->enrich(['aTable' => $this->defaultTable]);
+        $expectedColumn = new Column(
+            '`select`',
+            Type::getType('integer'),
+            [
+                'notnull' => false,
+                'default' => null,
+                'unsigned' => true,
+            ]
+        );
+        self::assertSame($expectedColumn->toArray(), $result['aTable']->getColumn('select')->toArray());
+    }
+
+    #[Test]
+    public function enrichAddsSelectSingleWithForeignTableAndNullItemValueMixedWithIntegers(): void
+    {
+        $this->mockDefaultConnectionPlatformInConnectionPool();
+        $tca['aTable']['columns']['select'] = [
+            'label' => 'aLabel',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'foreign_table' => 'aTable',
+                'default' => 0,
+                'items' => [
+                    [
+                        'label' => 'Please choose',
+                        'value' => null,
+                    ],
+                    [
+                        'label' => 'Option 1',
+                        'value' => 1,
+                    ],
+                    [
+                        'label' => 'Option 2',
+                        'value' => 2,
+                    ],
+                ],
+            ],
+        ];
+        $subject = new DefaultTcaSchema($this->getPreparedTcaSchemaFactory($tca));
+        $result = $subject->enrich(['aTable' => $this->defaultTable]);
+        $expectedColumn = new Column(
+            '`select`',
+            Type::getType('integer'),
+            [
+                'notnull' => false,
+                'default' => 0,
+                'unsigned' => true,
+            ]
+        );
+        self::assertSame($expectedColumn->toArray(), $result['aTable']->getColumn('select')->toArray());
+    }
+
+    #[Test]
+    public function enrichAddsSelectSingleWithNullItemValueMixedWithStrings(): void
+    {
+        $this->mockDefaultConnectionPlatformInConnectionPool();
+        $tca['aTable']['columns']['select'] = [
+            'label' => 'aLabel',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'default' => null,
+                'items' => [
+                    [
+                        'label' => 'Default',
+                        'value' => null,
+                    ],
+                    [
+                        'label' => 'foo 2',
+                        'value' => 'bar',
+                    ],
+                ],
+            ],
+        ];
+        $subject = new DefaultTcaSchema($this->getPreparedTcaSchemaFactory($tca));
+        $result = $subject->enrich(['aTable' => $this->defaultTable]);
+        $expectedColumn = new Column(
+            '`select`',
+            Type::getType('string'),
+            [
+                'notnull' => false,
+                'default' => null,
+                'length' => 255,
+            ]
+        );
+        self::assertSame($expectedColumn->toArray(), $result['aTable']->getColumn('select')->toArray());
+    }
+
+    #[Test]
     public function enrichAddsSelectSingleWithForeignTableAndStringItems(): void
     {
         $this->mockDefaultConnectionPlatformInConnectionPool();
@@ -2954,8 +3065,10 @@ final class DefaultTcaSchemaTest extends UnitTestCase
     private function getPreparedTcaSchemaFactory(array $tca): TcaSchemaFactory
     {
         $tcaSchemaFactory = new TcaSchemaFactory(
-            new RelationMapBuilder($this->createMock(FlexFormTools::class)),
-            new FieldTypeFactory(),
+            new TcaSchemaBuilder(
+                new RelationMapBuilder($this->createMock(FlexFormTools::class)),
+                new FieldTypeFactory(),
+            ),
             'null',
             new NullFrontend('null')
         );

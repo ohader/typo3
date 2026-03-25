@@ -18,7 +18,6 @@
  * maintaining backward compatibility with existing publish/subscribe events.
  */
 
-import $ from 'jquery';
 import * as Helper from '@typo3/form/backend/form-editor/helper';
 import type { FormEditor } from '@typo3/form/backend/form-editor';
 import type { FormElement, PublisherSubscriber } from '@typo3/form/backend/form-editor/core';
@@ -37,7 +36,7 @@ import '@typo3/form/backend/form-editor-tree-container';
 
 let formEditorApp: FormEditor = null;
 let treeContainer: FormEditorTreeContainer = null;
-let treeDomElement: JQuery = null;
+let treeDomElement: HTMLElement | null = null;
 
 function getFormEditorApp(): FormEditor {
   return formEditorApp;
@@ -175,13 +174,13 @@ export function setTreeNodeTitle(title?: string, formElement?: FormElement): voi
 /**
  * Get tree node for a form element
  *
- * Returns a jQuery-wrapped DOM element for the specified form element.
+ * Returns the DOM element for the specified form element.
  * Supports both FormElement objects and identifier path strings.
  *
  * @param formElement - Form element or identifier path (defaults to currently selected)
- * @returns jQuery object containing the tree node element
+ * @returns The tree node element or null if not found
  */
-export function getTreeNode(formElement?: FormElement | string): JQuery {
+export function getTreeNode(formElement?: FormElement | string): HTMLElement | null {
   let identifierPath: string;
 
   if (typeof formElement === 'string') {
@@ -192,25 +191,25 @@ export function getTreeNode(formElement?: FormElement | string): JQuery {
       try {
         element = getCurrentlySelectedFormElement();
       } catch {
-        // Element might not be found - return empty jQuery object
-        return $();
+        // Element might not be found - return null
+        return null;
       }
     }
     identifierPath = element.get('__identifierPath');
   }
 
-  // Return jQuery wrapper for backward compatibility
-  // Use data-id which is set by the base Tree class (corresponds to node.identifier)
-  return $(`[data-id="${identifierPath}"]`, treeDomElement);
+  return treeDomElement ? treeDomElement.querySelector(`[data-id="${identifierPath}"]`) : null;
 }
 
 /**
  * Get all tree nodes
  *
- * @returns jQuery object containing all tree item elements
+ * @returns NodeList containing all tree item elements
  */
-export function getAllTreeNodes(): JQuery {
-  return $('.tree-item', treeDomElement);
+export function getAllTreeNodes(): NodeListOf<HTMLElement> {
+  return treeDomElement
+    ? treeDomElement.querySelectorAll<HTMLElement>('.tree-item')
+    : document.querySelectorAll<HTMLElement>('.tree-item-none');
 }
 
 /**
@@ -258,9 +257,9 @@ export function clearAllValidationErrors(): void {
 /**
  * Get the tree DOM element
  *
- * @returns jQuery object containing the tree's root DOM element
+ * @returns The tree's root DOM element or null
  */
-export function getTreeDomElement(): JQuery {
+export function getTreeDomElement(): HTMLElement | null {
   return treeDomElement;
 }
 
@@ -286,72 +285,77 @@ export function buildTitleByFormElement(formElement: FormElement): HTMLElement {
 /**
  * Get tree node within DOM element
  *
- * @param element - HTML or jQuery element to search within
- * @returns jQuery object containing the tree item content
+ * @param element - HTML element to search within
+ * @returns The tree item content element or null
  */
-export function getTreeNodeWithinDomElement(element: HTMLElement | JQuery): JQuery {
-  return $(element).find('.tree-item-content').first();
+export function getTreeNodeWithinDomElement(element: HTMLElement | null): HTMLElement | null {
+  return element ? element.querySelector('.tree-item-content') : null;
 }
 
 /**
  * Get tree node identifier path from DOM element
  *
- * @param element - HTML or jQuery element
+ * @param element - HTML element
  * @returns Identifier path of the tree node
  */
-export function getTreeNodeIdentifierPathWithinDomElement(element: HTMLElement | JQuery): string {
+export function getTreeNodeIdentifierPathWithinDomElement(element: HTMLElement | null): string {
   // Use data-id which is set by the base Tree class
-  return $(element).closest('[data-id]').attr('data-id') || '';
+  return element?.closest('[data-id]')?.getAttribute('data-id') ?? '';
 }
 
 /**
  * Get parent tree node within DOM element
  *
- * @param element - HTML or jQuery element
- * @returns jQuery object containing the parent tree node
+ * @param element - HTML element
+ * @returns The parent tree node element or null
  */
-export function getParentTreeNodeWithinDomElement(element: HTMLElement | JQuery): JQuery {
+export function getParentTreeNodeWithinDomElement(element: HTMLElement | null): HTMLElement | null {
   // Navigate up to parent list item (use the tree structure: div.node > parent li)
-  return $(element).parent().closest('li[data-id]').find('.tree-item-content').first();
+  const parentLi = element?.parentElement?.closest('li[data-id]');
+  return parentLi ? parentLi.querySelector('.tree-item-content') : null;
 }
 
 /**
  * Get parent tree node identifier path from DOM element
  *
- * @param element - HTML or jQuery element
+ * @param element - HTML element
  * @returns Identifier path of the parent tree node
  */
-export function getParentTreeNodeIdentifierPathWithinDomElement(element: HTMLElement | JQuery): string {
-  const parent = getParentTreeNodeWithinDomElement(element);
-  const parentLi = parent.closest('li[data-id]');
-  return parentLi.attr('data-id') || '';
+export function getParentTreeNodeIdentifierPathWithinDomElement(element: HTMLElement | null): string {
+  const parentLi = element?.parentElement?.closest('li[data-id]');
+  return parentLi?.getAttribute('data-id') ?? '';
 }
 
 /**
  * Get sibling tree node identifier path from DOM element
  *
- * @param element - HTML or jQuery element
+ * @param element - HTML element
  * @param position - Position of sibling ('prev' or 'next')
  * @returns Identifier path of the sibling tree node
  */
 export function getSiblingTreeNodeIdentifierPathWithinDomElement(
-  element: HTMLElement | JQuery,
+  element: HTMLElement | null,
   position: string = 'prev'
 ): string {
-  const $element = $(element).closest('li[data-id]');
-  const sibling = position === 'prev' ? $element.prev('li[data-id]') : $element.next('li[data-id]');
-  return sibling.attr('data-id') || '';
+  const li = element?.closest('li[data-id]');
+  if (!li) {
+    return '';
+  }
+  const sibling = position === 'prev'
+    ? li.previousElementSibling?.matches('li[data-id]') ? li.previousElementSibling : null
+    : li.nextElementSibling?.matches('li[data-id]') ? li.nextElementSibling : null;
+  return sibling?.getAttribute('data-id') ?? '';
 }
 
 /**
  * Render composite form element children as sortable list (for backward compatibility)
  *
- * @returns Empty jQuery element (actual rendering handled by web component)
+ * @returns Empty element (actual rendering handled by web component)
  */
-export function renderCompositeFormElementChildsAsSortableList(): JQuery {
+export function renderCompositeFormElementChildsAsSortableList(): HTMLElement {
   // This is called during initialization, we just return an empty element
   // as the web component handles rendering
-  return $('<div></div>');
+  return document.createElement('div');
 }
 
 /**
@@ -407,12 +411,12 @@ function waitForTreeContainer(): Promise<FormEditorTreeContainer | null> {
  * Handles both synchronous and asynchronous tree container discovery.
  *
  * @param _formEditorApp - FormEditor application instance
- * @param appendToDomElement - jQuery element to append tree to
+ * @param appendToDomElement - DOM element to append tree to
  * @returns Object containing all exported tree adapter functions
  */
 export function bootstrap(
   _formEditorApp: FormEditor,
-  appendToDomElement: JQuery
+  appendToDomElement: HTMLElement
 ): typeof import('./tree-component-adapter') {
   formEditorApp = _formEditorApp;
   treeDomElement = appendToDomElement;
@@ -497,11 +501,13 @@ function setupEventListeners(): void {
     const { movedIdentifierPath, previousIdentifierPath, nextIdentifierPath } = customEvent.detail;
 
     // Find the actual DOM element for the moved item using data-id
-    const $movedItem = $(`[data-id="${movedIdentifierPath}"]`, treeDomElement);
+    const movedItem = treeDomElement
+      ? treeDomElement.querySelector<HTMLElement>(`[data-id="${movedIdentifierPath}"]`)
+      : null;
 
     // Publish to FormEditor backend to update the data model
     getPublisherSubscriber().publish('view/tree/dnd/update', [
-      $movedItem,
+      movedItem,
       movedIdentifierPath,
       previousIdentifierPath,
       nextIdentifierPath
@@ -521,12 +527,14 @@ function setupEventListeners(): void {
     // before this event is dispatched. However, the DATA MODEL has not been updated yet.
 
     // Find the DOM element using data-id
-    const $item = $(`[data-id="${itemIdentifierPath}"]`, treeDomElement);
+    const item = treeDomElement
+      ? treeDomElement.querySelector<HTMLElement>(`[data-id="${itemIdentifierPath}"]`)
+      : null;
 
     // Publish the change event for visual feedback (highlighting parent)
     const enclosingCompositeFormElement = getFormEditorApp().findEnclosingCompositeFormElementWhichIsNotOnTopLevel(parentIdentifierPath);
     getPublisherSubscriber().publish('view/tree/dnd/change', [
-      $item,
+      item,
       parentIdentifierPath,
       enclosingCompositeFormElement
     ]);
@@ -564,8 +572,8 @@ function setupEventListeners(): void {
       const newPath = movedFormElement.get('__identifierPath');
 
       // Update the DOM attribute with the new identifier path
-      if (movedFormElement && $item.length > 0) {
-        $item.attr(
+      if (movedFormElement && item !== null) {
+        item.setAttribute(
           Helper.getDomElementDataAttribute('elementIdentifier'),
           newPath
         );
@@ -593,17 +601,17 @@ declare global {
       formElementIdentifierPath: string
     ];
     'view/tree/render/listItemAdded': readonly [
-      listItem: JQuery,
+      listItem: HTMLElement | null,
       formElement: FormElement
     ];
     'view/tree/dnd/update': readonly [
-      dndItem: JQuery,
+      dndItem: HTMLElement | null,
       movedFormElementIdentifierPath: string,
       previousFormElementIdentifierPath: string,
       nextFormElementIdentifierPath: string,
     ];
     'view/tree/dnd/change': readonly [
-      dndItem: JQuery,
+      dndItem: HTMLElement | null,
       parentFormElementIdentifierPath: string,
       enclosingCompositeFormElement: FormElement,
     ];

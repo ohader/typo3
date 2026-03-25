@@ -14,9 +14,9 @@
 /**
  * Module: @typo3/form/backend/form-editor
  */
-import $ from 'jquery';
 import Notification from '@typo3/backend/notification';
 import * as Core from '@typo3/form/backend/form-editor/core';
+import { cloneDeep } from 'lodash-es';
 import type { JavaScriptItemPayload } from '@typo3/core/java-script-item-processor';
 import type {
   ApplicationStateStack,
@@ -106,7 +106,7 @@ export class FormEditor {
    * @throws 1519855175
    */
   public setFormDefinition(formDefinition: FormElementDefinition): void {
-    assert('object' === $.type(formDefinition), 'Invalid parameter "formDefinition"', 1519855175);
+    assert(typeof formDefinition === 'object' && formDefinition !== null && !Array.isArray(formDefinition), 'Invalid parameter "formDefinition"', 1519855175);
     this.getApplicationStateStack().setCurrentState('formDefinition', this.getFactory().createFormElement(formDefinition, undefined, undefined, true));
   }
 
@@ -194,7 +194,7 @@ export class FormEditor {
    * @throws 1475378544
    */
   public setUnsavedContent(unsavedContent: boolean): void {
-    assert('boolean' === $.type(unsavedContent), 'Invalid parameter "unsavedContent"', 1475378544);
+    assert(typeof unsavedContent === 'boolean', 'Invalid parameter "unsavedContent"', 1475378544);
     this.unsavedContent = unsavedContent;
   }
 
@@ -268,7 +268,7 @@ export class FormEditor {
       _referenceFormElement = this.getCurrentlySelectedFormElement();
     }
     const referenceFormElement = this.getRepository().findFormElement(_referenceFormElement);
-    assert('object' === $.type(formElement), 'Invalid parameter "formElement"', 1475434337);
+    assert(typeof formElement === 'object' && formElement !== null && !Array.isArray(formElement), 'Invalid parameter "formElement"', 1475434337);
     return this.getRepository().addFormElement(formElement, referenceFormElement, true, disablePublishersOnSet);
   }
 
@@ -352,7 +352,7 @@ export class FormEditor {
       assert(!this.getUtility().isUndefinedOrNull(collection), 'Invalid collection name "' + collectionName + '"', 1475446108);
       collectionElement = this.getRepository().findCollectionElementByIdentifierPath(collectionElementIdentifier, collection);
       // Return a dereferenced object
-      return $.extend(true, {}, collectionElement);
+      return cloneDeep(collectionElement);
     } else {
       return {} as CollectionEntry;
     }
@@ -421,12 +421,12 @@ export class FormEditor {
     }
     const formElement = this.getRepository().findFormElement(_formElement);
 
-    assert('object' === $.type(collectionElement), 'Invalid parameter "collectionElement"', 1475443301);
+    assert(typeof collectionElement === 'object' && collectionElement !== null && !Array.isArray(collectionElement), 'Invalid parameter "collectionElement"', 1475443301);
     assert(this.getUtility().isNonEmptyString(collectionName), 'Invalid parameter "collectionName"', 1475443300);
 
     if (this.getUtility().isUndefinedOrNull(referenceCollectionElementIdentifier)) {
       collection = formElement.get(collectionName);
-      if ('array' === $.type(collection) && collection.length > 0) {
+      if (Array.isArray(collection) && collection.length > 0) {
         referenceCollectionElementIdentifier = collection[collection.length - 1].identifier;
       }
     }
@@ -451,7 +451,7 @@ export class FormEditor {
   ): PropertyCollectionElement {
     assert(this.getUtility().isNonEmptyString(collectionElementIdentifier), 'Invalid parameter "collectionElementIdentifier"', 1475378559);
     assert(this.getUtility().isNonEmptyString(collectionName), 'Invalid parameter "collectionName"', 1475378560);
-    if ('object' !== $.type(collectionElementConfiguration)) {
+    if (typeof collectionElementConfiguration !== 'object' || collectionElementConfiguration === null || Array.isArray(collectionElementConfiguration)) {
       collectionElementConfiguration = {} as CollectionElementConfiguration;
     }
 
@@ -513,8 +513,8 @@ export class FormEditor {
 
     formElement = this.getRepository().findFormElement(formElement);
 
-    assert('string' === $.type(collectionElementToMove), 'Invalid parameter "collectionElementToMove"', 1477404352);
-    assert('string' === $.type(referenceCollectionElement), 'Invalid parameter "referenceCollectionElement"', 1477404353);
+    assert(typeof collectionElementToMove === 'string', 'Invalid parameter "collectionElementToMove"', 1477404352);
+    assert(typeof referenceCollectionElement === 'string', 'Invalid parameter "referenceCollectionElement"', 1477404353);
     assert('after' === position || 'before' === position, 'Invalid position "' + position + '"', 1477404354);
     assert(this.getUtility().isNonEmptyString(collectionName), 'Invalid parameter "collectionName"', 1477404355);
 
@@ -535,14 +535,14 @@ export class FormEditor {
     if (formElementDefinitionKey !== undefined/* && formElementDefinitionKey !== null*/) {
       const formElementDefinitionEntry = formElementDefinition[formElementDefinitionKey];
       if (formElementDefinitionEntry !== null && (typeof formElementDefinitionEntry === 'object')) {
-        return $.extend(true, {}, formElementDefinitionEntry);
+        return cloneDeep(formElementDefinitionEntry) as R;
       } else {
         return formElementDefinitionEntry as R;
       }
     }
 
     if (formElementDefinition !== null && (typeof formElementDefinition === 'object')) {
-      return $.extend(true, {}, formElementDefinition);
+      return cloneDeep(formElementDefinition) as R;
     } else {
       return formElementDefinition as R;
     }
@@ -571,7 +571,7 @@ export class FormEditor {
 
     const validatorDefinition = this.getRepository().getFormEditorDefinition('formElementPropertyValidators', validatorIdentifier);
     // Return a dereferenced object
-    return $.extend(true, {}, validatorDefinition);
+    return cloneDeep(validatorDefinition);
   }
 
   public getCurrentlySelectedPageIndex(): number {
@@ -590,7 +590,7 @@ export class FormEditor {
    */
   public getCurrentlySelectedPage(): FormElement {
     const currentPage = this.getRepository().getRootFormElement().get('renderables')[this.getCurrentlySelectedPageIndex()];
-    assert('object' === $.type(currentPage), 'No page found', 1477786068);
+    assert(typeof currentPage === 'object' && currentPage !== null && !Array.isArray(currentPage), 'No page found', 1477786068);
     return currentPage;
   }
 
@@ -627,7 +627,7 @@ export class FormEditor {
    * @throws 1475446442
    */
   public renderFormPage(pageIndex: number): void {
-    assert('number' === $.type(pageIndex), 'Invalid parameter "pageIndex"', 1475446442);
+    assert(typeof pageIndex === 'number', 'Invalid parameter "pageIndex"', 1475446442);
     this.getDataBackend().renderFormDefinitionPage(pageIndex);
   }
 
@@ -681,6 +681,7 @@ export class FormEditor {
       if (!(error instanceof Error)) {
         throw error;
       }
+      console.error('Form editor error:', error);
       Notification.error(
         failsafeLabels.get('formEditor.error.headline'),
         failsafeLabels.get('formEditor.error.message')
@@ -722,27 +723,12 @@ export class FormEditor {
   }
 
   /**
-   * @publish ajax/beforeSend
-   * @publish ajax/complete
-   */
-  private ajaxSetup(): void {
-    $.ajaxSetup({
-      beforeSend: () => {
-        this.getPublisherSubscriber().publish('ajax/beforeSend');
-      },
-      complete: () => {
-        this.getPublisherSubscriber().publish('ajax/complete');
-      }
-    });
-  }
-
-  /**
    * @throws 1475379748
    * @throws 1475379749
    * @throws 1475927876
    */
   private dataBackendSetup(endpoints: Endpoints, prototypeName: string, formPersistenceIdentifier: string): void {
-    assert('object' === $.type(endpoints), 'Invalid parameter "endpoints"', 1475379748);
+    assert(typeof endpoints === 'object' && endpoints !== null && !Array.isArray(endpoints), 'Invalid parameter "endpoints"', 1475379748);
     assert(this.getUtility().isNonEmptyString(prototypeName), 'Invalid parameter "prototypeName"', 1475927876);
     assert(this.getUtility().isNonEmptyString(formPersistenceIdentifier), 'Invalid parameter "formPersistenceIdentifier"', 1475379749);
 
@@ -755,7 +741,7 @@ export class FormEditor {
    * @throws 1475379750
    */
   private repositorySetup(formEditorDefinitions: FormEditorDefinitions): void {
-    assert('object' === $.type(formEditorDefinitions), 'Invalid parameter "formEditorDefinitions"', 1475379750);
+    assert(typeof formEditorDefinitions === 'object' && formEditorDefinitions !== null && !Array.isArray(formEditorDefinitions), 'Invalid parameter "formEditorDefinitions"', 1475379750);
 
     this.getRepository().setFormEditorDefinitions(formEditorDefinitions);
   }
@@ -764,7 +750,7 @@ export class FormEditor {
    * @throws 1475492374
    */
   private viewSetup(additionalViewModelModules: AdditionalViewModelModules): void {
-    assert('function' === $.type(this.viewModel.bootstrap), 'The view model does not implement the method "bootstrap"', 1475492374);
+    assert(typeof this.viewModel.bootstrap === 'function', 'The view model does not implement the method "bootstrap"', 1475492374);
 
     if (this.getUtility().isUndefinedOrNull(additionalViewModelModules)) {
       additionalViewModelModules = [];
@@ -776,7 +762,7 @@ export class FormEditor {
    * @throws 1475492032
    */
   private mediatorSetup(): void {
-    assert('function' === $.type(this.mediator.bootstrap), 'The mediator does not implement the method "bootstrap"', 1475492032);
+    assert(typeof this.mediator.bootstrap === 'function', 'The mediator does not implement the method "bootstrap"', 1475492032);
     this.mediator.bootstrap(formEditorInstance, this.viewModel);
   }
 
@@ -787,9 +773,9 @@ export class FormEditor {
     rootFormElement: FormElementDefinition,
     maximumUndoSteps: number
   ): void {
-    assert('object' === $.type(rootFormElement), 'Invalid parameter "rootFormElement"', 1475379751);
+    assert(typeof rootFormElement === 'object' && rootFormElement !== null && !Array.isArray(rootFormElement), 'Invalid parameter "rootFormElement"', 1475379751);
 
-    if ('number' !== $.type(maximumUndoSteps)) {
+    if (typeof maximumUndoSteps !== 'number') {
       maximumUndoSteps = 10;
     }
     this.getApplicationStateStack().setMaximalStackSize(maximumUndoSteps);
@@ -804,7 +790,6 @@ export class FormEditor {
 
   private bootstrap(): void {
     this.mediatorSetup();
-    this.ajaxSetup();
     this.dataBackendSetup(this.configuration.endpoints, this.configuration.prototypeName, this.configuration.formPersistenceIdentifier);
     this.repositorySetup(this.configuration.formEditorDefinitions);
     this.applicationStateStackSetup(this.configuration.formDefinition, this.configuration.maximumUndoSteps);
@@ -841,7 +826,5 @@ declare global {
     'core/currentlySelectedFormElementChanged': readonly [
       formElement: FormElement
     ];
-    'ajax/beforeSend': undefined;
-    'ajax/complete': undefined;
   }
 }

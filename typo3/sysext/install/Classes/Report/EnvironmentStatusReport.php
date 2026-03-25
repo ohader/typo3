@@ -58,9 +58,6 @@ class EnvironmentStatusReport implements StatusProviderInterface, ExtendedStatus
      */
     public function getDetailedStatus()
     {
-        if (Environment::isCli()) {
-            return [];
-        }
         return $this->getStatusInternal(true);
     }
 
@@ -113,7 +110,7 @@ class EnvironmentStatusReport implements StatusProviderInterface, ExtendedStatus
             $message = '';
             if ($verbose) {
                 foreach ($statusObjects as $statusObject) {
-                    $message .= '### ' . $statusObject->getTitle() . ': ' . $statusObject->getSeverity()->value . CRLF;
+                    $message .= '### ' . $statusObject->getTitle() . ': ' . $statusObject->getSeverity()->name . CRLF;
                 }
             }
 

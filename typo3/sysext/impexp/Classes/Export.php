@@ -136,9 +136,7 @@ class Export extends ImportExport
             if ($this->getBackendUser()->check('tables_select', $table)) {
                 $statement = $this->execListQueryPid($pid, $table);
                 while ($record = $statement->fetchAssociative()) {
-                    if (is_array($record)) {
-                        $this->exportAddRecord($table, $record);
-                    }
+                    $this->exportAddRecord($table, $record);
                 }
             }
         }
@@ -501,28 +499,32 @@ class Export extends ImportExport
     public function exportAddRecord(string $table, array $row, int $relationLevel = 0): void
     {
         BackendUtility::workspaceOL($table, $row);
+        $recordUid = (int)$row['uid'];
 
-        if ($table === '' || (int)$row['uid'] === 0
-            || $this->isRecordExcluded($table, (int)$row['uid'])
-            || $this->excludeDisabledRecords && $this->isRecordDisabled($table, (int)$row['uid'])) {
+        if ($table === '' || $recordUid === 0
+            || $this->isRecordExcluded($table, $recordUid)
+            || $this->excludeDisabledRecords && $this->isRecordDisabled($table, $recordUid)) {
             return;
         }
 
-        if ($this->isPageInWebMount($table === 'pages' ? (int)$row['uid'] : (int)$row['pid'])) {
-            if (!isset($this->dat['records'][$table . ':' . $row['uid']])) {
-                // Prepare header info:
-                $row = $this->filterRecordFields($table, $row);
-                $headerInfo = [];
-                $headerInfo['uid'] = $row['uid'];
-                $headerInfo['pid'] = $row['pid'];
-                $headerInfo['title'] = GeneralUtility::fixed_lgd_cs(BackendUtility::getRecordTitle($table, $row), 40);
+        $recordPid = (int)$row['pid'];
+        $recordIdentifier = $table . ':' . $recordUid;
+        if ($this->isPageInWebMount($table === 'pages' ? $recordUid : $recordPid)) {
+            if (!isset($this->dat['records'][$recordIdentifier])) {
+                // Prepare header info
+                $headerInfo = [
+                    'uid' => $recordUid,
+                    'pid' => $recordPid,
+                    'title' => GeneralUtility::fixed_lgd_cs(BackendUtility::getRecordTitle($table, $row), 40),
+                ];
+                $sanitizedRow = $this->filterRecordFields($table, $row);
                 if ($relationLevel) {
                     $headerInfo['relationLevel'] = $relationLevel;
                 }
                 // Set the header summary:
-                $this->dat['header']['records'][$table][$row['uid']] = $headerInfo;
+                $this->dat['header']['records'][$table][$recordUid] = $headerInfo;
                 // Create entry in the PID lookup:
-                $this->dat['header']['pid_lookup'][$row['pid']][$table][$row['uid']] = 1;
+                $this->dat['header']['pid_lookup'][$recordPid][$table][$recordUid] = 1;
                 // @todo: Using getRelations() from Refindex for this operation is a misuse, the method should
                 //        be protected. It would be better to use softref parser and RelationHandler here directly,
                 //        or fetch the relations using a sys_refindex query. Note with recent changes, 'itemArray'
@@ -535,9 +537,10 @@ class Export extends ImportExport
                 $relations = $this->referenceIndex->getRelations($table, $row, 0);
                 $relations = $this->removeRedundantSoftRefsInRelations($relations);
                 // Data:
-                $this->dat['records'][$table . ':' . $row['uid']] = [];
-                $this->dat['records'][$table . ':' . $row['uid']]['data'] = $row;
-                $this->dat['records'][$table . ':' . $row['uid']]['rels'] = $relations;
+                $this->dat['records'][$recordIdentifier] = [
+                    'data' => $sanitizedRow,
+                    'rels' => $relations,
+                ];
                 // There are no refindex entries for l10n_source of pages and tt_content, so we have to add them here manually for now.
                 // @todo can be removed, when this can come from ReferenceIndex.
                 if (($table === 'pages' || $table === 'tt_content')) {
@@ -548,22 +551,22 @@ class Export extends ImportExport
                         $translationSourceFieldName = $languageCapability->getTranslationSourceField()?->getName();
                     }
                     if ($translationSourceFieldName && ((int)($row[$translationSourceFieldName] ?? 0)) > 0) {
-                        $this->dat['records'][$table . ':' . $row['uid']]['rels'][$translationSourceFieldName]['type'] = 'db';
-                        $this->dat['records'][$table . ':' . $row['uid']]['rels'][$translationSourceFieldName]['itemArray'][0] = [
+                        $this->dat['records'][$recordIdentifier]['rels'][$translationSourceFieldName]['type'] = 'db';
+                        $this->dat['records'][$recordIdentifier]['rels'][$translationSourceFieldName]['itemArray'][0] = [
                             'id' => $row[$translationSourceFieldName],
                             'table' => $table,
                         ];
                     }
                 }
                 // Add information about the relations in the record in the header:
-                $this->dat['header']['records'][$table][$row['uid']]['rels'] = $this->flatDbRelations($this->dat['records'][$table . ':' . $row['uid']]['rels']);
+                $this->dat['header']['records'][$table][$recordUid]['rels'] = $this->flatDbRelations($this->dat['records'][$recordIdentifier]['rels']);
                 // Add information about the softrefs to header:
-                $this->dat['header']['records'][$table][$row['uid']]['softrefs'] = $this->flatSoftRefs($this->dat['records'][$table . ':' . $row['uid']]['rels']);
+                $this->dat['header']['records'][$table][$recordUid]['softrefs'] = $this->flatSoftRefs($this->dat['records'][$recordIdentifier]['rels']);
             } else {
-                $this->addError('Record ' . $table . ':' . $row['uid'] . ' already added.');
+                $this->addError('Record ' . $recordIdentifier . ' already added.');
             }
         } else {
-            $this->addError('Record ' . $table . ':' . $row['uid'] . ' was outside your database mounts!');
+            $this->addError('Record ' . $recordIdentifier . ' was outside your database mounts!');
         }
     }
 
@@ -582,9 +585,14 @@ class Export extends ImportExport
     }
 
     /**
-     * If include fields for a specific record type are set, the data
-     * are filtered out with fields are not included in the fields.
-     * Used in tests only.
+     * Filters record fields to only include relevant columns.
+     *
+     * When recordTypesIncludeFields is set for the table, only the explicitly
+     * listed fields are kept. Otherwise, schema-based filtering is applied,
+     * keeping only fields defined in the TCA (sub)schema.
+     *
+     * Both paths always include uid and pid via defaultRecordIncludeFields,
+     * ensuring they are part of the exported data for correct import.
      *
      * @param string $table The record type to be filtered
      * @param array $row The data to be filtered
@@ -603,8 +611,40 @@ class Export extends ImportExport
                     $newRow[$key] = $value;
                 }
             }
-        } else {
-            $newRow = $row;
+            return $newRow;
+        }
+        // Schema-based filtering: We only allow fields that are defined for THIS schema (or subschema)
+        if (!$this->tcaSchemaFactory->has($table)) {
+            return $row;
+        }
+        $schema = $this->tcaSchemaFactory->get($table);
+        $validFields = $schema->getFields()->getNames();
+        if ($schema->supportsSubSchema()) {
+            $typeInformation = $schema->getSubSchemaTypeInformation();
+            // Skip if type is determined by a foreign table (more complex case, not handled here)
+            if (!$typeInformation->isPointerToForeignFieldInForeignSchema()) {
+                $typeFieldName = $typeInformation->getFieldName();
+                $recordType = (string)($row[$typeFieldName] ?? '');
+                if ($schema->hasSubSchema($recordType)) {
+                    $validFields = $schema->getSubSchema($recordType)->getFields()->getNames();
+                }
+            }
+        }
+        if ($schema->isLanguageAware()) {
+            $languageCapability = $schema->getCapability(TcaSchemaCapability::Language);
+            $validFields[] = $languageCapability->getLanguageField()->getName();
+            $validFields[] = $languageCapability->getTranslationOriginPointerField()->getName();
+            if ($languageCapability->hasTranslationSourceField()) {
+                $validFields[] = $languageCapability->getTranslationSourceField()?->getName();
+            }
+        }
+        $validFields = array_unique(array_merge($validFields, $this->defaultRecordIncludeFields));
+        $newRow = [];
+        foreach ($row as $fieldName => $value) {
+            if (!in_array($fieldName, $validFields, true)) {
+                continue;
+            }
+            $newRow[$fieldName] = $value;
         }
         return $newRow;
     }
@@ -840,9 +880,11 @@ class Export extends ImportExport
         // @todo: Remove by-reference and return final array
         $recordRef = $recordData['table'] . ':' . $recordData['id'];
         if (
-            $this->tcaSchemaFactory->has($recordData['table']) && !$this->isTableStatic($recordData['table'])
+            $this->tcaSchemaFactory->has($recordData['table'])
+            && !$this->isTableStatic($recordData['table'])
             && !$this->isRecordExcluded($recordData['table'], (int)$recordData['id'])
-            && (!$tokenID || $this->isSoftRefIncluded($tokenID)) && $this->inclRelation($recordData['table'])
+            && (!$tokenID || $this->isSoftRefIncluded($tokenID))
+            && $this->inclRelation($recordData['table'])
             && !isset($this->dat['records'][$recordRef])
         ) {
             $addRecords[$recordRef] = $recordData;
@@ -961,13 +1003,13 @@ class Export extends ImportExport
         // Setting this data in the header
         $this->dat['header']['files'][$fileData['ID']] = $fileInfo;
 
-        if (!$this->saveFilesOutsideExportFile) {
-            $fileInfo['content'] = (string)file_get_contents($fileData['ID_absFile']);
-        } else {
+        if ($this->saveFilesOutsideExportFile) {
             GeneralUtility::upload_copy_move(
                 $fileData['ID_absFile'],
                 $this->getOrCreateTemporaryFolderName() . '/' . $fileMd5
             );
+        } else {
+            $fileInfo['content'] = (string)file_get_contents($fileData['ID_absFile']);
         }
         $fileInfo['content_md5'] = $fileMd5;
         $this->dat['files'][$fileData['ID']] = $fileInfo;
@@ -979,8 +1021,7 @@ class Export extends ImportExport
     protected function exportAddFilesFromSysFilesRecords(): void
     {
         foreach ($this->dat['header']['records']['sys_file'] ?? [] as $sysFileUid => $_) {
-            $fileData = $this->dat['records']['sys_file:' . $sysFileUid]['data'];
-            $this->exportAddSysFile($fileData);
+            $this->exportAddSysFile($sysFileUid);
         }
     }
 
@@ -988,13 +1029,13 @@ class Export extends ImportExport
      * This adds the file from a sys_file record to the export
      * - either as content or external file
      */
-    protected function exportAddSysFile(array $fileData): void
+    protected function exportAddSysFile(int $sysFileUid): void
     {
         try {
-            $file = $this->resourceFactory->createFileObject($fileData);
+            $file = $this->resourceFactory->getFileObject($sysFileUid);
             $file->checkActionPermission('read');
         } catch (\Exception $e) {
-            $this->addError('Error when trying to add file ' . $fileData['title'] . ': ' . $e->getMessage());
+            $this->addError('Error when trying to add file with UID ' . $sysFileUid . ': ' . $e->getMessage());
             return;
         }
 

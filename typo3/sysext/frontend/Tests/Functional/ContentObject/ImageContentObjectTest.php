@@ -19,12 +19,12 @@ namespace TYPO3\CMS\Frontend\Tests\Functional\ContentObject;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
+use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Imaging\ImageResource;
-use TYPO3\CMS\Core\Localization\Locale;
-use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Service\MarkerBasedTemplateService;
-use TYPO3\CMS\Core\Type\DocType;
+use TYPO3\CMS\Core\TypoScript\AST\Node\RootNode;
+use TYPO3\CMS\Core\TypoScript\FrontendTypoScript;
 use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\ImageContentObject;
@@ -116,7 +116,10 @@ final class ImageContentObjectTest extends FunctionalTestCase
             ->with(self::equalTo('testImageName'))
             ->willReturn(new ImageResource(100, 100, '', 'bar', 'bar'));
         $subject = $this->getAccessibleMock(ImageContentObject::class, null, [$this->get(MarkerBasedTemplateService::class)]);
-        $subject->setRequest(new ServerRequest());
+        $frontendTypoScript = new FrontendTypoScript(new RootNode(), [], [], []);
+        $frontendTypoScript->setConfigArray([]);
+        $request = (new ServerRequest())->withAttribute('frontend.typoscript', $frontendTypoScript);
+        $subject->setRequest($request);
         $subject->setContentObjectRenderer($cObj);
         $result = $subject->_call('getImageSourceCollection', 'test', $configuration, 'testImageName');
         self::assertEquals('---bar---', $result);
@@ -254,12 +257,14 @@ final class ImageContentObjectTest extends FunctionalTestCase
             ->with(self::equalTo('testImageName'))
             ->willReturn(new ImageResource(100, 100, '', 'bar-file.jpg', 'bar-file.jpg'));
 
-        $pageRenderer = $this->get(PageRenderer::class);
-        $pageRenderer->setLanguage(new Locale());
-        $pageRenderer->setDocType(DocType::createFromConfigurationKey($doctype));
+        $frontendTypoScript = new FrontendTypoScript(new RootNode(), [], [], []);
+        $frontendTypoScript->setConfigArray(['doctype' => $doctype]);
+        $request = (new ServerRequest())
+            ->withAttribute('applicationType', SystemEnvironmentBuilder::REQUESTTYPE_BE)
+            ->withAttribute('frontend.typoscript', $frontendTypoScript);
 
         $subject = $this->getAccessibleMock(ImageContentObject::class, null, [$this->get(MarkerBasedTemplateService::class)]);
-        $subject->setRequest(new ServerRequest());
+        $subject->setRequest($request);
         $subject->setContentObjectRenderer($cObj);
         $result = $subject->_call('getImageSourceCollection', $layoutKey, $configuration, 'testImageName');
 

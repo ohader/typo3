@@ -372,14 +372,17 @@
       <trans-unit id="labels.editMultiple">
         <source>Edit multiple</source>
       </trans-unit>
-      <trans-unit id="labels.editMultiplePages">
+      <trans-unit id="labels.editMultiplePages" x-unused-since="14.2">
         <source>Edit multiple pages</source>
       </trans-unit>
-      <trans-unit id="labels.editMultipleRecords">
+      <trans-unit id="labels.editMultipleRecords" x-unused-since="14.2">
         <source>Edit multiple "%s" records on page "%s"</source>
       </trans-unit>
-      <trans-unit id="labels.editMultipleRecordsRootLevel">
+      <trans-unit id="labels.editMultipleRecordsRootLevel" x-unused-since="14.2">
         <source>Edit multiple "%s" records on root level</source>
+      </trans-unit>
+      <trans-unit id="labels.records">
+        <source>{count, plural, one {# record} other {# records}}</source>
       </trans-unit>
       <trans-unit id="labels.rootLevel">
         <source>Root level</source>
@@ -534,6 +537,9 @@
       <trans-unit id="labels.generatePassword">
         <source>Generate password</source>
       </trans-unit>
+      <trans-unit id="labels.generatePassword.failed">
+        <source>A password could not be generated</source>
+      </trans-unit>
       <trans-unit id="labels.new_section">
         <source>Create new</source>
       </trans-unit>
@@ -596,6 +602,18 @@
       </trans-unit>
       <trans-unit id="labels.new_page_translation">
         <source>Create new translation</source>
+      </trans-unit>
+      <trans-unit id="insert_after">
+        <source>Insert after</source>
+      </trans-unit>
+      <trans-unit id="insert_inside">
+        <source>Insert inside</source>
+      </trans-unit>
+      <trans-unit id="insert_page">
+        <source>Insert page</source>
+      </trans-unit>
+      <trans-unit id="insert_subpage">
+        <source>Insert subpage</source>
       </trans-unit>
       <trans-unit id="alttext.suggestSearching">
         <source>Searching...</source>
@@ -1452,7 +1470,7 @@
       <trans-unit id="error.missingLanguageIsocode">
         <source>Missing ISO code for language "%s" (UID %d), please edit the language record and set it.</source>
       </trans-unit>
-      <trans-unit id="error.misconfiguredPasswordRules">
+      <trans-unit id="error.misconfiguredPasswordRules" x-unused-since="14.2">
         <source>No password could be generated due to misconfigured password rules.</source>
       </trans-unit>
       <trans-unit id="labels.deleteTitle">

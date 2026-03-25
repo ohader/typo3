@@ -69,6 +69,19 @@ return [
                 ],
             ],
         ],
+        'priority' => [
+            'label' => 'scheduler.tca:tx_scheduler_task.priority',
+            'config' => [
+                'type' => 'select',
+                'renderType' => 'selectSingle',
+                'items' => [
+                    ['label' => 'scheduler.tca:tx_scheduler_task.priority.high', 'value' => 150],
+                    ['label' => 'scheduler.tca:tx_scheduler_task.priority.regular', 'value' => 100],
+                    ['label' => 'scheduler.tca:tx_scheduler_task.priority.low', 'value' => 50],
+                ],
+                'default' => 100,
+            ],
+        ],
         'description' => [
             'label' => 'LLL:EXT:scheduler/Resources/Private/Language/locallang_tca.xlf:tx_scheduler_task.description',
             'config' => [
@@ -185,9 +198,7 @@ return [
                     description,
                     parameters,
                 --div--;core.form.tabs:timing,
-                    execution_details,
-                    nextexecution,
-                    --palette--;;lastexecution,
+                    --palette--;;execution,
                 --div--;core.form.tabs:access,
                     disable,
                 --div--;core.form.tabs:extended,
@@ -195,8 +206,13 @@ return [
         ],
     ],
     'palettes' => [
-        'lastexecution' => [
+        'execution' => [
             'showitem' => '
+                execution_details,
+                --linebreak--,
+                nextexecution,
+                priority,
+                --linebreak--,
                 lastexecution_context,
                 lastexecution_time,
                 --linebreak--,

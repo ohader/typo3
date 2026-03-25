@@ -22,7 +22,6 @@ use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
-use TYPO3\CMS\Core\Schema\TcaSchemaFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 
@@ -52,17 +51,6 @@ class InlineControlContainer extends AbstractContainer
     protected $javaScriptModules = [];
 
     /**
-     * Default field information enabled for this element.
-     *
-     * @var array
-     */
-    protected $defaultFieldInformation = [
-        'tcaDescription' => [
-            'renderType' => 'tcaDescription',
-        ],
-    ];
-
-    /**
      * @var array Default wizards
      */
     protected $defaultFieldWizard = [
@@ -75,7 +63,6 @@ class InlineControlContainer extends AbstractContainer
         private readonly IconFactory $iconFactory,
         private readonly InlineStackProcessor $inlineStackProcessor,
         private readonly HashService $hashService,
-        private readonly TcaSchemaFactory $tcaSchemaFactory,
     ) {}
 
     /**
@@ -102,8 +89,8 @@ class InlineControlContainer extends AbstractContainer
         $foreign_table = $config['foreign_table'];
         $isReadOnly = isset($config['readOnly']) && $config['readOnly'];
         $language = 0;
-        if ($this->tcaSchemaFactory->has($table) && $this->tcaSchemaFactory->get($table)->hasCapability(TcaSchemaCapability::Language)) {
-            $languageFieldName = $this->tcaSchemaFactory->get($table)->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName();
+        if ($this->data['tcaSchemata']->has($table) && $this->data['tcaSchemata']->get($table)->hasCapability(TcaSchemaCapability::Language)) {
+            $languageFieldName = $this->data['tcaSchemata']->get($table)->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName();
             $language = isset($row[$languageFieldName][0]) ? (int)$row[$languageFieldName][0] : (int)($row[$languageFieldName] ?? 0);
         }
 
@@ -161,9 +148,6 @@ class InlineControlContainer extends AbstractContainer
         ];
         $configJson = (string)json_encode($config);
         $this->inlineData['config'][$nameObject . '-' . $foreign_table] = [
-            'min' => $config['minitems'],
-            'max' => $config['maxitems'],
-            'sortable' => $config['appearance']['useSortable'] ?? false,
             'top' => [
                 'table' => $top['table'],
                 'uid' => $top['uid'],
@@ -231,7 +215,11 @@ class InlineControlContainer extends AbstractContainer
         $resultArray['inlineData'] = $this->inlineData;
 
         // @todo: It might be a good idea to have something like "isLocalizedRecord" or similar set by a data provider
-        $uidOfDefaultRecord = $row[$GLOBALS['TCA'][$table]['ctrl']['transOrigPointerField'] ?? ''] ?? 0;
+        $uidOfDefaultRecord = 0;
+        if ($this->data['tcaSchemata']->has($table) && $this->data['tcaSchemata']->get($table)->hasCapability(TcaSchemaCapability::Language)) {
+            $originPointerField = $this->data['tcaSchemata']->get($table)->getCapability(TcaSchemaCapability::Language)->getTranslationOriginPointerField()->getName();
+            $uidOfDefaultRecord = $row[$originPointerField] ?? 0;
+        }
         $isLocalizedParent = $language > 0
             && ($uidOfDefaultRecord[0] ?? $uidOfDefaultRecord) > 0
             && MathUtility::canBeInterpretedAsInteger($row['uid']);
@@ -259,9 +247,9 @@ class InlineControlContainer extends AbstractContainer
             }
         }
 
-        // Define how to show the "Create new record" button - if there are more than maxitems, hide it
+        // Hide the "Create new record" button if there are more than maxitems or the field is read-only
         if ($isReadOnly || $numberOfFullLocalizedChildren >= ($config['maxitems'] ?? 0) || ($uniqueMax > 0 && $numberOfFullLocalizedChildren >= $uniqueMax)) {
-            $config['inline']['inlineNewButtonStyle'] = 'display: none;';
+            $config['inline']['hideNewButton'] = true;
         }
 
         // Render the "new record" level button:
@@ -271,27 +259,25 @@ class InlineControlContainer extends AbstractContainer
             $newRecordButton = $this->getLevelInteractionButton('newRecord', $config);
         }
 
-        $formGroupAttributes = [
-            'class' => 'form-group',
-            'id' => $nameObject,
-            'data-uid' => (string)$row['uid'],
-            'data-local-table' => (string)$top['table'],
-            'data-local-field' => (string)$top['field'],
-            'data-foreign-table' => (string)$foreign_table,
-            'data-object-group' => $nameObject . '-' . $foreign_table,
-            'data-form-field' => $nameForm,
-            'data-appearance' => (string)json_encode($config['appearance'] ?? ''),
-        ];
-
-        // Wrap all inline fields of a record with a <div> (like a container)
-        $html = '<div ' . GeneralUtility::implodeAttributes($formGroupAttributes, true) . '>';
-
         $fieldInformationResult = $this->renderFieldInformation();
-        $html .= $fieldInformationResult['html'];
+        $html = $fieldInformationResult['html'];
         $resultArray = $this->mergeChildReturnIntoExistingResult($resultArray, $fieldInformationResult, false);
 
+        // Wrap all inline fields of a record with a custom element (container)
+        $formGroupAttributes = [
+            'id' => $nameObject,
+            'data-type' => 'record',
+            'data-object-group' => $nameObject . '-' . $foreign_table,
+            'data-form-field' => $nameForm,
+            'data-expand-single' => (bool)($config['appearance']['expandSingle'] ?? false) ? 'true' : 'false',
+            'data-sortable' => (bool)($config['appearance']['useSortable'] ?? false) ? 'true' : 'false',
+            'data-min' => (int)($config['minitems'] ?? 0),
+            'data-max' => (int)($config['maxitems'] ?? 0),
+        ];
+        $html .= '<typo3-formengine-container-inline ' . GeneralUtility::implodeAttributes($formGroupAttributes, true) . '>';
+
         // Add the level buttons before all child records:
-        if (in_array($config['appearance']['levelLinksPosition'] ?? null, ['both', 'top'], true)) {
+        if (in_array($config['appearance']['levelLinksPosition'], ['both', 'top'], true)) {
             $html .= '<div class="form-group t3js-formengine-validation-marker t3js-inline-controls">' . $newRecordButton . $localizationButtons . '</div>';
         }
 
@@ -336,7 +322,7 @@ class InlineControlContainer extends AbstractContainer
         $html .= $fieldWizardHtml;
 
         // Add the level buttons after all child records:
-        if (!$isReadOnly && in_array($config['appearance']['levelLinksPosition'] ?? false, ['both', 'bottom'], true)) {
+        if (in_array($config['appearance']['levelLinksPosition'], ['both', 'bottom'], true)) {
             $html .= '<div class="form-group t3js-formengine-validation-marker t3js-inline-controls">' . $newRecordButton . $localizationButtons . '</div>';
         }
         if (is_array($config['customControls'] ?? false)) {
@@ -363,7 +349,7 @@ class InlineControlContainer extends AbstractContainer
         $resultArray['javaScriptModules'] = array_merge($resultArray['javaScriptModules'], $this->javaScriptModules);
         $resultArray['javaScriptModules'][] = JavaScriptModuleInstruction::create(
             '@typo3/backend/form-engine/container/inline-control-container.js'
-        )->instance($nameObject);
+        );
 
         // Publish the uids of the child records in the given order to the browser
         $html .= '<input type="hidden" name="' . $nameForm . '" value="' . implode(',', $sortableRecordUids) . '" '
@@ -376,7 +362,7 @@ class InlineControlContainer extends AbstractContainer
             . '"'
             . ' class="inlineRecord" />';
         // Close the wrap for all inline fields (container)
-        $html .= '</div>';
+        $html .= '</typo3-formengine-container-inline>';
 
         $resultArray['html'] = $this->wrapWithFieldsetAndLegend($html);
         return $resultArray;
@@ -396,32 +382,32 @@ class InlineControlContainer extends AbstractContainer
         $attributes = [];
         switch ($type) {
             case 'newRecord':
-                $title = htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.createnew'));
+                $title = htmlspecialchars($languageService->sL('core.core:cm.createnew'));
                 $icon = 'actions-plus';
                 $attributes['class'] = 'btn btn-default t3js-create-new-button';
                 $attributes['data-type'] = 'newRecord';
-                if (!empty($conf['inline']['inlineNewButtonStyle'])) {
-                    $attributes['style'] = $conf['inline']['inlineNewButtonStyle'];
+                if (!empty($conf['inline']['hideNewButton'])) {
+                    $attributes['hidden'] = 'hidden';
                 }
                 if (!empty($conf['appearance']['newRecordLinkAddTitle'])) {
                     $title = htmlspecialchars(sprintf(
-                        $languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.createnew.link'),
-                        $languageService->sL($GLOBALS['TCA'][$conf['foreign_table']]['ctrl']['title'])
+                        $languageService->sL('core.core:cm.createnew.link'),
+                        $languageService->sL($this->data['tcaSchemata']->get($conf['foreign_table'])->getTitle()),
                     ));
                 } elseif (isset($conf['appearance']['newRecordLinkTitle']) && $conf['appearance']['newRecordLinkTitle'] !== '') {
                     $title = htmlspecialchars($languageService->sL($conf['appearance']['newRecordLinkTitle']));
                 }
                 break;
             case 'localize':
-                $title = htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_misc.xlf:localizeAllRecords'));
+                $title = htmlspecialchars($languageService->sL('core.misc:localizeAllRecords'));
                 $icon = 'actions-document-localize';
                 $attributes['class'] = 'btn btn-default t3js-synchronizelocalize-button';
                 $attributes['data-type'] = 'localize';
                 break;
             case 'synchronize':
-                $title = htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_misc.xlf:synchronizeWithOriginalLanguage'));
+                $title = htmlspecialchars($languageService->sL('core.misc:synchronizeWithOriginalLanguage'));
                 $icon = 'actions-document-synchronize';
-                $attributes['class'] = 'btn btn-default inlineNewButton t3js-synchronizelocalize-button';
+                $attributes['class'] = 'btn btn-default t3js-synchronizelocalize-button';
                 $attributes['data-type'] = 'synchronize';
                 break;
             default:
@@ -450,30 +436,21 @@ class InlineControlContainer extends AbstractContainer
         $languageService = $this->getLanguageService();
         $groupFieldConfiguration = $inlineConfiguration['selectorOrUniqueConfiguration']['config'];
         $objectPrefix = $this->inlineStackProcessor->getDomObjectIdPrefixFromStructure($inlineStructure, $this->data['inlineFirstPid']) . '-' . $inlineConfiguration['foreign_table'];
-        $elementBrowserEnabled = true;
-        if (is_array($groupFieldConfiguration['appearance'] ?? null)
-            && isset($inlineConfiguration['appearance']['elementBrowserEnabled'])
-        ) {
-            $elementBrowserEnabled = (bool)$inlineConfiguration['appearance']['elementBrowserEnabled'];
-        }
+        $elementBrowserEnabled = (bool)($inlineConfiguration['appearance']['elementBrowserEnabled'] ?? true);
         // Remove any white-spaces from the allowed extension lists
         $allowed = GeneralUtility::trimExplode(',', (string)($groupFieldConfiguration['allowed'] ?? ''), true);
-        $buttonStyle = '';
-        if (isset($inlineConfiguration['inline']['inlineNewRelationButtonStyle'])) {
-            $buttonStyle = ' style="' . $inlineConfiguration['inline']['inlineNewRelationButtonStyle'] . '"';
-        }
         $item = '';
         if ($elementBrowserEnabled) {
             if (!empty($inlineConfiguration['appearance']['createNewRelationLinkTitle'])) {
                 $createNewRelationText = htmlspecialchars($languageService->sL($inlineConfiguration['appearance']['createNewRelationLinkTitle']));
             } else {
-                $createNewRelationText = htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.createNewRelation'));
+                $createNewRelationText = htmlspecialchars($languageService->sL('core.core:cm.createNewRelation'));
             }
             $item .= '
                 <button type="button" class="btn btn-default t3js-element-browser" data-mode="db"
                     data-allowed-types="' . htmlspecialchars(implode(',', $allowed)) . '"
                     data-irre-object-id="' . htmlspecialchars($objectPrefix) . '"
-                    ' . $buttonStyle . ' title="' . $createNewRelationText . '">
+                    title="' . $createNewRelationText . '">
                     ' . $this->iconFactory->getIcon('actions-insert-record', IconSize::SMALL)->render() . '
                     ' . $createNewRelationText . '
                 </button>';
@@ -481,11 +458,10 @@ class InlineControlContainer extends AbstractContainer
         $item = '<div class="form-control-wrap t3js-inline-controls">' . $item . '</div>';
         if (!empty($allowed)) {
             $item .= '
-                <div class="form-text">
-                    ' . htmlspecialchars($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.allowedRelations')) . '
-                    <br>
+                <div class="form-text mt-2">
+                    ' . htmlspecialchars($languageService->sL('core.core:cm.allowedRelations')) . '
                     <ul class="badge-list">
-                    ' . implode(' ', array_map(static fn(string $item): string => '<li><span class="badge badge-success">' . strtoupper($item) . '</span></li>', $allowed)) . '
+                    ' . implode(' ', array_map(static fn(string $item): string => '<li><span class="badge badge-secondary">' . strtoupper($item) . '</span></li>', $allowed)) . '
                     </ul>
                 </div>';
         }
@@ -536,7 +512,7 @@ class InlineControlContainer extends AbstractContainer
             if (!empty($config['appearance']['createNewRelationLinkTitle'])) {
                 $createNewRelationText = htmlspecialchars($this->getLanguageService()->sL($config['appearance']['createNewRelationLinkTitle']));
             } else {
-                $createNewRelationText = htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:cm.createNewRelation'));
+                $createNewRelationText = htmlspecialchars($this->getLanguageService()->sL('core.core:cm.createNewRelation'));
             }
             $item .= '
                 <button type="button" class="btn btn-default t3js-create-new-button" title="' . $createNewRelationText . '">

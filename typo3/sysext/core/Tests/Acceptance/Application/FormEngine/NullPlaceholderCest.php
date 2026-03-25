@@ -45,9 +45,9 @@ final class NullPlaceholderCest
         $I->click($editRecordLinkCssPath);
 
         $I->waitForElementNotVisible('#t3js-ui-block');
-        $I->waitForText('Edit Form engine - file "1" on page "file"');
+        $I->waitForText('1', 3, 'h1');
         $I->click('typical fal');
-        $I->click('.form-irre-header');
+        $I->click('.panel-button', '.form-irre-object');
         $I->waitForElementNotVisible('typo3-backend-progress-bar');
 
         $I->amGoingTo('enable checkboxes and see whether the fields get marked as changed');

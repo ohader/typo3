@@ -25,6 +25,7 @@ use TYPO3\CMS\Backend\Dto\Settings\EditableSetting;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\ComponentFactory;
+use TYPO3\CMS\Backend\Template\Enum\ModuleLayout;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -136,6 +137,7 @@ readonly class SiteSettingsController
             ['site' => $site->getIdentifier()]
         );
 
+        $view->setLayout(ModuleLayout::NORMAL);
         $view->assign('site', $site);
         $view->assign('siteTitle', $this->getSiteTitle($site));
         $view->assign('rootPageId', $site->getRootPageId());
@@ -162,6 +164,10 @@ readonly class SiteSettingsController
             ...get_object_vars($definition),
             'label' => $languageService->sL($definition->label),
             'description' => $definition->description !== null ? $languageService->sL($definition->description) : null,
+            'enum' => array_map(
+                static fn(string|int|float|bool $label): string => $languageService->sL((string)$label),
+                $definition->enum
+            ),
         ]);
     }
 

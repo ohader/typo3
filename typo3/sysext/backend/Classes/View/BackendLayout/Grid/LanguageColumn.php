@@ -19,7 +19,6 @@ namespace TYPO3\CMS\Backend\View\BackendLayout\Grid;
 
 use TYPO3\CMS\Backend\Routing\PreviewUriBuilder;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
-use TYPO3\CMS\Backend\Template\Components\ComponentFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Backend\View\PageLayoutContext;
 use TYPO3\CMS\Core\Imaging\IconSize;
@@ -92,9 +91,24 @@ class LanguageColumn extends AbstractGridObject
             && $this->getBackendUser()->checkLanguageAccess($this->context->getSiteLanguage());
     }
 
+    public function getPageRecordUid(): int
+    {
+        return $this->context->getLocalizedPageRecord()['uid'] ?? $this->context->getPageRecord()['uid'];
+    }
+
     public function getPageEditUrl(): string
     {
-        $pageRecordUid = $this->context->getLocalizedPageRecord()['uid'] ?? $this->context->getPageRecord()['uid'];
+        return (string)GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('record_edit_contextual', $this->getPageEditUrlParameters());
+    }
+
+    public function getFullPageEditUrl(): string
+    {
+        return (string)GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('record_edit', $this->getPageEditUrlParameters());
+    }
+
+    private function getPageEditUrlParameters(): array
+    {
+        $pageRecordUid = $this->getPageRecordUid();
         $urlParameters = [
             'edit' => [
                 'pages' => [
@@ -108,7 +122,7 @@ class LanguageColumn extends AbstractGridObject
         if (($languageField = GeneralUtility::makeInstance(TcaSchemaFactory::class)->get('pages')->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName()) !== '') {
             $urlParameters['overrideVals']['pages'][$languageField] = $this->context->getSiteLanguage()->getLanguageId();
         }
-        return (string)GeneralUtility::makeInstance(UriBuilder::class)->buildUriFromRoute('record_edit', $urlParameters);
+        return $urlParameters;
     }
 
     public function getAllowViewPage(): bool
@@ -124,18 +138,5 @@ class LanguageColumn extends AbstractGridObject
             ->withRootLine(BackendUtility::BEgetRootLine($pageId))
             ->withLanguage($languageId)
             ->serializeDispatcherAttributes();
-    }
-
-    public function getPreviewUrl(): ?string
-    {
-        $pageId = $this->context->getPageId();
-        $languageId = $this->context->getSiteLanguage()->getLanguageId();
-
-        $fallbackUri = PreviewUriBuilder::create($this->context->getLocalizedPageRecord() ?? $this->context->getPageRecord())
-            ->withRootLine(BackendUtility::BEgetRootLine($pageId))
-            ->withLanguage($languageId)
-            ->buildUri();
-
-        return GeneralUtility::makeInstance(ComponentFactory::class)->getPreviewUrlForQrCode($pageId, $languageId, $fallbackUri);
     }
 }

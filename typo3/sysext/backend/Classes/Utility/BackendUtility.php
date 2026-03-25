@@ -1471,6 +1471,11 @@ class BackendUtility
             if (is_array($ctrlLabelValue)) {
                 $ctrlLabelValue = '';
             }
+            // => also, if the value is a DateTimeInterface, convert it to timestamp as when the $row is still
+            //    unprocessed (happens e.g., with IRRE - processed - vs listing of records - unprocessed)
+            if ($ctrlLabelValue instanceof \DateTimeInterface) {
+                $ctrlLabelValue = $ctrlLabelValue->getTimestamp();
+            }
             $recordTitle = self::getProcessedValue($table, $ctrlLabel, (string)$ctrlLabelValue, 0, false, false, $row['uid'] ?? null, true, 0, $row) ?? '';
             if ($labelCapability->getAdditionalFieldNames() !== []
                 && ($labelCapability->alwaysRenderAdditionalFields() || $recordTitle === '')) {
@@ -1725,7 +1730,7 @@ class BackendUtility
                     if ($value instanceof \DateTimeInterface) {
                         $datetime = $value;
                     } else {
-                        $datetime = DateTimeFactory::createFomDatabaseValueAndTCAConfig($value, $theColConf);
+                        $datetime = DateTimeFactory::createFromDatabaseValueAndTCAConfig($value, $theColConf);
                     }
                     $format = DateTimeFactory::getFormatFromTCAConfig($theColConf);
                 } catch (\InvalidArgumentException) {
@@ -2355,17 +2360,23 @@ class BackendUtility
 
                 ];
                 // Get the type of the user that locked this record:
+                $userName = '';
                 if ($row['userid']) {
                     $userTypeLabel = 'beUser';
+                    $userRecord = BackendUtility::getRecord('be_users', $row['userid']);
+                    if (is_array($userRecord)) {
+                        $userName = $userRecord['realName'] ? sprintf('%s [%s]', $userRecord['realName'], $userRecord['username']) : $userRecord['username'];
+                    }
                 } elseif ($row['feuserid']) {
                     $userTypeLabel = 'feUser';
+                    $userName = BackendUtility::getRecordTitle('fe_users', BackendUtility::getRecord('fe_users', $row['feuserid']));
                 } else {
                     $userTypeLabel = 'user';
+                    $userName = $row['username'] ?? '';
                 }
                 $userType = $lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.' . $userTypeLabel);
                 // Get the username (if available):
-                $userName = ($row['username'] ?? '') ?: $lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.unknownUser');
-
+                $userName = $userName ?: $lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.unknownUser');
                 $lockedRecords[$row['record_table'] . ':' . $row['record_uid']] = $row;
                 $lockedRecords[$row['record_table'] . ':' . $row['record_uid']]['msg'] = sprintf(
                     $lang->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.lockedRecordUser'),

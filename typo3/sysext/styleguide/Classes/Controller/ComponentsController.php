@@ -22,6 +22,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use TYPO3\CMS\Backend\Attribute\AsController;
 use TYPO3\CMS\Backend\Dto\Breadcrumb\BreadcrumbNode;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Template\Enum\ModuleLayout;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Localization\LanguageService;
@@ -386,8 +387,8 @@ final class ComponentsController
             'currentAction' => 'modal',
             'routeIdentifier' => 'styleguide_components',
             'variants' => ['notice', 'info', 'ok', 'warning', 'error'],
-            'sizes' => ['small', 'default', 'medium', 'large', 'full'],
-            'positions' => ['center', 'top', 'end', 'bottom', 'start'],
+            'sizes' => ['small', 'default', 'medium', 'large', 'full', 'expand'],
+            'positions' => ['center', 'top', 'end', 'bottom', 'start', 'sheet'],
         ]);
         return $view->renderResponse('Backend/Components/Modal');
     }
@@ -645,6 +646,7 @@ final class ComponentsController
     {
         $languageService = $this->getLanguageService();
         $view = $this->moduleTemplateFactory->create($request);
+        $view->setLayout(ModuleLayout::NORMAL);
         $view->setTitle(
             $languageService->sL('LLL:EXT:styleguide/Resources/Private/Language/locallang.xlf:styleguide'),
             $languageService->sL('LLL:EXT:styleguide/Resources/Private/Language/locallang.xlf:action.' . $action),
@@ -652,13 +654,13 @@ final class ComponentsController
         $view->setModuleClass('module-styleguide');
         $view->makeDocHeaderModuleMenu();
         $view->getDocHeaderComponent()->setShortcutContext(
-            routeIdentifier: 'styleguide_components',
-            displayName: sprintf(
+            'styleguide_components',
+            sprintf(
                 '%s - %s',
                 $this->getLanguageService()->sL('LLL:EXT:styleguide/Resources/Private/Language/locallang.xlf:styleguide'),
                 $this->getLanguageService()->sL('LLL:EXT:styleguide/Resources/Private/Language/locallang.xlf:action.' . $action)
             ),
-            arguments: ['action' => $action]
+            ['action' => $action]
         );
         return $view;
     }

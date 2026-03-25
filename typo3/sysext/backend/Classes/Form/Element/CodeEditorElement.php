@@ -36,17 +36,6 @@ class CodeEditorElement extends AbstractFormElement
     protected string $mode = '';
 
     /**
-     * Default field information enabled for this element.
-     *
-     * @var array
-     */
-    protected $defaultFieldInformation = [
-        'tcaDescription' => [
-            'renderType' => 'tcaDescription',
-        ],
-    ];
-
-    /**
      * Default field wizards enabled for this element.
      *
      * @var array
@@ -106,6 +95,9 @@ class CodeEditorElement extends AbstractFormElement
         $settings = [];
         if ($parameterArray['fieldConf']['config']['readOnly'] ?? false) {
             $settings['readonly'] = true;
+        }
+        if ($parameterArray['fieldConf']['config']['appearance']['lineWrapping'] ?? false) {
+            $settings['linewrapping'] = true;
         }
 
         $editorHtml = $this->getHTMLCodeForEditor(

@@ -176,7 +176,7 @@ class MfaSetupController extends AbstractMfaController
             'providers' => $providers,
         ]);
         $this->pageRenderer->setBodyContent('<body>' . $view->render('Mfa/Standalone/Selection'));
-        return $this->pageRenderer->renderResponse();
+        return $this->pageRenderer->renderResponse($request);
     }
 
     /**
@@ -199,7 +199,7 @@ class MfaSetupController extends AbstractMfaController
             'hasErrors' => (bool)($request->getQueryParams()['hasErrors'] ?? false),
         ]);
         $this->pageRenderer->setBodyContent('<body>' . $view->render('Mfa/Standalone/Setup'));
-        return $this->pageRenderer->renderResponse();
+        return $this->pageRenderer->renderResponse($request);
     }
 
     /**
@@ -221,10 +221,10 @@ class MfaSetupController extends AbstractMfaController
     protected function addCustomAuthenticationFormStyles(ServerRequestInterface $request): void
     {
         if (($backgroundImageStyles = $this->authenticationStyleInformation->getBackgroundImageStyles($request)) !== '') {
-            $this->pageRenderer->addCssInlineBlock('loginBackgroundImage', $backgroundImageStyles, useNonce: true);
+            $this->pageRenderer->addCssInlineBlock('loginBackgroundImage', $backgroundImageStyles, null, false, true);
         }
         if (($highlightColorStyles = $this->authenticationStyleInformation->getHighlightColorStyles()) !== '') {
-            $this->pageRenderer->addCssInlineBlock('loginHighlightColor', $highlightColorStyles, useNonce: true);
+            $this->pageRenderer->addCssInlineBlock('loginHighlightColor', $highlightColorStyles, null, false, true);
         }
     }
 

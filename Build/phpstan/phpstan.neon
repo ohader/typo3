@@ -7,11 +7,6 @@ includes:
 services:
   -
     class: TYPO3\CMS\PHPStan\Rules\Classes\UnneededInstanceOfRule
-    arguments:
-      # treatPhpDocTypesAsCertain is explicitly disabled as long as we have ignored errors
-      # in our baseline, as that we MUST not trust doc types 100%.
-      # We can switch to the global parameter `%treatPhpDocTypesAsCertain%` once that's fixed.
-      treatPhpDocTypesAsCertain: false
     tags:
       - phpstan.rules.rule
   -
@@ -19,6 +14,15 @@ services:
     arguments:
       forbiddenAttributes:
         - PHPUnit\Framework\Attributes\WithoutErrorHandler
+    tags:
+      - phpstan.rules.rule
+  -
+    class: TYPO3\CMS\PHPStan\Rules\Classes\NamedArgumentUsageRule
+    arguments:
+      allowedNamespaces:
+        - 'TYPO3\CMS\Core\Tests'
+        - 'TYPO3\CMS\Extbase\Tests'
+        - 'TYPO3\CMS\Frontend\Tests'
     tags:
       - phpstan.rules.rule
 
@@ -44,3 +48,9 @@ parameters:
     - ../../typo3/sysext/*/ext_emconf.php
     # contains broken syntax for testing-purpose, which cannot be disabled directly
     - ../../typo3/sysext/extbase/Tests/Unit/Reflection/Fixture/DummyController.php
+
+  # In 2026, this option does not help that much anymore since our code base is moving to PHP 8
+  # and native PHP types. It certainly does not hurt to re-check this every once in a while to
+  # see what would happen if we set this option to "true" again.
+  # treatPhpDocTypesAsCertain is explicitly disabled because we MUST not trust doc types 100%.
+  treatPhpDocTypesAsCertain: false

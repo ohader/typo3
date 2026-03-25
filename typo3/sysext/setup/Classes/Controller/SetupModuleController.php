@@ -26,6 +26,7 @@ use TYPO3\CMS\Backend\Module\ModuleProvider;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Backend\Template\Components\ButtonBar;
 use TYPO3\CMS\Backend\Template\Components\ComponentFactory;
+use TYPO3\CMS\Backend\Template\Enum\ModuleLayout;
 use TYPO3\CMS\Backend\Template\ModuleTemplate;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
@@ -45,6 +46,7 @@ use TYPO3\CMS\Core\Localization\LanguageService;
 use TYPO3\CMS\Core\Localization\LanguageServiceFactory;
 use TYPO3\CMS\Core\Localization\Locales;
 use TYPO3\CMS\Core\Localization\OfficialLanguages;
+use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\PasswordPolicy\Event\EnrichPasswordValidationContextDataEvent;
 use TYPO3\CMS\Core\PasswordPolicy\PasswordPolicyAction;
@@ -57,6 +59,7 @@ use TYPO3\CMS\Core\SysLog\Error as SystemLogErrorClassification;
 use TYPO3\CMS\Core\SysLog\Type as SystemLogType;
 use TYPO3\CMS\Core\Type\ContextualFeedbackSeverity;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\StringUtility;
 use TYPO3\CMS\Setup\Event\AddJavaScriptModulesEvent;
 
 /**
@@ -186,8 +189,8 @@ class SetupModuleController
 
         // Set shortcut context - reload button is added automatically
         $view->getDocHeaderComponent()->setShortcutContext(
-            routeIdentifier: 'user_setup',
-            displayName: $this->getLanguageService()->translate('short_description', 'setup.module')
+            'user_setup',
+            $this->getLanguageService()->translate('short_description', 'setup.module')
         );
         $view->assignMultiple([
             'typo3Info' => $this->typo3Information,
@@ -215,6 +218,7 @@ class SetupModuleController
             'FormEngine.remainingCharacters' => $languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.remainingCharacters'),
         ]);
         $view->setTitle($languageService->sL('LLL:EXT:setup/Resources/Private/Language/locallang.xlf:UserSettings'));
+        $view->setLayout(ModuleLayout::NORMAL);
         // Getting the 'override' values as set might be set in user TSconfig
         $this->overrideConf = $backendUser->getTSConfig()['setup.']['override.'] ?? [];
         // Getting the disabled fields might be set in user TSconfig (eg setup.fields.password.disabled=1)
@@ -488,6 +492,7 @@ class SetupModuleController
                     if ($type === 'password') {
                         $value = '';
                         $autocomplete = 'autocomplete="new-password" ';
+                        $more .= 'spellcheck="false" data-formengine-input-name="field_password"';
                     }
 
                     if ($fieldName === 'realName') {
@@ -606,7 +611,7 @@ class SetupModuleController
                             'name="data' . $dataAdd . '[' . htmlspecialchars($fieldName) . ']"' . $more .
                             ' value="' . $avatarFileUid . '" data-setup-avatar-field="' . htmlspecialchars($fieldName) . '" />';
 
-                    $html .= '<typo3-formengine-container-files><div class="form-group"><div class="form-group"><div class="form-control-wrap">';
+                    $html .= '<div class="form-group"><div class="form-group"><div class="form-control-wrap">';
                     $html .= '<button type="button" id="add_button_' . htmlspecialchars($fieldName)
                         . '" class="btn btn-default"'
                         . ' title="' . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:setup/Resources/Private/Language/locallang.xlf:avatar.openFileBrowser')) . '"'
@@ -624,7 +629,7 @@ class SetupModuleController
                         . htmlspecialchars($this->getLanguageService()->sL('LLL:EXT:setup/Resources/Private/Language/locallang.xlf:avatar.clear'))
                         . '</button>';
                     }
-                    $html .= '</div></div></div></typo3-formengine-container-files>';
+                    $html .= '</div></div></div>';
                     break;
                 case 'mfa':
                     $label = $this->getLabel($config['label'] ?? '');
@@ -671,13 +676,41 @@ class SetupModuleController
                     . '<div class="form-wizards-wrap"><div class="form-wizards-item-element"><div class="input-group">';
                 $htmlAppended = '</div></div></div></div></div>';
             }
-            if ($type === 'text' || $type === 'number' || $type === 'email' || $type === 'password') {
+            if ($type === 'text' || $type === 'number' || $type === 'email') {
                 $htmlPrepended = '<div class="formengine-field-item t3js-formengine-field-item"><div class="form-control-wrap">'
                     . '<div class="form-wizards-wrap"><div class="form-wizards-item-element">';
                 $htmlAppended = '</div></div></div></div>';
             }
+            if ($type === 'password') {
+                $icon = $this->iconFactory->getIcon('actions-dice', IconSize::SMALL)->render();
 
-            $code[] = '<fieldset class="form-section"><div class="form-group">'
+                $htmlPrepended =  '<div class="formengine-field-item t3js-formengine-field-item">';
+                $htmlPrepended .= '  <div class="form-control-wrap">';
+                $htmlPrepended .= '    <div class="form-wizards-wrap">';
+                $htmlPrepended .= '      <div class="form-wizards-item-element">';
+
+                $htmlAppended .=  '      </div>';
+
+                // todo: check for TCA fieldConfig -- START
+                $id = StringUtility::getUniqueId('t3js-formengine-fieldcontrol-');
+
+                $this->pageRenderer->getJavaScriptRenderer()->addJavaScriptModuleInstruction(
+                    JavaScriptModuleInstruction::create('@typo3/backend/form-engine/field-control/password-generator.js')->instance($id)
+                );
+
+                $htmlAppended .=  '      <div class="form-wizards-item-aside form-wizards-item-aside--field-control">';
+                $htmlAppended .=  '        <div class="btn-group">';
+                $htmlAppended .=  '          <button type="button" id="' . $id . '" class="btn btn-default" data-item-name="field_' . htmlspecialchars($fieldName) . '" data-allow-edit="1" data-password-policy="default">' . $icon . '</button>';
+                $htmlAppended .=  '        </div>';
+                $htmlAppended .=  '      </div>';
+                // todo: check for TCA fieldConfig --END
+
+                $htmlAppended .=  '    </div>';
+                $htmlAppended .=  '  </div>';
+                $htmlAppended .=  '</div>';
+            }
+
+            $code[] = '<fieldset class="form-section"><div class="form-group t3js-formengine-palette-field">'
                 . $label
                 . $htmlPrepended
                 . $html

@@ -51,6 +51,9 @@ declare namespace TYPO3 {
     }
     export namespace FormEditor {
       export const typo3WinBrowserUrl: string;
+      export const dateEditor: {
+        readonly absolutePattern: string;
+      };
     }
     export namespace FormEngine {
       export const moduleUrl: string;
@@ -90,6 +93,7 @@ declare namespace TYPO3 {
       export const pagingSize: string;
       export const startUid: number;
       export const tableSelection: string;
+      export const totalItems: number;
     }
     export namespace Resource {
       export const thumbnailUrl: string;

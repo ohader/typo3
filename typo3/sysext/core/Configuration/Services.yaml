@@ -136,17 +136,6 @@ services:
   Symfony\Component\Messenger\Transport\Serialization\SerializerInterface:
     alias: Symfony\Component\Messenger\Transport\Serialization\PhpSerializer
 
-  TYPO3\CMS\Core\Command\ConsumeMessagesCommand:
-    arguments:
-      $messageBus: '@messenger.bus.default'
-      $receiverLocator: !tagged_locator { tag: 'messenger.receiver', index_by: 'identifier' }
-      $rateLimiterLocator: !tagged_locator { tag: 'messenger.rate_limiter', index_by: 'identifier' }
-
-  TYPO3\CMS\Core\Messenger\EventListener\StopWorkerOnTimeLimitListener:
-    arguments:
-      # 1 hour
-      $timeLimitInSeconds: 3600
-
   Symfony\Component\Messenger\Transport\Sync\SyncTransport:
     tags:
       - name: 'messenger.sender'
@@ -172,6 +161,9 @@ services:
     public: true
   GuzzleHttp\ClientInterface:
     alias: GuzzleHttp\Client
+    public: true
+  TYPO3\CMS\Core\RateLimiter\RateLimiterFactoryInterface:
+    alias: TYPO3\CMS\Core\RateLimiter\RateLimiterFactory
     public: true
 
   # External dependencies

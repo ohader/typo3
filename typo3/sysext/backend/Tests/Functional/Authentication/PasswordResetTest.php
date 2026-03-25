@@ -20,10 +20,9 @@ namespace TYPO3\CMS\Backend\Tests\Functional\Authentication;
 use PHPUnit\Framework\Attributes\Test;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LoggerTrait;
-use Symfony\Component\RateLimiter\RateLimiterFactory;
-use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 use TYPO3\CMS\Backend\Authentication\PasswordReset;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Cache\CacheManager;
 use TYPO3\CMS\Core\Context\Context;
 use TYPO3\CMS\Core\Core\SystemEnvironmentBuilder;
 use TYPO3\CMS\Core\Crypto\HashService;
@@ -34,6 +33,9 @@ use TYPO3\CMS\Core\EventDispatcher\NoopEventDispatcher;
 use TYPO3\CMS\Core\Http\NormalizedParams;
 use TYPO3\CMS\Core\Http\ServerRequest;
 use TYPO3\CMS\Core\Mail\MailerInterface;
+use TYPO3\CMS\Core\Mail\TemplatedEmailFactory;
+use TYPO3\CMS\Core\RateLimiter\RateLimiterFactory;
+use TYPO3\CMS\Core\RateLimiter\Storage\CachingFrameworkStorage;
 use TYPO3\CMS\Core\Session\SessionManager;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
 
@@ -122,6 +124,7 @@ final class PasswordResetTest extends FunctionalTestCase
         $subject = new PasswordReset(
             $loggerMock,
             $this->get(MailerInterface::class),
+            $this->get(TemplatedEmailFactory::class),
             new HashService(),
             new Random(),
             $this->get(ConnectionPool::class),
@@ -159,6 +162,7 @@ final class PasswordResetTest extends FunctionalTestCase
         $subject = new PasswordReset(
             $logger,
             $this->get(MailerInterface::class),
+            $this->get(TemplatedEmailFactory::class),
             new HashService(),
             new Random(),
             $this->get(ConnectionPool::class),
@@ -202,6 +206,7 @@ final class PasswordResetTest extends FunctionalTestCase
         $subject = new PasswordReset(
             $logger,
             $this->get(MailerInterface::class),
+            $this->get(TemplatedEmailFactory::class),
             new HashService(),
             new Random(),
             $this->get(ConnectionPool::class),
@@ -234,6 +239,7 @@ final class PasswordResetTest extends FunctionalTestCase
         $subject = new PasswordReset(
             $loggerMock,
             $this->get(MailerInterface::class),
+            $this->get(TemplatedEmailFactory::class),
             new HashService(),
             new Random(),
             $this->get(ConnectionPool::class),
@@ -276,9 +282,15 @@ final class PasswordResetTest extends FunctionalTestCase
                 ];
             }
         };
+
+        // Flush system caches to have a clear state in case of requests affecting the rate limit test
+        $cacheManager = $this->get(CacheManager::class);
+        $cacheManager->flushCaches();
+
         $subject = new PasswordReset(
             $logger,
             $this->get(MailerInterface::class),
+            $this->get(TemplatedEmailFactory::class),
             new HashService(),
             new Random(),
             $this->get(ConnectionPool::class),
@@ -308,8 +320,8 @@ final class PasswordResetTest extends FunctionalTestCase
     private function createRateLimiterFactory(): RateLimiterFactory
     {
         return new RateLimiterFactory(
+            $this->get(CachingFrameworkStorage::class),
             ['id' => 'backend', 'policy' => 'sliding_window', 'limit' => 3, 'interval' => '30 minutes'],
-            new InMemoryStorage()
         );
     }
 }

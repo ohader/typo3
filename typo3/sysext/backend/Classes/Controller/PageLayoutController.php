@@ -434,11 +434,6 @@ class PageLayoutController
             $view->addButtonToButtonBar($viewButton);
         }
 
-        // QR Code
-        if ($qrCodeButton = $this->makeQrCodeButton()) {
-            $view->addButtonToButtonBar($qrCodeButton);
-        }
-
         // Edit
         if ($editButton = $this->makeEditButton($request)) {
             $view->addButtonToButtonBar($editButton, ButtonBar::BUTTON_POSITION_LEFT, 3);
@@ -460,6 +455,7 @@ class PageLayoutController
         if ($this->getBackendUser()->check('tables_select', 'tt_content')) {
             $viewSettingsButton = $this->componentFactory->createDropDownButton()
                 ->setLabel($languageService->sL('LLL:EXT:core/Resources/Private/Language/locallang_core.xlf:labels.view'))
+                ->setIcon($this->iconFactory->getIcon('actions-cog'))
                 ->setShowLabelText(true);
             $viewSettingsButton->addItem(
                 $this->componentFactory->createDropDownToggle()
@@ -478,14 +474,14 @@ class PageLayoutController
 
         // Shortcut
         $view->getDocHeaderComponent()->setShortcutContext(
-            routeIdentifier: 'web_layout',
-            displayName: sprintf(
+            'web_layout',
+            sprintf(
                 '%s: %s [%d]',
                 $this->getLanguageService()->translate('short_description', 'backend.modules.layout'),
                 $this->pageContext->getPageTitle(),
                 $this->pageContext->pageId
             ),
-            arguments: [
+            [
                 'id' => $this->pageContext->pageId,
                 'showHidden' => (bool)$this->moduleData->get('showHidden'),
                 'viewMode' => (int)$this->moduleData->get('viewMode'),
@@ -546,42 +542,6 @@ class PageLayoutController
     }
 
     /**
-     * QR Code Button - displays a QR code modal for the frontend preview URL
-     */
-    protected function makeQrCodeButton(): ?ButtonInterface
-    {
-        if (
-            $this->pageContext->hasMultipleLanguagesSelected()
-            || VersionState::tryFrom($this->pageContext->pageRecord['t3ver_state'] ?? 0) === VersionState::DELETE_PLACEHOLDER
-            || PageViewMode::tryFrom((int)$this->moduleData->get('viewMode')) !== PageViewMode::LayoutView
-        ) {
-            return null;
-        }
-
-        $previewUriBuilder = PreviewUriBuilder::create($this->pageContext->pageRecord);
-        if (!$previewUriBuilder->isPreviewable()) {
-            return null;
-        }
-
-        $fallbackUri = $previewUriBuilder
-            ->withRootLine($this->pageContext->rootLine)
-            ->withLanguage($this->pageContext->getPrimaryLanguageId())
-            ->buildUri();
-
-        $previewUri = $this->componentFactory->getPreviewUrlForQrCode(
-            $this->pageContext->pageId,
-            $this->pageContext->getPrimaryLanguageId(),
-            $fallbackUri
-        );
-
-        if ($previewUri === null) {
-            return null;
-        }
-
-        return $this->componentFactory->createQrCodeButton($previewUri);
-    }
-
-    /**
      * Edit Button
      */
     protected function makeEditButton(ServerRequestInterface $request): ?ButtonInterface
@@ -597,19 +557,19 @@ class PageLayoutController
         if ($primaryLanguageId > 0 && ($overlayRecord = $this->pageContext->languageInformation->getTranslationRecord($primaryLanguageId)) !== null) {
             $pageUid = $overlayRecord['uid'];
         }
-        $params = [
-            'returnUrl' => $request->getAttribute('normalizedParams')->getRequestUri(),
-            'module' => 'web_layout',
-            'edit' => [
-                'pages' => [
-                    $pageUid => 'edit',
-                ],
-            ],
-        ];
 
-        return $this->componentFactory->createLinkButton()
-            ->setHref((string)$this->uriBuilder->buildUriFromRoute('record_edit', $params))
-            ->setTitle($this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_layout.xlf:editPageProperties'))
+        $editParams = [
+            'edit' => ['pages' => [$pageUid => 'edit']],
+            'module' => 'web_layout',
+            'returnUrl' => $request->getAttribute('normalizedParams')->getRequestUri(),
+        ];
+        return $this->componentFactory->createGenericButton()
+            ->setTag('typo3-backend-contextual-record-edit-trigger')
+            ->setAttributes([
+                'url' => (string)$this->uriBuilder->buildUriFromRoute('record_edit_contextual', $editParams),
+                'edit-url' => (string)$this->uriBuilder->buildUriFromRoute('record_edit', $editParams),
+            ])
+            ->setLabel($this->getLanguageService()->sL('LLL:EXT:backend/Resources/Private/Language/locallang_layout.xlf:editPageProperties'))
             ->setShowLabelText(true)
             ->setIcon($this->iconFactory->getIcon('actions-page-open', IconSize::SMALL));
     }

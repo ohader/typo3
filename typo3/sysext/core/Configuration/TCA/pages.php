@@ -70,52 +70,52 @@ return [
                 'renderType' => 'selectSingle',
                 'items' => [
                     [
-                        'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:doktype.I.0',
+                        'label' => 'core.db.pages:doktype.default',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT,
                         'icon' => 'apps-pagetree-page-default',
                         'group' => 'default',
                     ],
                     [
-                        'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.4',
+                        'label' => 'core.db.pages:doktype.be_user_section',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION,
                         'icon' => 'apps-pagetree-page-backend-users',
                         'group' => 'default',
                     ],
                     [
-                        'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.2',
+                        'label' => 'core.db.pages:doktype.shortcut',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SHORTCUT,
                         'icon' => 'apps-pagetree-page-shortcut',
                         'group' => 'link',
                     ],
                     [
-                        'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.5',
+                        'label' => 'core.db.pages:doktype.mountpoint',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_MOUNTPOINT,
                         'icon' => 'apps-pagetree-page-mountpoint',
                         'group' => 'link',
                     ],
                     [
-                        'label' => 'core.db.pages.doktype:link',
+                        'label' => 'core.db.pages:doktype.link',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_LINK,
                         'icon' => 'apps-pagetree-page-shortcut-external',
                         'group' => 'link',
                     ],
                     [
-                        'label' => 'LLL:EXT:core/Resources/Private/Language/locallang_tca.xlf:doktype.I.folder',
+                        'label' => 'core.db.pages:doktype.sysfolder',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SYSFOLDER,
                         'icon' => 'apps-pagetree-folder-default',
                         'group' => 'special',
                     ],
                     [
-                        'label' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.I.7',
+                        'label' => 'core.db.pages:doktype.spacer',
                         'value' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SPACER,
                         'icon' => 'apps-pagetree-spacer',
                         'group' => 'special',
                     ],
                 ],
                 'itemGroups' => [
-                    'default' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.page',
-                    'link' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.link',
-                    'special' => 'LLL:EXT:frontend/Resources/Private/Language/locallang_tca.xlf:pages.doktype.div.special',
+                    'default' => 'core.db.pages:doktype.group.page',
+                    'link' => 'core.db.pages:doktype.group.link',
+                    'special' => 'core.db.pages:doktype.group.special',
                 ],
                 'default' => (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_DEFAULT,
             ],
@@ -396,7 +396,7 @@ return [
                 'relationship' => 'manyToOne',
                 'suggestOptions' => [
                     'default' => [
-                        'additionalSearchFields' => 'nav_title, url',
+                        'additionalSearchFields' => 'nav_title',
                         'addWhere' => ' AND pages.uid != ###THIS_UID###',
                     ],
                 ],
@@ -442,7 +442,7 @@ return [
                 'relationship' => 'manyToOne',
                 'suggestOptions' => [
                     'default' => [
-                        'additionalSearchFields' => 'nav_title, url',
+                        'additionalSearchFields' => 'nav_title',
                         'addWhere' => ' AND pages.uid != ###THIS_UID###',
                     ],
                 ],
@@ -678,6 +678,12 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+            ],
         ],
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_BE_USER_SECTION => [
             'allowedRecordTypes' => ['*'],
@@ -711,6 +717,12 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+            ],
         ],
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_LINK => [
             'showitem' => '
@@ -739,6 +751,17 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+                'links' => [
+                    'title' => 'backend.wizards.page:step.link',
+                    'fields' => ['link'],
+                    'after' => ['setup'],
+                ],
+            ],
         ],
         // shortcut
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SHORTCUT => [
@@ -770,6 +793,17 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+                'shortcut' => [
+                    'title' => 'backend.wizards.page:step.shortcut',
+                    'fields' => ['shortcut_mode', 'shortcut'],
+                    'after' => ['setup'],
+                ],
+            ],
         ],
         // mount page
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_MOUNTPOINT => [
@@ -801,6 +835,17 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+                'mounting' => [
+                    'title' => 'backend.wizards.page:step.mounting',
+                    'fields' => ['mount_pid_ol', 'mount_pid'],
+                    'after' => ['setup'],
+                ],
+            ],
         ],
         // spacer
         (string)\TYPO3\CMS\Core\Domain\Repository\PageRepository::DOKTYPE_SPACER => [
@@ -822,6 +867,12 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+            ],
         ],
         // Doktype 254 is a 'Folder' - a general purpose storage folder for whatever you like.
         // In CMS context it's NOT a viewable page. Can contain any element.
@@ -848,6 +899,12 @@ return [
                     rowDescription,
                 --div--;core.form.tabs:extended,
             ',
+            'wizardSteps' => [
+                'setup' => [
+                    'title' => 'backend.wizards.page:step.setup',
+                    'fields' => ['title', 'slug', 'nav_title', 'hidden', 'nav_hide'],
+                ],
+            ],
         ],
     ],
     'palettes' => [

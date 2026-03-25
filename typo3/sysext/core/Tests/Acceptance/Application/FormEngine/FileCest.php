@@ -26,7 +26,7 @@ use TYPO3\CMS\Core\Tests\Acceptance\Support\Helper\PageTree;
  */
 final class FileCest
 {
-    private static string $filenameSelector = '.form-irre-header-body > span > span';
+    private static string $filenameSelector = '.panel-title';
     private static string $saveButtonLink = '//*/button[@name="_savedok"][1]';
 
     /**
@@ -43,14 +43,14 @@ final class FileCest
         $I->waitForText('file', 20);
         $editRecordLinkCssPath = '#recordlist-tx_styleguide_file a[aria-label="Edit record"]';
         $I->click($editRecordLinkCssPath);
-        $I->waitForText('Edit Form', 3, 'h1');
+        $I->waitForElement('.typo3-TCEforms', 3);
     }
 
     public function seeFalRelationInfo(ApplicationTester $I, ModalDialog $modalDialog): void
     {
         $infoButtonSelector = '.tab-content button[data-action="infowindow"]';
 
-        $filename = $I->grabTextFrom(self::$filenameSelector);
+        $filename = trim(explode("\n", $I->grabTextFrom(self::$filenameSelector))[0]);
         $I->click($infoButtonSelector);
         $modalDialog->canSeeDialog();
         $I->switchToIFrame('.modal-iframe');
@@ -69,7 +69,7 @@ final class FileCest
 
     public function deleteFalRelation(ApplicationTester $I, ModalDialog $modalDialog): void
     {
-        $deleteButtonSelector = '.tab-content .t3js-editform-delete-file-reference';
+        $deleteButtonSelector = '.tab-content .t3js-editform-delete-inline-record';
         $filename = $I->grabTextFrom(self::$filenameSelector);
 
         $I->click($deleteButtonSelector);

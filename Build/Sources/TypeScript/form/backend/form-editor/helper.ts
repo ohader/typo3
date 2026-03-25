@@ -14,7 +14,7 @@
 /**
  * Module: @typo3/form/backend/form-editor/helper
  */
-import $ from 'jquery';
+import { merge } from 'lodash-es';
 import type {
   FormEditor,
 } from '@typo3/form/backend/form-editor';
@@ -78,8 +78,8 @@ export function setConfiguration(
   this: typeof import('./helper'),
   customConfiguration: Partial<Configuration>
 ): typeof import('./helper') {
-  assert('object' === $.type(customConfiguration), 'Invalid parameter "partialConfiguration"', 1478950623);
-  configuration = $.extend(true, defaultConfiguration, customConfiguration);
+  assert(typeof customConfiguration === 'object' && customConfiguration !== null && !Array.isArray(customConfiguration), 'Invalid parameter "partialConfiguration"', 1478950623);
+  configuration = merge({}, defaultConfiguration, customConfiguration) as Configuration;
   return this;
 }
 
@@ -97,7 +97,7 @@ export function buildDomElementSelectorHelper(
     'Invalid parameter "patternIdentifier" (' + patternIdentifier + ')',
     1478801251
   );
-  assert('array' === $.type(replacements), 'Invalid parameter "replacements"', 1478801252);
+  assert(Array.isArray(replacements), 'Invalid parameter "replacements"', 1478801252);
 
   newString = configuration.domElementSelectorPattern[patternIdentifier];
   for (let i = 0, len = replacements.length; i < len; ++i) {
@@ -206,19 +206,26 @@ export function getDomElementDataIdentifierSelector(
   return getDomElementDataAttribute('identifier', 'bracesWithKeyValue', [getDomElementDataAttributeValue(dataAttributeValueIdentifier)]);
 }
 
-export function getTemplate(templateName: string): JQuery {
+/**
+ * Returns the template container element matching the given name.
+ * Note: callers typically need the *inner content* of the container, not the
+ * container itself. Use `element.innerHTML` or `element.firstElementChild`
+ * to obtain the actual template markup, analogous to the deprecated
+ * `getTemplate()` + jQuery's `.html()` pattern.
+ */
+export function getTemplateElement(templateName: string): HTMLTemplateElement | null {
   if (!getUtility().isUndefinedOrNull(configuration.domElementDataAttributeValues[templateName])) {
     templateName = getDomElementDataAttributeValue(templateName);
   }
 
-  return $(getDomElementDataAttribute('template', 'bracesWithKeyValue', [templateName]));
+  return document.querySelector<HTMLTemplateElement>(getDomElementDataAttribute('template', 'bracesWithKeyValue', [templateName]));
 }
 
-export function getTemplatePropertyDomElement(
+export function getTemplatePropertyElement(
   templatePropertyName: string,
-  templateDomElement: HTMLElement | JQuery
-): JQuery {
-  return $(getDomElementDataAttribute('templateProperty', 'bracesWithKeyValue', [templatePropertyName]), $(templateDomElement));
+  templateDomElement: HTMLElement
+): HTMLElement | null {
+  return templateDomElement.querySelector(getDomElementDataAttribute('templateProperty', 'bracesWithKeyValue', [templatePropertyName]));
 }
 
 export function bootstrap(_formEditorApp: FormEditor): void {

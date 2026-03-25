@@ -22,6 +22,7 @@ use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
+use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
@@ -31,17 +32,6 @@ use TYPO3\CMS\Core\Utility\StringUtility;
  */
 class InputSlugElement extends AbstractFormElement
 {
-    /**
-     * Default field information enabled for this element.
-     *
-     * @var array
-     */
-    protected $defaultFieldInformation = [
-        'tcaDescription' => [
-            'renderType' => 'tcaDescription',
-        ],
-    ];
-
     /**
      * Default field wizards enabled for this element.
      *
@@ -83,8 +73,8 @@ class InputSlugElement extends AbstractFormElement
         $resultArray = $this->initializeResultArray();
 
         $languageId = 0;
-        if (isset($GLOBALS['TCA'][$table]['ctrl']['languageField']) && !empty($GLOBALS['TCA'][$table]['ctrl']['languageField'])) {
-            $languageField = $GLOBALS['TCA'][$table]['ctrl']['languageField'];
+        if ($this->data['tcaSchemata']->has($table) && $this->data['tcaSchemata']->get($table)->hasCapability(TcaSchemaCapability::Language)) {
+            $languageField = $this->data['tcaSchemata']->get($table)->getCapability(TcaSchemaCapability::Language)->getLanguageField()->getName();
             $languageId = (int)((is_array($row[$languageField] ?? null) ? ($row[$languageField][0] ?? 0) : $row[$languageField]) ?? 0);
         }
 
@@ -95,6 +85,7 @@ class InputSlugElement extends AbstractFormElement
         $width = $this->formMaxWidth($size);
         $baseUrl = $this->data['customData'][$this->data['fieldName']]['slugPrefix'] ?? '';
         $fieldId = StringUtility::getUniqueId('formengine-input-');
+        $renderedLabel = $this->renderLabel($fieldId);
 
         // Convert UTF-8 characters back (that is important, see Slug class when sanitizing)
         $itemValue = rawurldecode($itemValue);
@@ -120,7 +111,7 @@ class InputSlugElement extends AbstractFormElement
                 'id' => $fieldId,
             ];
             $html = [];
-            $html[] = $this->renderLabel($fieldId);
+            $html[] = $renderedLabel;
             $html[] = '<div class="formengine-field-item t3js-formengine-field-item">';
             $html[] =     $fieldInformationHtml;
             $html[] =     '<div class="form-control-wrap" style="max-width: ' . $width . 'px">';
@@ -153,6 +144,7 @@ class InputSlugElement extends AbstractFormElement
 
         $thisSlugId = 't3js-form-field-slug-id' . StringUtility::getUniqueId();
         $mainFieldHtml = [];
+        $mainFieldHtml[] = $renderedLabel;
         $mainFieldHtml[] = '<div class="formengine-field-item t3js-formengine-field-item">';
         $mainFieldHtml[] =  $fieldInformationHtml;
         $mainFieldHtml[] =  '<div class="form-control-wrap" style="max-width: ' . $width . 'px" id="' . htmlspecialchars($thisSlugId) . '">';
@@ -217,7 +209,7 @@ class InputSlugElement extends AbstractFormElement
         $mainFieldHtml[] =  '</div>';
         $mainFieldHtml[] = '</div>';
 
-        $resultArray['html'] = $this->wrapWithFieldsetAndLegend(implode(LF, $mainFieldHtml));
+        $resultArray['html'] = implode(LF, $mainFieldHtml);
 
         [$commonElementPrefix] = GeneralUtility::revExplode('[', $parameterArray['itemFormElName'], 2);
         $validInputNamesToListenTo = [];
