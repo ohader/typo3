@@ -28,7 +28,7 @@ final class ModelCatalog extends AbstractModelCatalog
                 ],
             ],
             // ~3.4 GB — Qwen3 1.7B full precision (q0f16), text only
-            'Qwen3-1.7B-q0f16-MLC' => [
+            'Qwen3-1.7B-q4f16_1-MLC' => [
                 'class' => BrowserModel::class,
                 'capabilities' => [
                     Capability::INPUT_MESSAGES,
