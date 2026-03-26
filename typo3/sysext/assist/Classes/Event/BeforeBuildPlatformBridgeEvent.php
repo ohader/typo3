@@ -26,9 +26,9 @@ use TYPO3\CMS\Assist\Domain\Model\Platform;
 final class BeforeBuildPlatformBridgeEvent
 {
     /**
-     * @var array{platformFactory?: array<string, mixed>}
+     * @var array{platformFactory?: array<string, mixed>, modelCatalog?: array<string, mixed>}
      */
-    private array $options = [];
+    private array $options;
 
     private bool $liveResolved = false;
 
@@ -41,6 +41,9 @@ final class BeforeBuildPlatformBridgeEvent
         $this->options = $options;
     }
 
+    /**
+     * @return array{platformFactory?: array<string, mixed>, modelCatalog?: array<string, mixed>}
+     */
     public function getOptions(): array
     {
         return $this->options;

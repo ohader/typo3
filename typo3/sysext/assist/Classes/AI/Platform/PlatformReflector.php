@@ -41,6 +41,35 @@ final readonly class PlatformReflector
         return $this->resolveOptions($reflector, $options);
     }
 
+    public function getPlatformFactorySensitiveOptions(array $resolvedOptions = []): array
+    {
+        $sensitiveOptionNames = $this->getPlatformFactorySensitiveOptionsNames();
+        $resolvedOptions = $this->getPlatformFactoryOptions($resolvedOptions);
+        return array_filter(
+            $resolvedOptions,
+            static fn (string $key) => in_array($key, $sensitiveOptionNames, true),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /**
+     * Returns the names of parameters on PlatformFactory::create() that are
+     * marked #[\SensitiveParameter].
+     *
+     * @return list<string>
+     */
+    public function getPlatformFactorySensitiveOptionsNames(): array
+    {
+        $reflector = new \ReflectionMethod($this->getPlatformFactoryClassName(), 'create');
+        $names = [];
+        foreach ($reflector->getParameters() as $parameter) {
+            if ($parameter->getAttributes(\SensitiveParameter::class) !== []) {
+                $names[] = $parameter->getName();
+            }
+        }
+        return $names;
+    }
+
     public function getPlatformFactoryParamTypes(): array
     {
         $paramTypes = [];

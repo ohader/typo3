@@ -159,6 +159,7 @@ final readonly class PlatformTcaProvider
             return [];
         }
 
+        $sensitiveNames = $reflector->getPlatformFactorySensitiveOptionsNames();
         $params = [];
         foreach ($method->getParameters() as $reflectionParam) {
             $type = $reflectionParam->getType();
@@ -171,7 +172,7 @@ final readonly class PlatformTcaProvider
                 continue;
             }
 
-            $sensitive = !empty($reflectionParam->getAttributes(\SensitiveParameter::class));
+            $sensitive = in_array($reflectionParam->getName(), $sensitiveNames, true);
             $hasDefault = $reflectionParam->isDefaultValueAvailable();
             $default = $hasDefault ? $reflectionParam->getDefaultValue() : null;
 
