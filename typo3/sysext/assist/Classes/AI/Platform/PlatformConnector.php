@@ -23,6 +23,7 @@ use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
+use TYPO3\CMS\Assist\Service\PackageService;
 
 /**
  * Creates live Symfony AI Platform instances from TYPO3 Platform domain objects
@@ -33,7 +34,7 @@ use TYPO3\CMS\Assist\Event\BeforeBuildPlatformBridgeEvent;
 final readonly class PlatformConnector
 {
     public function __construct(
-        private \TYPO3\CMS\Assist\Service\PackageService $packageService,
+        private PackageService $packageService,
         private EventDispatcherInterface $eventDispatcher,
     ) {}
 

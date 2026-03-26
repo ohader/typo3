@@ -6,10 +6,7 @@
   "autoload": {
     "psr-4": {
       "TYPO3\\Symfony\\AI\\BrowserPlatform\\Bridge\\": "src/"
-    },
-    "exclude-from-classmap": [
-      "/vendor/"
-    ]
+    }
   },
   "require": {
     "php": ">=8.2",
