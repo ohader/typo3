@@ -84,7 +84,6 @@ class NumbAssistantTest extends FunctionalTestCase
             {
                 return new AgentCallRequest(model: $input->model, messageBag: $input->messageBag);
             }
-            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();
@@ -120,7 +119,6 @@ class NumbAssistantTest extends FunctionalTestCase
                     ),
                 );
             }
-            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();
@@ -150,7 +148,6 @@ class NumbAssistantTest extends FunctionalTestCase
             {
                 return new AgentCallRequest(model: $input->model, messageBag: $input->messageBag);
             }
-            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();

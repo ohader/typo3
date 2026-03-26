@@ -48,14 +48,5 @@ interface AssistantInterface
      */
     public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest;
 
-    /**
-     * Post-process the result locally after the remote agent call has completed.
-     *
-     * Called only when {@see buildAgentCall()} returned a non-null request and
-     * the result has been added to $output. Handlers can use this to transform,
-     * enrich, or act on the response.
-     */
-    public function process(AgentInput $input, AgentOutput $output): void;
-
     public function handleClientRequest(AssistantRequest $request): AssistantResponse;
 }

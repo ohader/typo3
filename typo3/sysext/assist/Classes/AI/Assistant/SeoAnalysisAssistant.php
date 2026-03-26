@@ -118,8 +118,6 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         );
     }
 
-    public function process(AgentInput $input, AgentOutput $output): void {}
-
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
         $progressUuid = $request->getProgressUuid();
@@ -301,13 +299,8 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
     {
         $feedback = [];
         foreach ($output->getResultBag()->getResults() as $result) {
-            $feedback[] = $this->convertResult($result);
+            $feedback[] = $this->resultConverter->convert($result);
         }
         return $feedback;
-    }
-
-    private function convertResult(ResultInterface $result): Feedback\FeedbackInterface
-    {
-        return $this->resultConverter->convert($result);
     }
 }

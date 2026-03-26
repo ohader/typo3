@@ -65,8 +65,6 @@ final readonly class A11yAssistant implements AssistantInterface
         );
     }
 
-    public function process(AgentInput $input, AgentOutput $output): void {}
-
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
         return new AssistantResponse();

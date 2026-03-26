@@ -126,8 +126,6 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         );
     }
 
-    public function process(AgentInput $input, AgentOutput $output): void {}
-
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
         $progressUuid = $request->getProgressUuid();

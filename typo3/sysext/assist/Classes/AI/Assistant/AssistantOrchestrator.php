@@ -56,8 +56,6 @@ final readonly class AssistantOrchestrator
         array $requestParams = [],
     ): void {
         $assistant = $handler->getAssistant();
-        $handler->process($input, $output);
-
         $request = $handler->buildAgentCall($input, $output);
         if ($request === null) {
             return;
@@ -82,7 +80,6 @@ final readonly class AssistantOrchestrator
 
         $result = $this->agentService->call($request);
         $output->add($result);
-        $handler->process($input, $output);
     }
 
     public function buildHandler(Assistant $assistant): AssistantInterface
