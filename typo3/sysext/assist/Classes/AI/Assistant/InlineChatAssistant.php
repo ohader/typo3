@@ -31,6 +31,7 @@ use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
@@ -63,6 +64,11 @@ final readonly class InlineChatAssistant implements AssistantInterface
         private ConfigurationResolver $configurationResolver,
         private Feedback\ResultConverter $resultConverter,
     ) {}
+
+    public function getAssistant(): Assistant
+    {
+        return $this->assistantRegistry->getAssistant(self::IDENTIFIER);
+    }
 
     public function getSystemPrompt(): ?string
     {
@@ -146,9 +152,8 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         try {
-            $this->orchestrator->process($assistant, $input, $output, $request->params);
+            $this->orchestrator->process($this, $input, $output, $request->params);
         } catch (ToolApprovalRequiredException $e) {
             return $this->buildToolApprovalResponse($e, $input->progress, $request->params);
         }
@@ -193,9 +198,8 @@ final readonly class InlineChatAssistant implements AssistantInterface
         $input->sequencePointer = new SequencePointer(submitted: count($progress->items));
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
         try {
-            $this->orchestrator->process($assistant, $input, $output, $request->params);
+            $this->orchestrator->process($this, $input, $output, $request->params);
         } catch (ToolApprovalRequiredException $e) {
             return $this->buildToolApprovalResponse($e, $input->progress, $request->params);
         }

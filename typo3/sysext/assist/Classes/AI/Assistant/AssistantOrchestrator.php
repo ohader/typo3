@@ -50,12 +50,12 @@ final readonly class AssistantOrchestrator
      *                                             Used by the approving toolbox to check tool-call approvals.
      */
     public function process(
-        Assistant $assistant,
+        AssistantInterface $handler,
         AgentInput $input,
         AgentOutput $output,
         array $requestParams = [],
     ): void {
-        $handler = $this->buildHandler($assistant);
+        $assistant = $handler->getAssistant();
         $handler->process($input, $output);
 
         $request = $handler->buildAgentCall($input, $output);

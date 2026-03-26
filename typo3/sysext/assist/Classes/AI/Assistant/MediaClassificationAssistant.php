@@ -43,6 +43,7 @@ use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\StateCollection;
@@ -99,6 +100,11 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         private ResourceFactory $resourceFactory,
         private TcaSchemaFactory $schemaFactory,
     ) {}
+
+    public function getAssistant(): Assistant
+    {
+        return $this->assistantRegistry->getAssistant(self::IDENTIFIER);
+    }
 
     public function getSystemPrompt(): ?string
     {
@@ -401,8 +407,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         // $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
 
-        $assistant = $this->assistantRegistry->getAssistant(self::IDENTIFIER);
-        $this->orchestrator->process($assistant, $input, $output);
+        $this->orchestrator->process($this, $input, $output);
 
         $optionItems = [];
         foreach ($output->getResultBag()->getResults() as $result) {

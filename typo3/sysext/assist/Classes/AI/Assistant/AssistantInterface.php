@@ -20,9 +20,13 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 interface AssistantInterface
 {
+    public function getAssistant(): Assistant;
+
+
     /**
      * Declare which tools should be available for the agent call.
      *
