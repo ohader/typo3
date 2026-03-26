@@ -19,7 +19,6 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
-use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\ApprovingToolbox;

@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Service;
 
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModelFactory;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Domain\Model\Platform;
 use TYPO3\CMS\Core\Site\SiteFinder;
@@ -32,6 +33,7 @@ final readonly class ConfigurationResolver
     public function __construct(
         private PackageService $packageService,
         private SiteFinder $siteFinder,
+        private PlatformModelFactory $platformModelFactory,
     ) {}
 
     public function getDefaultSiteIdentifier(): ?string
@@ -78,7 +80,7 @@ final readonly class ConfigurationResolver
         if ($model === '') {
             return null;
         }
-        return PlatformModel::fromString($model);
+        return $this->platformModelFactory->fromString($model);
     }
 
     /**

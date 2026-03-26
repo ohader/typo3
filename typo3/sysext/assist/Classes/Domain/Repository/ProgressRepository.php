@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\Domain\Repository;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModelFactory;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
@@ -38,7 +39,10 @@ final readonly class ProgressRepository
     private const TABLE_NAME = 'sys_assist_progress';
     private const ITEMS_TABLE = 'sys_assist_progress_item';
 
-    public function __construct(private ConnectionPool $pool) {}
+    public function __construct(
+        private ConnectionPool $pool,
+        private PlatformModelFactory $platformModelFactory,
+    ) {}
 
     public function findByUuid(Uuid $uuid): ?Progress
     {
@@ -72,7 +76,7 @@ final readonly class ProgressRepository
             ->executeQuery()
             ->fetchAllAssociative();
 
-        return Progress::fromRows($parentRow, $itemRows);
+        return Progress::fromRows($parentRow, $itemRows, $this->platformModelFactory);
     }
 
     /**

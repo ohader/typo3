@@ -18,7 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\Domain\Model;
 
 use Symfony\Component\Uid\Uuid;
-use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModelFactory;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 
 /**
@@ -43,7 +43,7 @@ final readonly class Progress
      * @param array<string, mixed> $parentRow
      * @param list<array<string, mixed>> $itemRows
      */
-    public static function fromRows(array $parentRow, array $itemRows): self
+    public static function fromRows(array $parentRow, array $itemRows, PlatformModelFactory $factory): self
     {
         usort($itemRows, static fn(array $a, array $b): int => $a['sequence'] <=> $b['sequence']);
 
@@ -68,7 +68,7 @@ final readonly class Progress
 
         return new self(
             uuid: Uuid::fromString($parentRow['uuid']),
-            model: PlatformModel::fromString($parentRow['model']),
+            model: $factory->fromString($parentRow['model']),
             initiator: Initiator::fromJson($parentRow['initiator']),
             userId: (int)$parentRow['user_id'],
             items: array_map(ProgressItem::fromRow(...), $itemRows),

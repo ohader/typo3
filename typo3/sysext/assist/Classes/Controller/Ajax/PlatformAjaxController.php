@@ -22,6 +22,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Symfony\AI\Platform\Capability;
 use TYPO3\CMS\Assist\AI\Platform\PlatformConnector;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModelFactory;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
@@ -39,6 +40,7 @@ final readonly class PlatformAjaxController
     public function __construct(
         private ConfigurationResolver $configurationResolver,
         private PlatformConnector $platformConnector,
+        private PlatformModelFactory $platformModelFactory,
         private AssistantRegistry $assistantRegistry,
         private SiteWriter $siteWriter,
     ) {}
@@ -86,10 +88,12 @@ final readonly class PlatformAjaxController
                     static fn(Capability $cap): string => $cap->value,
                     $meta['capabilities'] ?? [],
                 );
+                $platformModel = $this->platformModelFactory->fromString($name . '@' . $platform->package);
                 $models[] = [
                     'name' => $name,
                     'capabilities' => $capabilities,
                     'enabled' => in_array($name, $enabledModels, true),
+                    'isLocal' => $platformModel->isLocal,
                 ];
             }
 
@@ -183,7 +187,7 @@ final readonly class PlatformAjaxController
         try {
             if ($model !== '') {
                 // validate `model@platform` syntax
-                PlatformModel::fromString($model);
+                $this->platformModelFactory->fromString($model);
             }
 
             $configuration = $this->configurationResolver->getSiteConfiguration($siteIdentifier);

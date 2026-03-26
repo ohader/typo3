@@ -32,7 +32,7 @@ use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationFeedback;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\FeedbackInterface;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\OptionsFeedback;
-use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
+use TYPO3\CMS\Assist\AI\Platform\PlatformModelFactory;
 use TYPO3\CMS\Assist\Domain\Enum\Availability;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
@@ -51,6 +51,7 @@ final class ChatCommand extends Command
         private readonly ConfigurationResolver $configurationResolver,
         private readonly AssistantRegistry $assistantRegistry,
         private readonly AssistantOrchestrator $assistantOrchestrator,
+        private readonly PlatformModelFactory $platformModelFactory,
     ) {
         parent::__construct();
     }
@@ -83,7 +84,7 @@ final class ChatCommand extends Command
         $modelValue = $input->getArgument('model');
         if ($modelValue !== null) {
             try {
-                $platformModel = PlatformModel::fromString($modelValue);
+                $platformModel = $this->platformModelFactory->fromString($modelValue);
             } catch (\InvalidArgumentException $e) {
                 $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
                 return Command::FAILURE;

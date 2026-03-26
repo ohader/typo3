@@ -25,25 +25,11 @@ final readonly class PlatformModel implements \Stringable
     public function __construct(
         public string $platform,
         public string $model,
+        public bool $isLocal = false,
     ) {
         if (\str_contains($this->model, '@') || \str_contains($this->platform, '@')) {
             throw new \LogicException('Identifiers for platform or model may not contain "@" characters.', 1771165074);
         }
-    }
-
-    public static function fromString(string $identifier): self
-    {
-        $parts = explode('@', $identifier, 2);
-        if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
-            throw new \InvalidArgumentException(
-                sprintf('Invalid platform model identifier "%s", expected format "model@platform".', $identifier),
-                1771165071
-            );
-        }
-        return new self(
-            platform: $parts[1],
-            model: $parts[0]
-        );
     }
 
     public function __toString(): string

@@ -8,3 +8,5 @@ services:
     resource: '../Classes/*'
 
   Symfony\Component\Config\Resource\ComposerResource: ~
+
+  TYPO3\Symfony\AI\BrowserPlatform\Bridge\EventListener\LocalPlatformMarker: ~

@@ -48,8 +48,9 @@ class NumbAssistantTest extends FunctionalTestCase
         $this->importCSVDataSet(__DIR__ . '/../Fixtures/pages.csv');
         $this->buildAssistSiteConfiguration('NumbAssistantTest', 1, '/', [self::ASSIST_PLATFORM_NUMB_ENCORE]);
         $this->agentGateway = $this->get(AgentGateway::class);
-        $this->model = PlatformModel::fromString(
-            self::ASSIST_MODEL_NUMB_ENCORE . '@' . self::ASSIST_PACKAGE_NUMB_ENCORE
+        $this->model = new PlatformModel(
+            platform: self::ASSIST_PACKAGE_NUMB_ENCORE,
+            model: self::ASSIST_MODEL_NUMB_ENCORE,
         );
     }
 

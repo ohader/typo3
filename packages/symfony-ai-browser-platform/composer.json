@@ -10,7 +10,8 @@
   },
   "require": {
     "php": ">=8.2",
-    "symfony/ai-platform": "^0.6"
+    "symfony/ai-platform": "^0.6",
+    "typo3/cms-assist": "*"
   },
   "minimum-stability": "dev"
 }

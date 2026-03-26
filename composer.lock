@@ -6810,7 +6810,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/symfony-ai-browser-platform",
-                "reference": "bfd06505e688c586d2de0c1b4fc74d3e8d184c91"
+                "reference": "9251fea8913aa1f3404b9b6d1cdc36ee5e3bc62c"
             },
             "require": {
                 "php": ">=8.2",
@@ -6820,10 +6820,7 @@
             "autoload": {
                 "psr-4": {
                     "TYPO3\\Symfony\\AI\\BrowserPlatform\\Bridge\\": "src/"
-                },
-                "exclude-from-classmap": [
-                    "/vendor/"
-                ]
+                }
             },
             "license": [
                 "GPL-2.0-or-later"
@@ -11353,7 +11350,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/symfony-ai-numb-platform",
-                "reference": "9b4ced06e51beeca0d1a3f13fcec105198879108"
+                "reference": "f8215ce90d440ad61f26c04e78ec577b4a0f1681"
             },
             "require": {
                 "php": ">=8.2",
@@ -11363,10 +11360,7 @@
             "autoload": {
                 "psr-4": {
                     "TYPO3\\Symfony\\AI\\NumbPlatform\\Bridge\\": ""
-                },
-                "exclude-from-classmap": [
-                    "/vendor/"
-                ]
+                }
             },
             "license": [
                 "GPL-2.0-or-later"

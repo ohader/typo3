@@ -18,6 +18,7 @@ interface ModelInfo {
   name: string;
   capabilities: string[];
   enabled: boolean;
+  isLocal: boolean;
 }
 
 /**
@@ -130,8 +131,11 @@ class PlatformManagement {
 
       const btnClass = model.enabled ? 'btn-success' : 'btn-default';
       const btnLabel = model.enabled ? 'Enabled' : 'Disabled';
+      const localBadge = model.isLocal
+        ? '<span class="badge badge-warning ms-1">Local</span>'
+        : '';
       html += '<tr>';
-      html += '<td><code>' + this.escapeHtml(model.name) + '</code></td>';
+      html += '<td><code>' + this.escapeHtml(model.name) + '</code>' + localBadge + '</td>';
       html += '<td>' + badges + '</td>';
       html += '<td><button type="button" class="btn btn-sm ' + btnClass + ' model-toggle" data-platform-index="'
         + platformIndex + '" data-model-name="' + this.escapeHtml(model.name) + '" data-enabled="'

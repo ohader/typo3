@@ -68,7 +68,7 @@ final readonly class AssistantOrchestrator
 
         $request = $this->withToolPolicy($handler, $assistant, $input, $request, $requestParams);
 
-        if ($request->model->platform === 'typo3/symfony-ai-browser-platform') {
+        if ($request->model->isLocal) {
             $output->add(new BrowserDelegationResult(
                 assistantIdentifier: $assistant->identifier,
                 model: $request->model->model,
