@@ -18,8 +18,8 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
+use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 
 interface AssistantInterface
 {
@@ -42,7 +42,7 @@ interface AssistantInterface
      *
      * Return null if no remote call is needed (e.g. canned response written directly to $output).
      */
-    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest;
+    public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest;
 
     /**
      * Post-process the result locally after the remote agent call has completed.
@@ -51,7 +51,7 @@ interface AssistantInterface
      * the result has been added to $output. Handlers can use this to transform,
      * enrich, or act on the response.
      */
-    public function process(AgentInputInterface $input, AgentOutputInterface $output): void;
+    public function process(AgentInput $input, AgentOutput $output): void;
 
     public function handleClientRequest(AssistantRequest $request): AssistantResponse;
 }

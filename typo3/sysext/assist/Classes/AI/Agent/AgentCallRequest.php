@@ -21,6 +21,7 @@ use Symfony\AI\Agent\InputProcessorInterface;
 use Symfony\AI\Agent\OutputProcessorInterface;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
+use TYPO3\CMS\Assist\AI\Message\ModelOptions;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 
@@ -50,6 +51,7 @@ final readonly class AgentCallRequest
         array $outputProcessors = [],
         public ?Progress $progress = null,
         public ?SequencePointer $sequencePointer = null,
+        public ?ModelOptions $modelOptions = null,
     ) {
         $this->inputProcessors = $inputProcessors;
         $this->outputProcessors = $outputProcessors;
@@ -64,6 +66,7 @@ final readonly class AgentCallRequest
             outputProcessors: $this->outputProcessors,
             progress: $this->progress,
             sequencePointer: $this->sequencePointer,
+            modelOptions: $this->modelOptions,
         );
     }
 
@@ -80,6 +83,7 @@ final readonly class AgentCallRequest
             outputProcessors: [...$this->outputProcessors, ...$outputProcessors],
             progress: $this->progress,
             sequencePointer: $this->sequencePointer,
+            modelOptions: $this->modelOptions,
         );
     }
 }

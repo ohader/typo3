@@ -21,8 +21,8 @@ use Psr\Container\ContainerInterface;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\AgentService;
 use TYPO3\CMS\Assist\AI\Agent\ToolboxFactory;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
+use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 /**
@@ -45,8 +45,8 @@ final readonly class AssistantOrchestrator
      */
     public function process(
         Assistant $assistant,
-        AgentInputInterface $input,
-        AgentOutputInterface $output,
+        AgentInput $input,
+        AgentOutput $output,
         array $requestParams = [],
     ): void {
         $handler = $this->buildHandler($assistant);
@@ -89,7 +89,7 @@ final readonly class AssistantOrchestrator
     private function withToolPolicy(
         AssistantInterface $handler,
         Assistant $assistant,
-        AgentInputInterface $input,
+        AgentInput $input,
         AgentCallRequest $request,
         array $requestParams,
     ): AgentCallRequest {

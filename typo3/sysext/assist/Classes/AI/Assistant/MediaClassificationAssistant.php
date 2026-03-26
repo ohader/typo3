@@ -19,6 +19,7 @@ namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Symfony\AI\Platform\Message\Content\Image;
 use Symfony\AI\Platform\Message\Message;
+use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Result\TextResult;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
@@ -39,9 +40,7 @@ use TYPO3\CMS\Assist\AI\Assistant\Type\PropertyDefinition;
 use TYPO3\CMS\Assist\AI\Assistant\Type\StructureAggregate;
 use TYPO3\CMS\Assist\AI\Assistant\Type\TypeInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
@@ -111,17 +110,17 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
         return null;
     }
 
-    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+    public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
     {
         return new AgentCallRequest(
-            model: $input->getModel(),
-            messageBag: $input->getMessageBag(),
-            progress: $input->getProgress(),
-            sequencePointer: $input->getSequencePointer(),
+            model: $input->model,
+            messageBag: $input->messageBag,
+            progress: $input->progress,
+            sequencePointer: $input->sequencePointer,
         );
     }
 
-    public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+    public function process(AgentInput $input, AgentOutput $output): void {}
 
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
@@ -396,7 +395,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
             ),
         ];
 
-        $input = new AgentInput($model, ...$messages);
+        $input = new AgentInput($model, new MessageBag(...$messages));
         // @todo step-progress probably needs to be stored differently (internal, to avoid repeating all messages)
         // $input->progress = $progress;
         // $input->sequencePointer = new SequencePointer(submitted: 1);
@@ -461,7 +460,7 @@ final readonly class MediaClassificationAssistant implements AssistantInterface
                 new TextFeedback(sprintf('Select a %s suggestion to apply:', $aspectLabel)),
                 new OptionsFeedback(
                     key: 'step-choice',
-                    text: sprintf("Current value: %s", $currentValueText),
+                    text: sprintf('Current value: %s', $currentValueText),
                     options: $optionItems,
                     heading: $file->getName(),
                     image: $file->getPublicUrl(),

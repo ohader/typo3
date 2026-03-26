@@ -18,8 +18,8 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
+use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 
@@ -44,15 +44,15 @@ final readonly class A11yAssistant implements AssistantInterface
         return null;
     }
 
-    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+    public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
     {
         return new AgentCallRequest(
-            model: $input->getModel(),
-            messageBag: $input->getMessageBag(),
+            model: $input->model,
+            messageBag: $input->messageBag,
         );
     }
 
-    public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+    public function process(AgentInput $input, AgentOutput $output): void {}
 
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {

@@ -29,9 +29,7 @@ use TYPO3\CMS\Assist\AI\Assistant\AssistantRequest;
 use TYPO3\CMS\Assist\AI\Assistant\AssistantResponse;
 use TYPO3\CMS\Assist\AI\Assistant\ToolPolicy;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Tests\Functional\AssistBasedTestTrait;
 use TYPO3\TestingFramework\Core\Functional\FunctionalTestCase;
@@ -82,18 +80,18 @@ class NumbAssistantTest extends FunctionalTestCase
             {
                 return null;
             }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
             {
-                return new AgentCallRequest(model: $input->getModel(), messageBag: $input->getMessageBag());
+                return new AgentCallRequest(model: $input->model, messageBag: $input->messageBag);
             }
-            public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();
             }
         };
 
-        $input = new AgentInput($this->model, Message::ofUser($payload));
+        $input = new AgentInput($this->model, new MessageBag(Message::ofUser($payload)));
         $output = new AgentOutput();
         $request = $assistant->buildAgentCall($input, $output);
         $result = $this->agentGateway->call($request);
@@ -112,24 +110,24 @@ class NumbAssistantTest extends FunctionalTestCase
             {
                 return null;
             }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
             {
                 return new AgentCallRequest(
-                    model: $input->getModel(),
+                    model: $input->model,
                     messageBag: new MessageBag(
                         Message::forSystem('You are a TYPO3 expert assistant.'),
-                        ...$input->getMessageBag()->getMessages(),
+                        ...$input->messageBag->getMessages(),
                     ),
                 );
             }
-            public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();
             }
         };
 
-        $input = new AgentInput($this->model, Message::ofUser('ping'));
+        $input = new AgentInput($this->model, new MessageBag(Message::ofUser('ping')));
         $output = new AgentOutput();
         $request = $assistant->buildAgentCall($input, $output);
         $result = $this->agentGateway->call($request);
@@ -148,11 +146,11 @@ class NumbAssistantTest extends FunctionalTestCase
             {
                 return null;
             }
-            public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+            public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
             {
-                return new AgentCallRequest(model: $input->getModel(), messageBag: $input->getMessageBag());
+                return new AgentCallRequest(model: $input->model, messageBag: $input->messageBag);
             }
-            public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+            public function process(AgentInput $input, AgentOutput $output): void {}
             public function handleClientRequest(AssistantRequest $request): AssistantResponse
             {
                 return new AssistantResponse();
@@ -165,7 +163,7 @@ class NumbAssistantTest extends FunctionalTestCase
 
         $input = new AgentInput(
             $this->model,
-            Message::ofUser($image, 'Describe this image and suggest an appropriate alt text for it.')
+            new MessageBag(Message::ofUser($image, 'Describe this image and suggest an appropriate alt text for it.')),
         );
         $output = new AgentOutput();
         $request = $assistant->buildAgentCall($input, $output);

@@ -61,6 +61,10 @@ final readonly class AgentGateway
             outputProcessors: $request->outputProcessors,
         );
 
-        return $agent->call($request->messageBag);
+        $options = [];
+        if ($request->modelOptions?->temperature !== null) {
+            $options['temperature'] = $request->modelOptions->temperature;
+        }
+        return $agent->call($request->messageBag, $options);
     }
 }

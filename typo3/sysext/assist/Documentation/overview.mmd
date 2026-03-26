@@ -88,11 +88,10 @@ graph LR
     end
 
     subgraph AIMsg["AI/Message/"]
-      AIIF[/"AgentInputInterface\n«interface»"/]
-      AOIF[/"AgentOutputInterface\n«interface»"/]
       AI2["AgentInput"]
       AO2["AgentOutput"]
       ARB["AgentResultBag\n«Countable, IteratorAggregate»"]
+      MOO["ModelOptions\n«value object»"]
     end
 
     subgraph AIPlt["AI/Platform/"]

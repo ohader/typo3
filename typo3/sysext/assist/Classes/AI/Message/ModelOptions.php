@@ -17,13 +17,9 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Message;
 
-use Symfony\AI\Platform\Result\ResultInterface;
-
-interface AgentOutputInterface
+final readonly class ModelOptions
 {
-    public function add(ResultInterface $result): void;
-
-    public function getResultBag(): AgentResultBag;
-
-    public function getTokenConsumption(): TokenConsumption;
+    public function __construct(
+        public float $temperature = 0.5,
+    ) {}
 }

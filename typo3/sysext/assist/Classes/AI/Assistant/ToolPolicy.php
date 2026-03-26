@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 interface ToolPolicy
@@ -25,5 +25,5 @@ interface ToolPolicy
     /**
      * @return list<class-string> Tool class names to activate for this call.
      */
-    public function resolveTools(Assistant $assistant, AgentInputInterface $input): array;
+    public function resolveTools(Assistant $assistant, AgentInput $input): array;
 }

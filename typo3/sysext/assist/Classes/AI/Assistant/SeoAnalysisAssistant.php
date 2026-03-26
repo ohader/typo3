@@ -18,24 +18,21 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Symfony\AI\Platform\Message\Message;
+use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\Component\Uid\Uuid;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
-use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
-use TYPO3\CMS\Assist\AI\Assistant\Type\MarkdownType;
-use TYPO3\CMS\Assist\AI\Message\AgentInput;
-use TYPO3\CMS\Assist\AI\Message\AgentInputInterface;
-use TYPO3\CMS\Assist\AI\Message\AgentOutput;
-use TYPO3\CMS\Assist\AI\Message\AgentOutputInterface;
 use TYPO3\CMS\Assist\AI\Agent\ApprovingToolbox;
+use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ConfirmationItem;
 use TYPO3\CMS\Assist\AI\Assistant\Feedback\ToolApprovalFeedback;
+use TYPO3\CMS\Assist\AI\Assistant\Type\MarkdownType;
+use TYPO3\CMS\Assist\AI\Message\AgentInput;
+use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Tool\FetchContentElementsTool;
 use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
 use TYPO3\CMS\Assist\AI\Tool\PerformFrontendRequestTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
-use TYPO3\CMS\Assist\Domain\Model\StateCollection;
-use TYPO3\CMS\Assist\Exception\ToolApprovalRequiredException;
 use TYPO3\CMS\Assist\Domain\Dto\PageSubject;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
 use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
@@ -43,7 +40,9 @@ use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
+use TYPO3\CMS\Assist\Domain\Model\StateCollection;
 use TYPO3\CMS\Assist\Domain\Repository\ProgressRepository;
+use TYPO3\CMS\Assist\Exception\ToolApprovalRequiredException;
 use TYPO3\CMS\Assist\Service\AssistantRegistry;
 use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
@@ -103,17 +102,17 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         return new StaticToolPolicy([FetchPageRecordsTool::class, FetchContentElementsTool::class, PerformFrontendRequestTool::class]);
     }
 
-    public function buildAgentCall(AgentInputInterface $input, AgentOutputInterface $output): ?AgentCallRequest
+    public function buildAgentCall(AgentInput $input, AgentOutput $output): ?AgentCallRequest
     {
         return new AgentCallRequest(
-            model: $input->getModel(),
-            messageBag: $input->getMessageBag(),
-            progress: $input->getProgress(),
-            sequencePointer: $input->getSequencePointer(),
+            model: $input->model,
+            messageBag: $input->messageBag,
+            progress: $input->progress,
+            sequencePointer: $input->sequencePointer,
         );
     }
 
-    public function process(AgentInputInterface $input, AgentOutputInterface $output): void {}
+    public function process(AgentInput $input, AgentOutput $output): void {}
 
     public function handleClientRequest(AssistantRequest $request): AssistantResponse
     {
@@ -190,7 +189,7 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         );
         $this->progressRepository->add($progress);
 
-        $input = new AgentInput($model, Message::ofUser($message));
+        $input = new AgentInput($model, new MessageBag(Message::ofUser($message)));
         $input->progress = $progress;
         $input->sequencePointer = new SequencePointer(submitted: 1);
         $output = new AgentOutput();
@@ -199,7 +198,7 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         try {
             $this->orchestrator->process($assistant, $input, $output, $request->params);
         } catch (ToolApprovalRequiredException $e) {
-            return $this->buildToolApprovalResponse($e, $input->getProgress(), $request->params);
+            return $this->buildToolApprovalResponse($e, $input->progress, $request->params);
         }
 
         $feedback = $this->parseFeedback($output);
@@ -238,7 +237,7 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         }
 
         $model = $progress->model;
-        $input = new AgentInput($model, ...$messages);
+        $input = new AgentInput($model, new MessageBag(...$messages));
         $input->progress = $progress;
         $input->sequencePointer = new SequencePointer(submitted: count($progress->items));
         $output = new AgentOutput();
@@ -247,7 +246,7 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
         try {
             $this->orchestrator->process($assistant, $input, $output, $request->params);
         } catch (ToolApprovalRequiredException $e) {
-            return $this->buildToolApprovalResponse($e, $input->getProgress(), $request->params);
+            return $this->buildToolApprovalResponse($e, $input->progress, $request->params);
         }
 
         $feedback = $this->parseFeedback($output);
@@ -294,7 +293,7 @@ final readonly class SeoAnalysisAssistant implements AssistantInterface
     /**
      * @return list<Feedback\FeedbackInterface>
      */
-    private function parseFeedback(AgentOutputInterface $output): array
+    private function parseFeedback(AgentOutput $output): array
     {
         $feedback = [];
         foreach ($output->getResultBag()->getResults() as $result) {

@@ -18,47 +18,18 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Message;
 
 use Symfony\AI\Platform\Message\MessageBag;
-use Symfony\AI\Platform\Message\MessageInterface;
 use TYPO3\CMS\Assist\AI\Agent\SequencePointer;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 
-final class AgentInput implements AgentInputInterface
+final class AgentInput
 {
-    private MessageBag $messageBag;
-
     public ?Progress $progress = null;
     public ?SequencePointer $sequencePointer = null;
 
     public function __construct(
         public readonly PlatformModel $model,
-        MessageInterface ...$messages,
-    ) {
-        $this->messageBag = new MessageBag(...$messages);
-    }
-
-    public function getModel(): PlatformModel
-    {
-        return $this->model;
-    }
-
-    public function add(MessageInterface $message): void
-    {
-        $this->messageBag->add($message);
-    }
-
-    public function getMessageBag(): MessageBag
-    {
-        return $this->messageBag;
-    }
-
-    public function getProgress(): ?Progress
-    {
-        return $this->progress;
-    }
-
-    public function getSequencePointer(): ?SequencePointer
-    {
-        return $this->sequencePointer;
-    }
+        public readonly MessageBag $messageBag = new MessageBag(),
+        public readonly ?ModelOptions $options = null,
+    ) {}
 }

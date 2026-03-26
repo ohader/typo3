@@ -20,7 +20,7 @@ namespace TYPO3\CMS\Assist\AI\Message;
 use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\AI\Platform\TokenUsage\TokenUsageInterface;
 
-final class AgentOutput implements AgentOutputInterface
+final class AgentOutput
 {
     private AgentResultBag $resultBag;
 
