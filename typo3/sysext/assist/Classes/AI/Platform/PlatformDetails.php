@@ -30,6 +30,10 @@ use TYPO3\CMS\Assist\Domain\Enum\AuthenticationType;
 final readonly class PlatformDetails
 {
     private const ADDITIONAL_DETAILS = [
+        'typo3/symfony-ai-browser-platform' => [
+            // No API endpoint needed — inference runs in the user's browser via WebGPU
+            'cache' => false,
+        ],
         /**
         // @todo API does not provide any more details on models
         'mittwald/symfony-ai-platform' => [

@@ -16,6 +16,7 @@ import { html, LitElement, nothing, type PropertyValues, type TemplateResult } f
 import { LabelProvider } from '@typo3/backend/localization/label-provider';
 import AjaxRequest from '@typo3/core/ajax/ajax-request';
 import { markdown } from '@typo3/core/directive/markdown';
+import type { ChatCompletionMessageParam, ChatCompletionTool } from '@mlc-ai/web-llm';
 
 import '@typo3/assist/element/list-element';
 import '@typo3/assist/element/options-element';
@@ -85,7 +86,15 @@ interface ToolApprovalFeedbackItem {
   alwaysApprove: ConfirmationItemData;
 }
 
-type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | ToolApprovalFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem;
+interface BrowserInferenceFeedbackItem {
+  type: 'browser-inference';
+  assistant: string;
+  model: string;
+  messages: { role: string; content: string }[];
+  tools: ChatCompletionTool[];
+}
+
+type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | ToolApprovalFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem | BrowserInferenceFeedbackItem;
 
 type ChatEntry =
   | { kind: 'user'; text: string }
@@ -147,6 +156,9 @@ export class ChatElement extends LitElement {
   @state() private disabledKeys: Set<string> = new Set();
   @state() private showInput: boolean = false;
   @state() private clientState: Record<string, string> = {};
+  @state() private browserHistory: ChatCompletionMessageParam[] = [];
+  @state() private isBrowserLoading: boolean = false;
+  @state() private browserLoadProgress: string = '';
 
   private historyIndex = -1;
   private draft = '';
@@ -213,7 +225,8 @@ export class ChatElement extends LitElement {
         </div>
         <div class="assist-chat">
           ${this.renderMessages()}
-          ${this.isLoading ? this.renderThinking() : nothing}
+          ${this.isLoading || this.isBrowserLoading ? this.renderThinking() : nothing}
+          ${this.isBrowserLoading && this.browserLoadProgress ? this.renderBrowserLoadProgress() : nothing}
           ${this.renderInput()}
         </div>
       </div>
@@ -322,13 +335,26 @@ export class ChatElement extends LitElement {
         this.progressUuid = data.progress.uuid;
       }
       // handle messages
-      const newEntries: ChatEntry[] = data.feedback.map(item => ({ kind: 'assistant' as const, item }));
+      const feedback: AssistFeedbackItem[] = Array.isArray(data.feedback) ? data.feedback : [];
+      if (feedback.length === 0 && !Array.isArray(data.feedback)) {
+        const errMsg = (data as Record<string, any>).error;
+        this.appendErrorMessage(typeof errMsg === 'string' ? errMsg : 'Unexpected server response.');
+        return;
+      }
+      const regularItems = feedback.filter((item): item is Exclude<AssistFeedbackItem, BrowserInferenceFeedbackItem> => item.type !== 'browser-inference');
+      const newEntries: ChatEntry[] = regularItems.map(item => ({ kind: 'assistant' as const, item }));
       this.messages = [...this.messages, ...newEntries];
       if (data.state && typeof data.state === 'object') {
         this.clientState = { ...this.clientState, ...data.state };
       }
-      // immediately return to server (boomerang)
-      if (data.boomerang) {
+      // handle browser-inference items
+      const browserItem = feedback.find((item): item is BrowserInferenceFeedbackItem => item.type === 'browser-inference');
+      if (browserItem) {
+        // clear progress so next user message starts a fresh server-side conversation
+        this.progressUuid = null;
+        await this.runBrowserInference(browserItem, message);
+      } else if (data.boomerang) {
+        // immediately return to server (boomerang)
         await this.sendRequest();
       }
     } catch (e) {
@@ -336,6 +362,48 @@ export class ChatElement extends LitElement {
       onFailure?.();
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  private async runBrowserInference(item: BrowserInferenceFeedbackItem, userMessage: string): Promise<void> {
+    const { browserLlmEngine } = await import('@typo3/assist/browser-llm/engine');
+    const { executeTool } = await import('@typo3/assist/browser-llm/tool-executor');
+
+    this.isBrowserLoading = true;
+
+    try {
+      await browserLlmEngine.ensureLoaded(item.model, (text) => {
+        this.browserLoadProgress = text;
+      });
+      this.browserLoadProgress = '';
+
+      const systemMessages = item.messages
+        .filter(m => m.role === 'system')
+        .map(m => ({ role: 'system' as const, content: m.content }));
+      const userMsg = userMessage !== '' ? userMessage : (item.messages.at(-1)?.content ?? '');
+      const fullMessages: ChatCompletionMessageParam[] = [
+        ...systemMessages,
+        ...this.browserHistory,
+        { role: 'user' as const, content: userMsg },
+      ];
+
+      const response = await browserLlmEngine.chat(
+        fullMessages,
+        item.tools,
+        (toolName, toolCallId, args) => executeTool(item.assistant, toolName, toolCallId, args),
+      );
+
+      this.browserHistory = [
+        ...this.browserHistory,
+        { role: 'user' as const, content: userMsg },
+        { role: 'assistant' as const, content: response },
+      ];
+      this.messages = [...this.messages, { kind: 'assistant', item: { type: 'markdown', text: response } }];
+    } catch (e) {
+      this.appendErrorMessage(e instanceof Error ? e.message : 'Browser inference failed.');
+    } finally {
+      this.isBrowserLoading = false;
+      this.browserLoadProgress = '';
     }
   }
 
@@ -410,6 +478,14 @@ export class ChatElement extends LitElement {
           <circle class="assist-chat__thinking-dot assist-chat__thinking-dot--3" cx="12" cy="12" r="11" />
         </svg>
         <p class="assist-chat__thinking-text">Thinking...</p>
+      </div>
+    `;
+  }
+
+  private renderBrowserLoadProgress(): TemplateResult {
+    return html`
+      <div class="assist-chat__browser-progress">
+        <p class="assist-chat__browser-progress-text">${this.browserLoadProgress}</p>
       </div>
     `;
   }

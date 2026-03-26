@@ -28,6 +28,7 @@
         "useUnknownInCatchVariables": true,
         "verbatimModuleSyntax": true,
         "pretty": true,
+        "skipLibCheck": true,
         "paths": {
             "@typo3/*": ["./Sources/TypeScript/*"],
             "~labels/*": ["./types/labels/*"],

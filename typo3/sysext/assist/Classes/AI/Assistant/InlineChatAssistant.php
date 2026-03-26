@@ -44,7 +44,7 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
 
 #[AsAssistant(
     identifier: self::IDENTIFIER,
-    capabilities: [AssistantCapability::messages, AssistantCapability::toolCalling],
+    capabilities: [AssistantCapability::messages],
     triggerResources: ['pages', 'tt_content'],
     triggerRoutes: ['/module/web/layout'],
     labelDomain: 'assist.assistants.inline_chat',
@@ -83,8 +83,9 @@ final readonly class InlineChatAssistant implements AssistantInterface
         ]);
     }
 
-    public function getToolPolicy(): ToolPolicy
+    public function getToolPolicy(): ?ToolPolicy
     {
+        return null;
         return new StaticToolPolicy([FetchPageRecordsTool::class]);
     }
 

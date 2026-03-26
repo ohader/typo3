@@ -18,8 +18,14 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Assistant;
 
 use Psr\Container\ContainerInterface;
+use Symfony\AI\Platform\Message\AssistantMessage;
+use Symfony\AI\Platform\Message\MessageBag;
+use Symfony\AI\Platform\Message\SystemMessage;
+use Symfony\AI\Platform\Message\UserMessage;
+use Symfony\AI\Platform\Tool\Tool;
 use TYPO3\CMS\Assist\AI\Agent\AgentCallRequest;
 use TYPO3\CMS\Assist\AI\Agent\AgentService;
+use TYPO3\CMS\Assist\AI\Agent\BrowserDelegationResult;
 use TYPO3\CMS\Assist\AI\Agent\ToolboxFactory;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
@@ -63,6 +69,16 @@ final readonly class AssistantOrchestrator
         }
 
         $request = $this->withToolPolicy($handler, $assistant, $input, $request, $requestParams);
+
+        if ($request->model->platform === 'typo3/symfony-ai-browser-platform') {
+            $output->add(new BrowserDelegationResult(
+                assistantIdentifier: $assistant->identifier,
+                model: $request->model->model,
+                messages: $this->serializeMessageBag($request->messageBag),
+                tools: $this->extractBrowserToolSchemas($handler, $assistant, $input),
+            ));
+            return;
+        }
 
         $result = $this->agentService->call($request);
         $output->add($result);
@@ -108,5 +124,62 @@ final readonly class AssistantOrchestrator
             ...$tools,
         );
         return $request->withProcessors([$agentProcessor], [$agentProcessor]);
+    }
+
+    /**
+     * Extracts tool definitions from the handler's tool policy in OpenAI JSON schema format,
+     * for use in browser-side inference via @mlc-ai/web-llm.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function extractBrowserToolSchemas(AssistantInterface $handler, Assistant $assistant, AgentInput $input): array
+    {
+        $policy = $handler->getToolPolicy();
+        if ($policy === null) {
+            return [];
+        }
+        $toolClassNames = $policy->resolveTools($assistant, $input);
+        if ($toolClassNames === []) {
+            return [];
+        }
+        $toolbox = $this->toolboxFactory->createToolbox(...$toolClassNames);
+        return array_map($this->serializeTool(...), $toolbox->getTools());
+    }
+
+    /**
+     * @return array{type: string, function: array{name: string, description: string, parameters: mixed}}
+     */
+    private function serializeTool(Tool $tool): array
+    {
+        return [
+            'type' => 'function',
+            'function' => [
+                'name' => $tool->getName(),
+                'description' => $tool->getDescription(),
+                'parameters' => $tool->getParameters() ?? ['type' => 'object', 'properties' => new \stdClass()],
+            ],
+        ];
+    }
+
+    /**
+     * Serializes a MessageBag to OpenAI-format role/content pairs for the browser LLM.
+     * Only system, user, and assistant messages are included; tool-call messages are skipped.
+     *
+     * @return list<array{role: string, content: string}>
+     */
+    private function serializeMessageBag(MessageBag $messageBag): array
+    {
+        $messages = [];
+        foreach ($messageBag->getMessages() as $message) {
+            $role = $message->getRole()->value;
+            if ($message instanceof SystemMessage) {
+                $messages[] = ['role' => $role, 'content' => (string)$message->getContent()];
+            } elseif ($message instanceof UserMessage) {
+                $messages[] = ['role' => $role, 'content' => $message->asText() ?? ''];
+            } elseif ($message instanceof AssistantMessage) {
+                $messages[] = ['role' => $role, 'content' => $message->getContent() ?? ''];
+            }
+        }
+        return $messages;
     }
 }

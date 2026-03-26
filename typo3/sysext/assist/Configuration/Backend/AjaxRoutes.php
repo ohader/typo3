@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use TYPO3\CMS\Assist\Controller\Ajax\AssistantAjaxController;
+use TYPO3\CMS\Assist\Controller\Ajax\BrowserToolAjaxController;
 use TYPO3\CMS\Assist\Controller\Ajax\PlatformAjaxController;
 
 return [
@@ -45,5 +46,10 @@ return [
         'target' => PlatformAjaxController::class . '::updateAssistantModel',
         'methods' => ['POST'],
         'inheritAccessFromModule' => 'assist_assistant',
+    ],
+    'assist_browser_execute_tool' => [
+        'path' => '/assist/browser/execute-tool',
+        'target' => BrowserToolAjaxController::class . '::executeTool',
+        'methods' => ['POST'],
     ],
 ];

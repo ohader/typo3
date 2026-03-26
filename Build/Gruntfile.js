@@ -532,6 +532,9 @@ module.exports = function (grunt) {
       dashboard: [
         { name: 'chart.js', bundle: true },
       ],
+      assist: [
+        { name: '@mlc-ai/web-llm', bundle: false },
+      ],
     }).flatMap(
       ([extension, modules]) => modules.map(
         module => [

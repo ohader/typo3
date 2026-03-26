@@ -90,6 +90,7 @@
     "watch:test": "wtr --watch"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2",
     "@ckeditor/ckeditor5-alignment": "^47.6.0",
     "@ckeditor/ckeditor5-autoformat": "^47.6.0",
     "@ckeditor/ckeditor5-basic-styles": "^47.6.0",

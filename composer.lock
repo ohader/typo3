@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "22d0a0d9f1ecfc417d83cde9dfe53b48",
+    "content-hash": "7b3107d7fbc00c281b3ee7501183d11b",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -6805,6 +6805,35 @@
             "time": "2024-07-12T15:52:25+00:00"
         },
         {
+            "name": "typo3/symfony-ai-browser-platform",
+            "version": "dev-ai",
+            "dist": {
+                "type": "path",
+                "url": "packages/symfony-ai-browser-platform",
+                "reference": "bfd06505e688c586d2de0c1b4fc74d3e8d184c91"
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/ai-platform": "^0.6"
+            },
+            "type": "symfony-ai-platform",
+            "autoload": {
+                "psr-4": {
+                    "TYPO3\\Symfony\\AI\\BrowserPlatform\\Bridge\\": "src/"
+                },
+                "exclude-from-classmap": [
+                    "/vendor/"
+                ]
+            },
+            "license": [
+                "GPL-2.0-or-later"
+            ],
+            "description": "Browser-side LLM platform for EXT:assist. Delegates inference to @mlc-ai/web-llm running in the user's browser via WebGPU.",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
             "name": "typo3fluid/fluid",
             "version": "5.2.0",
             "source": {
@@ -11432,6 +11461,7 @@
     "stability-flags": {
         "mittwald/symfony-ai-platform": 20,
         "symfony/mcp-sdk": 20,
+        "typo3/symfony-ai-browser-platform": 20,
         "typo3/symfony-ai-numb-platform": 20,
         "typo3/testing-framework": 20
     },

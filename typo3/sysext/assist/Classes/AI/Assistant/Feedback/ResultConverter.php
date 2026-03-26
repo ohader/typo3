@@ -20,6 +20,7 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 use Symfony\AI\Platform\Result\ChoiceResult;
 use Symfony\AI\Platform\Result\ResultInterface;
 use Symfony\AI\Platform\Result\TextResult;
+use TYPO3\CMS\Assist\AI\Agent\BrowserDelegationResult;
 
 final readonly class ResultConverter
 {
@@ -33,6 +34,15 @@ final readonly class ResultConverter
      */
     public function convert(ResultInterface $result): FeedbackInterface
     {
+        if ($result instanceof BrowserDelegationResult) {
+            return new BrowserInferenceFeedback(
+                assistantIdentifier: $result->assistantIdentifier,
+                model: $result->model,
+                messages: $result->messages,
+                tools: $result->tools,
+            );
+        }
+
         if ($result instanceof TextResult) {
             $content = $result->getContent();
             $json = json_decode($content, true);
