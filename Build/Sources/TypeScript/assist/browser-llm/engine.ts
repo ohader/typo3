@@ -43,7 +43,8 @@ export class BrowserLlmEngine {
     tools: ChatCompletionTool[],
     onToolCall: ToolCallHandler,
     suppressThinking: boolean = false,
-    responseSchema?: Record<string, unknown>,
+    responseSchema?: Record<string, unknown> | null,
+    modelOptions?: { temperature?: number; max_tokens?: number; repetition_penalty?: number } | null,
   ): Promise<string> {
     if (this.engine === null) {
       throw new Error('BrowserLlmEngine: engine not loaded');
@@ -71,6 +72,9 @@ export class BrowserLlmEngine {
         tools: requestTools,
         stream: false,
         response_format: responseFormat,
+        temperature: modelOptions?.temperature,
+        max_tokens: modelOptions?.max_tokens,
+        repetition_penalty: modelOptions?.repetition_penalty,
       });
 
       const choice = response.choices[0];

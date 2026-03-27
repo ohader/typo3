@@ -42,6 +42,7 @@ final readonly class ResultConverter
                 tools: $result->tools,
                 suppressThinking: $result->suppressThinking,
                 responseSchema: $result->responseSchema,
+                modelOptions: $result->modelOptions,
             );
         }
 

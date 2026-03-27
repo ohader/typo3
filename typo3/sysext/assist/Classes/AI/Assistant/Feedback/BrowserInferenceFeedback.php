@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
+use TYPO3\CMS\Assist\AI\Message\ModelOptions;
+
 /**
  * Instructs the frontend to run inference in the browser via @mlc-ai/web-llm.
  *
@@ -39,6 +41,7 @@ final readonly class BrowserInferenceFeedback implements FeedbackInterface
         public array $tools,
         public bool $suppressThinking = false,
         public ?array $responseSchema = null,
+        public ?ModelOptions $modelOptions = null,
     ) {}
 
     public function getValue(): string
@@ -56,6 +59,11 @@ final readonly class BrowserInferenceFeedback implements FeedbackInterface
             'tools' => $this->tools,
             'suppressThinking' => $this->suppressThinking,
             'responseSchema' => $this->responseSchema,
+            'modelOptions' => $this->modelOptions !== null ? [
+                'temperature' => $this->modelOptions->temperature,
+                'max_tokens' => $this->modelOptions->maxTokens,
+                'repetition_penalty' => $this->modelOptions->repetitionPenalty,
+            ] : null,
         ];
     }
 }

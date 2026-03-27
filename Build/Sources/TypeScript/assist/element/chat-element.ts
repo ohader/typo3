@@ -94,6 +94,7 @@ interface BrowserInferenceFeedbackItem {
   tools: ChatCompletionTool[];
   suppressThinking: boolean;
   responseSchema?: Record<string, unknown> | null;
+  modelOptions?: { temperature?: number; max_tokens?: number; repetition_penalty?: number } | null;
 }
 
 type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | ToolApprovalFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem | BrowserInferenceFeedbackItem;
@@ -395,6 +396,7 @@ export class ChatElement extends LitElement {
         (toolName, toolCallId, args) => executeTool(item.assistant, toolName, toolCallId, args),
         item.suppressThinking,
         item.responseSchema,
+        item.modelOptions,
       );
 
       this.browserHistory = [

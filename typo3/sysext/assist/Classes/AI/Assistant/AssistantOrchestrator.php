@@ -29,6 +29,7 @@ use TYPO3\CMS\Assist\AI\Agent\BrowserDelegationResult;
 use TYPO3\CMS\Assist\AI\Agent\ToolboxFactory;
 use TYPO3\CMS\Assist\AI\Message\AgentInput;
 use TYPO3\CMS\Assist\AI\Message\AgentOutput;
+use TYPO3\CMS\Assist\AI\Message\ModelOptions;
 use TYPO3\CMS\Assist\Domain\Model\Assistant;
 
 /**
@@ -72,6 +73,11 @@ final readonly class AssistantOrchestrator
             $responseSchema = $handler instanceof BrowserResponseSchemaProvider
                 ? $handler->getBrowserResponseSchema()
                 : null;
+            $modelOptions = new ModelOptions(
+                $request->modelOptions->temperature ?? 0.4,
+                $request->modelOptions->maxTokens ?? null,
+                $request->modelOptions->repetitionPenalty ?? 1.1
+            );
             $output->add(new BrowserDelegationResult(
                 assistantIdentifier: $assistant->identifier,
                 model: $request->model->model,
@@ -79,6 +85,7 @@ final readonly class AssistantOrchestrator
                 tools: $this->extractBrowserToolSchemas($handler, $assistant, $input),
                 suppressThinking: $request->model->suppressThinking,
                 responseSchema: $responseSchema,
+                modelOptions: $modelOptions,
             ));
             return;
         }

@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace TYPO3\CMS\Assist\AI\Agent;
 
 use Symfony\AI\Platform\Result\BaseResult;
+use TYPO3\CMS\Assist\AI\Message\ModelOptions;
 
 /**
  * Signals that inference should be delegated to the user's browser via @mlc-ai/web-llm.
@@ -47,6 +48,7 @@ final class BrowserDelegationResult extends BaseResult
         public readonly array $tools,
         public readonly bool $suppressThinking = false,
         public readonly ?array $responseSchema = null,
+        public readonly ?ModelOptions $modelOptions = null,
     ) {}
 
     public function getContent(): null
