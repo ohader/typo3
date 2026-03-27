@@ -21,7 +21,7 @@ final readonly class ErrorFeedback implements FeedbackInterface
 {
     public function __construct(private string $text) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->text;
     }
@@ -30,7 +30,7 @@ final readonly class ErrorFeedback implements FeedbackInterface
     {
         return [
             'type' => 'error',
-            'text' => $this->text,
+            'value' => $this->text,
         ];
     }
 }

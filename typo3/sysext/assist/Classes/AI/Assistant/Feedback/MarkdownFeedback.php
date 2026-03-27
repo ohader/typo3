@@ -19,18 +19,18 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
 final readonly class MarkdownFeedback implements FeedbackInterface
 {
-    public function __construct(public string $text) {}
+    public function __construct(public string $value) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
-        return $this->text;
+        return $this->value;
     }
 
     public function jsonSerialize(): array
     {
         return [
             'type' => 'markdown',
-            'text' => $this->text,
+            'value' => $this->value,
         ];
     }
 }

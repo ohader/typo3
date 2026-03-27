@@ -26,7 +26,7 @@ final readonly class ConfirmationFeedback implements FeedbackInterface
         public ConfirmationItem $decline,
     ) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->text;
     }

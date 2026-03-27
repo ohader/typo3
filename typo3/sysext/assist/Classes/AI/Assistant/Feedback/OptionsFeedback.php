@@ -46,7 +46,7 @@ final readonly class OptionsFeedback implements FeedbackInterface
         }
     }
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->text;
     }

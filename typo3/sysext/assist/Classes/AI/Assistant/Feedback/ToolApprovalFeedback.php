@@ -28,7 +28,7 @@ final readonly class ToolApprovalFeedback implements FeedbackInterface
         public ConfirmationItem $alwaysApprove,
     ) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return sprintf('Allow tool call: %s', $this->toolName);
     }

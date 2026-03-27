@@ -217,7 +217,8 @@ final class ChatCommand extends Command
             $answer = $helper->ask($input, $output, $consoleQuestion);
             $output->writeln((string)$answer);
         } else {
-            $output->writeln($question->getText());
+            $value = $question->getValue();
+            $output->writeln(is_array($value) ? implode("\n", $value) : $value);
         }
     }
 }

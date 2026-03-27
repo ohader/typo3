@@ -26,7 +26,7 @@ final readonly class OptionItem implements FeedbackInterface
         public ?string $src = null,
     ) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->text;
     }

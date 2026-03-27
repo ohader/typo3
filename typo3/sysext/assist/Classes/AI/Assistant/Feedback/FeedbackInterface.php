@@ -19,5 +19,5 @@ namespace TYPO3\CMS\Assist\AI\Assistant\Feedback;
 
 interface FeedbackInterface extends \JsonSerializable
 {
-    public function getText(): string;
+    public function getValue(): string|array;
 }

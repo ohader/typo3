@@ -44,17 +44,17 @@ interface AssistChatStep {
 
 interface TextFeedbackItem {
   type: 'text';
-  text: string;
+  value: string;
 }
 
 interface MarkdownFeedbackItem {
   type: 'markdown';
-  text: string;
+  value: string;
 }
 
 interface ErrorFeedbackItem {
   type: 'error';
-  text: string;
+  value: string;
 }
 
 interface MediaFeedbackItem {
@@ -402,7 +402,17 @@ export class ChatElement extends LitElement {
         { role: 'user' as const, content: userMsg },
         { role: 'assistant' as const, content: response },
       ];
-      this.messages = [...this.messages, { kind: 'assistant', item: { type: 'markdown', text: response } }];
+      let responseItem: AssistFeedbackItem;
+      if (item.responseSchema) {
+        try {
+          responseItem = JSON.parse(response) as AssistFeedbackItem;
+        } catch {
+          responseItem = { type: 'markdown', value: response };
+        }
+      } else {
+        responseItem = { type: 'markdown', value: response };
+      }
+      this.messages = [...this.messages, { kind: 'assistant', item: responseItem }];
     } catch (e) {
       this.appendErrorMessage(e instanceof Error ? e.message : 'Browser inference failed.');
     } finally {
@@ -541,14 +551,14 @@ export class ChatElement extends LitElement {
     if (item.type === 'error') {
       return html`
         <div class="assist-chat__response assist-chat__response--error">
-          <p class="assist-chat__text assist-chat__text--error">${item.text}</p>
+          <p class="assist-chat__text assist-chat__text--error">${item.value}</p>
         </div>
       `;
     }
     if (item.type === 'text') {
       return html`
         <div class="assist-chat__response">
-          <p class="assist-chat__text">${item.text}</p>
+          <p class="assist-chat__text">${item.value}</p>
         </div>
       `;
     }
@@ -564,7 +574,7 @@ export class ChatElement extends LitElement {
     if (item.type === 'markdown') {
       return html`
         <div class="assist-chat__response assist-chat__response--markdown">
-          ${markdown(item.text, 'default')}
+          ${markdown(item.value, 'default')}
         </div>
       `;
     }

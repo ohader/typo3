@@ -28,7 +28,7 @@ final readonly class QuickActionFeedback implements FeedbackInterface
         public array $items,
     ) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->text;
     }

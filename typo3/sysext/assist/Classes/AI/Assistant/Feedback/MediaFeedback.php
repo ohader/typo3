@@ -21,7 +21,7 @@ final readonly class MediaFeedback implements FeedbackInterface
 {
     public function __construct(public string $url, public string $alt = '') {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return $this->alt;
     }

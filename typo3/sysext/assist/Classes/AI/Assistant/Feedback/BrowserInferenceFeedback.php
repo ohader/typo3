@@ -41,7 +41,7 @@ final readonly class BrowserInferenceFeedback implements FeedbackInterface
         public ?array $responseSchema = null,
     ) {}
 
-    public function getText(): string
+    public function getValue(): string
     {
         return '';
     }

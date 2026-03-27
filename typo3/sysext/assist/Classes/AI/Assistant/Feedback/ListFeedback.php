@@ -22,9 +22,9 @@ final readonly class ListFeedback implements FeedbackInterface
     /** @param list<string> $items */
     public function __construct(public array $items) {}
 
-    public function getText(): string
+    public function getValue(): array
     {
-        return implode("\n", $this->items);
+        return $this->items;
     }
 
     public function jsonSerialize(): array
