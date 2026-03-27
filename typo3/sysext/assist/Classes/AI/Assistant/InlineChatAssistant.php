@@ -30,9 +30,9 @@ use TYPO3\CMS\Assist\AI\Message\AgentOutput;
 use TYPO3\CMS\Assist\AI\Tool\FetchPageRecordsTool;
 use TYPO3\CMS\Assist\Attribute\AsAssistant;
 use TYPO3\CMS\Assist\Domain\Enum\AssistantCapability;
-use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Domain\Enum\ChatInputType;
 use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
+use TYPO3\CMS\Assist\Domain\Model\Assistant;
 use TYPO3\CMS\Assist\Domain\Model\Initiator;
 use TYPO3\CMS\Assist\Domain\Model\Progress;
 use TYPO3\CMS\Assist\Domain\Model\ProgressItem;
@@ -50,7 +50,7 @@ use TYPO3\CMS\Assist\Service\ConfigurationResolver;
     labelDomain: 'assist.assistants.inline_chat',
     chatInput: ChatInputType::visible,
 )]
-final readonly class InlineChatAssistant implements AssistantInterface
+final readonly class InlineChatAssistant implements AssistantInterface, BrowserResponseSchemaProvider
 {
     use AssistantContextTrait;
 
@@ -71,21 +71,32 @@ final readonly class InlineChatAssistant implements AssistantInterface
 
     public function getSystemPrompt(): ?string
     {
-        return implode("\n", [
+        $lines = [
             'You are a friendly and helpful assistant in the TYPO3 CMS backend.',
             'Your role is to answer TYPO3-related questions and help users with TYPO3 tasks.',
             'Always be polite, concise, and focused on TYPO3 topics.',
             $this->getBackendUserLanguageHint(),
             '',
             'Respond only in JSON matching this schema:',
-            Type\UnionAggregate::of(
-                Type\MarkdownType::class,
-                Type\TextType::class,
-                Type\ListAggregate::of(Type\TextType::class),
-                Type\OptionsAggregate::of(Type\MarkdownType::class),
-                Type\OptionsAggregate::of(Type\TextType::class),
-            ),
-        ]);
+            $this->getResponseUnion(),
+        ];
+        return implode("\n", $lines);
+    }
+
+    public function getBrowserResponseSchema(): ?array
+    {
+        return $this->getResponseUnion()->toJsonSchema()->jsonSerialize();
+    }
+
+    private function getResponseUnion(): Type\UnionAggregate
+    {
+        return Type\UnionAggregate::of(
+            Type\MarkdownType::class,
+            Type\TextType::class,
+            Type\ListAggregate::of(Type\TextType::class),
+            Type\OptionsAggregate::of(Type\MarkdownType::class),
+            Type\OptionsAggregate::of(Type\TextType::class),
+        );
     }
 
     public function getToolPolicy(): ?ToolPolicy

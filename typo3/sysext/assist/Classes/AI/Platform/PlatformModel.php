@@ -26,6 +26,7 @@ final readonly class PlatformModel implements \Stringable
         public string $platform,
         public string $model,
         public bool $isLocal = false,
+        public bool $suppressThinking = false,
     ) {
         if (\str_contains($this->model, '@') || \str_contains($this->platform, '@')) {
             throw new \LogicException('Identifiers for platform or model may not contain "@" characters.', 1771165074);

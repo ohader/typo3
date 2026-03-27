@@ -761,6 +761,13 @@ module.exports = function (grunt) {
         'backend/Resources/Public/JavaScript/Contrib/bootstrap.js',
       ];
 
+      // Worker must be self-contained: module workers don't reliably inherit the page's importmap,
+      // so bare-specifier imports (like @mlc-ai/web-llm) silently fail and the worker never starts.
+      // Uses platform:'browser' so esbuild doesn't try to resolve Node built-ins referenced by web-llm.
+      const filesToBundleForBrowser = [
+        'assist/Resources/Public/JavaScript/browser-llm/worker.js',
+      ];
+
       for (const file of output) {
         const { code, fileName } = file;
         const target = dest + fileName;
@@ -777,6 +784,25 @@ module.exports = function (grunt) {
             outfile: target,
             minify: true,
             bundle: true,
+            sourcemap: generateSourcemaps ? 'inline' : false,
+          });
+        } else if (filesToBundleForBrowser.includes(fileName)) {
+          await build({
+            stdin: {
+              contents: code,
+              resolveDir: __dirname,
+              sourcefile: file.moduleIds[0],
+              loader: 'js'
+            },
+            // 'url' is referenced via require('u'+'rl') in web-llm only when both document
+            // and location are undefined (pure Node.js) — that path is never reached in a worker.
+            // (see compiled file at `node_modules/@mlc-ai/web-llm/lib/index.js`)
+            external: ['@typo3', 'url'],
+            format: 'esm',
+            outfile: target,
+            minify: true,
+            bundle: true,
+            platform: 'browser',
             sourcemap: generateSourcemaps ? 'inline' : false,
           });
         } else {

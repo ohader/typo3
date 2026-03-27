@@ -29,13 +29,16 @@ final readonly class BrowserInferenceFeedback implements FeedbackInterface
 {
     /**
      * @param list<array{role: string, content: string}> $messages OpenAI-format messages (system + new user message)
-     * @param list<array<string, mixed>>                 $tools    OpenAI tool schema objects
+     * @param list<array<string, mixed>> $tools OpenAI tool schema objects
+     * @param array<string, mixed>|null $responseSchema JSON Schema for constrained output, or null
      */
     public function __construct(
         public string $assistantIdentifier,
         public string $model,
         public array $messages,
         public array $tools,
+        public bool $suppressThinking = false,
+        public ?array $responseSchema = null,
     ) {}
 
     public function getText(): string
@@ -51,6 +54,8 @@ final readonly class BrowserInferenceFeedback implements FeedbackInterface
             'model' => $this->model,
             'messages' => $this->messages,
             'tools' => $this->tools,
+            'suppressThinking' => $this->suppressThinking,
+            'responseSchema' => $this->responseSchema,
         ];
     }
 }

@@ -40,6 +40,8 @@ final readonly class ResultConverter
                 model: $result->model,
                 messages: $result->messages,
                 tools: $result->tools,
+                suppressThinking: $result->suppressThinking,
+                responseSchema: $result->responseSchema,
             );
         }
 

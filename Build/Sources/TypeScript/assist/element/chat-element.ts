@@ -92,6 +92,8 @@ interface BrowserInferenceFeedbackItem {
   model: string;
   messages: { role: string; content: string }[];
   tools: ChatCompletionTool[];
+  suppressThinking: boolean;
+  responseSchema?: Record<string, unknown> | null;
 }
 
 type AssistFeedbackItem = TextFeedbackItem | MarkdownFeedbackItem | ErrorFeedbackItem | MediaFeedbackItem | ConfirmationFeedbackItem | ToolApprovalFeedbackItem | OptionsFeedbackItem | ListFeedbackItem | QuickActionsFeedbackItem | BrowserInferenceFeedbackItem;
@@ -391,6 +393,8 @@ export class ChatElement extends LitElement {
         fullMessages,
         item.tools,
         (toolName, toolCallId, args) => executeTool(item.assistant, toolName, toolCallId, args),
+        item.suppressThinking,
+        item.responseSchema,
       );
 
       this.browserHistory = [

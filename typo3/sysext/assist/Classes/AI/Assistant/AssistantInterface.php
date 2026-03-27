@@ -26,7 +26,6 @@ interface AssistantInterface
 {
     public function getAssistant(): Assistant;
 
-
     /**
      * Declare which tools should be available for the agent call.
      *

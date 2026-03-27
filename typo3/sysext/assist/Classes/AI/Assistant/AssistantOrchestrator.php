@@ -69,11 +69,16 @@ final readonly class AssistantOrchestrator
         $request = $this->withToolPolicy($handler, $assistant, $input, $request, $requestParams);
 
         if ($request->model->isLocal) {
+            $responseSchema = $handler instanceof BrowserResponseSchemaProvider
+                ? $handler->getBrowserResponseSchema()
+                : null;
             $output->add(new BrowserDelegationResult(
                 assistantIdentifier: $assistant->identifier,
                 model: $request->model->model,
                 messages: $this->serializeMessageBag($request->messageBag),
                 tools: $this->extractBrowserToolSchemas($handler, $assistant, $input),
+                suppressThinking: $request->model->suppressThinking,
+                responseSchema: $responseSchema,
             ));
             return;
         }

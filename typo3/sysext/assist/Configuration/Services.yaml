@@ -9,4 +9,5 @@ services:
 
   Symfony\Component\Config\Resource\ComposerResource: ~
 
+  TYPO3\Symfony\AI\BrowserPlatform\Bridge\ModelCatalog: ~
   TYPO3\Symfony\AI\BrowserPlatform\Bridge\EventListener\LocalPlatformMarker: ~

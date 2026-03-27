@@ -42,7 +42,7 @@ return Map::fromEntries([
         ),
         // Allow WASM execution (WebLLM's inference engine is compiled to WASM)
         new Mutation(MutationMode::Extend, Directive::ScriptSrc, SourceKeyword::wasmUnsafeEval),
-        // Allow web workers created from blob: URLs (WebLLM spawns blob workers for inference)
-        new Mutation(MutationMode::Extend, Directive::WorkerSrc, SourceScheme::blob),
+        // Allow the WebLLM worker script (same origin) and blob: workers spawned internally by WebLLM for WASM inference
+        new Mutation(MutationMode::Extend, Directive::WorkerSrc, SourceKeyword::self, SourceScheme::blob),
     ),
 ]);

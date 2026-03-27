@@ -37,13 +37,16 @@ final class BrowserDelegationResult extends BaseResult
 {
     /**
      * @param list<array{role: string, content: string}> $messages
-     * @param list<array<string, mixed>>                 $tools    OpenAI tool schema objects
+     * @param list<array<string, mixed>> $tools OpenAI tool schema objects
+     * @param array<string, mixed>|null $responseSchema JSON Schema for constrained output, or null for unconstrained
      */
     public function __construct(
         public readonly string $assistantIdentifier,
         public readonly string $model,
         public readonly array $messages,
         public readonly array $tools,
+        public readonly bool $suppressThinking = false,
+        public readonly ?array $responseSchema = null,
     ) {}
 
     public function getContent(): null

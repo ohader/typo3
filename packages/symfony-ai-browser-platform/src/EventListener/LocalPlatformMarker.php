@@ -20,15 +20,21 @@ namespace TYPO3\Symfony\AI\BrowserPlatform\Bridge\EventListener;
 use TYPO3\CMS\Assist\AI\Platform\PlatformModel;
 use TYPO3\CMS\Assist\Event\AfterBuildPlatformModelEvent;
 use TYPO3\CMS\Core\Attribute\AsEventListener;
+use TYPO3\Symfony\AI\BrowserPlatform\Bridge\ModelCatalog;
 
 /**
  * Marks browser-platform models as local ({@see PlatformModel::$isLocal}),
  * so that {@see \TYPO3\CMS\Assist\AI\Assistant\AssistantOrchestrator} delegates
  * inference to the browser instead of calling a remote model API.
+ *
+ * Also propagates model-specific flags (e.g. {@see PlatformModel::$suppressThinking})
+ * from the {@see ModelCatalog} onto the resolved {@see PlatformModel}.
  */
 #[AsEventListener('typo3/symfony-ai-browser-platform/mark-local')]
 final readonly class LocalPlatformMarker
 {
+    public function __construct(private ModelCatalog $modelCatalog) {}
+
     public function __invoke(AfterBuildPlatformModelEvent $event): void
     {
         $model = $event->getPlatformModel();
@@ -39,6 +45,7 @@ final readonly class LocalPlatformMarker
             platform: $model->platform,
             model: $model->model,
             isLocal: true,
+            suppressThinking: $this->modelCatalog->suppressThinking($model->model),
         ));
     }
 }

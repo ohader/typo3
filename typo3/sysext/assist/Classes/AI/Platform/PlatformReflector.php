@@ -47,7 +47,7 @@ final readonly class PlatformReflector
         $resolvedOptions = $this->getPlatformFactoryOptions($resolvedOptions);
         return array_filter(
             $resolvedOptions,
-            static fn (string $key) => in_array($key, $sensitiveOptionNames, true),
+            static fn(string $key) => in_array($key, $sensitiveOptionNames, true),
             ARRAY_FILTER_USE_KEY
         );
     }
