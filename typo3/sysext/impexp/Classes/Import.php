@@ -19,13 +19,16 @@ namespace TYPO3\CMS\Impexp;
 
 use Symfony\Component\DependencyInjection\Attribute\Autoconfigure;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Configuration\Exception\SiteConfigurationWriteException;
 use TYPO3\CMS\Core\Configuration\FlexForm\FlexFormTools;
+use TYPO3\CMS\Core\Configuration\SiteWriter;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\DataHandling\DataHandler;
 use TYPO3\CMS\Core\DataHandling\TableColumnType;
 use TYPO3\CMS\Core\Exception;
+use TYPO3\CMS\Core\Exception\SiteNotFoundException;
 use TYPO3\CMS\Core\Resource\Exception\InsufficientFolderAccessPermissionsException;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceInstructionTrait;
@@ -35,6 +38,7 @@ use TYPO3\CMS\Core\Schema\Capability\RootLevelCapability;
 use TYPO3\CMS\Core\Schema\Capability\TcaSchemaCapability;
 use TYPO3\CMS\Core\Serializer\Typo3XmlParser;
 use TYPO3\CMS\Core\Serializer\Typo3XmlSerializerOptions;
+use TYPO3\CMS\Core\Site\SiteFinder;
 use TYPO3\CMS\Core\Utility\ExtensionManagementUtility;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\MathUtility;
@@ -118,12 +122,29 @@ class Import extends ImportExport
      */
     protected string $fileadminFolderName = '';
 
+    /**
+     * When false, processSiteConfigurations() is skipped. Set to false when the caller
+     * (e.g. a distribution installer) handles site configuration import itself.
+     */
+    protected bool $importSiteConfigurations = true;
+
     public function __construct(
         protected readonly FlexFormTools $flexFormTools,
         protected readonly StorageRepository $storageRepository,
         protected readonly ConnectionPool $connectionPool,
+        protected readonly SiteWriter $siteWriter,
+        protected readonly SiteFinder $siteFinder,
     ) {
         $this->fetchStorages();
+    }
+
+    /**
+     * Disable automatic site configuration import. Call this when the invoking
+     * code (e.g. a distribution installer) handles site configuration itself.
+     */
+    public function disableSiteConfigurationImport(): void
+    {
+        $this->importSiteConfigurations = false;
     }
 
     /**
@@ -310,6 +331,16 @@ class Import extends ImportExport
         return $this->dat['header']['meta'] ?? [];
     }
 
+    public function getSiteConfigurations(): array
+    {
+        $siteConfigurations = $this->dat['header']['site_configurations'] ?? [];
+        foreach ($siteConfigurations as $identifier => $config) {
+            $rootPageId = (int)($config['rootPageId'] ?? 0);
+            $siteConfigurations[$identifier]['_rootPageTitle'] = $this->dat['header']['records']['pages'][$rootPageId]['title'] ?? '';
+        }
+        return $siteConfigurations;
+    }
+
     /**
      * Checks all requirements that must be met before import.
      *
@@ -408,11 +439,71 @@ class Import extends ImportExport
         $this->setFlexFormRelations();
         // Finally, traverse all records and process soft references with substitution attributes.
         $this->processSoftReferences();
+        // Write site configurations bundled in the export, with rootPageId remapped to imported UIDs.
+        // Skipped when the caller handles site configuration import itself (e.g. distribution installers)
+        // or when the current user is not an admin (site configurations are admin-only).
+        if ($this->importSiteConfigurations && $this->getBackendUser()->isAdmin()) {
+            $this->processSiteConfigurations();
+        }
         // Cleanup
         $this->removeTemporaryFolderName();
 
         if ($this->hasErrors()) {
             throw new ImportFailedException('The import has failed.', 1484484613);
+        }
+    }
+
+    /**
+     * Write site configurations embedded in the import file.
+     * Skips any site whose identifier already exists.
+     * Remaps rootPageId from the export UID to the newly imported UID.
+     */
+    protected function processSiteConfigurations(): void
+    {
+        $siteConfigurations = $this->dat['header']['site_configurations'] ?? [];
+        if (!is_array($siteConfigurations) || $siteConfigurations === []) {
+            return;
+        }
+        $importedPageIds = $this->importMapId['pages'] ?? [];
+        foreach ($siteConfigurations as $siteIdentifier => $configuration) {
+            if (!is_string($siteIdentifier) || !is_array($configuration)) {
+                continue;
+            }
+            $exportedRootPageId = (int)($configuration['rootPageId'] ?? 0);
+            $importedRootPageId = $importedPageIds[$exportedRootPageId] ?? null;
+            if ($importedRootPageId === null) {
+                continue;
+            }
+
+            // Skip if a site configuration already exists for this root page.
+            try {
+                $this->siteFinder->getSiteByRootPageId((int)$importedRootPageId);
+                continue;
+            } catch (SiteNotFoundException) {
+                // No site exists yet — proceed with creating one.
+            }
+
+            // Find a free identifier — never merge into an existing site config.
+            $targetIdentifier = $siteIdentifier;
+            $counter = 0;
+            while (true) {
+                try {
+                    $this->siteFinder->getSiteByIdentifier($targetIdentifier);
+                    $targetIdentifier = $siteIdentifier . '-' . (++$counter);
+                } catch (SiteNotFoundException) {
+                    break;
+                }
+            }
+
+            $configuration['rootPageId'] = (int)$importedRootPageId;
+            $configuration['base'] = '/' . $targetIdentifier . '/';
+            // @TODO Add error handling / routes etc where page ids are used and configured
+
+            try {
+                $this->siteWriter->write($targetIdentifier, $configuration);
+            } catch (SiteConfigurationWriteException) {
+                // Site configuration write failures are non-fatal; the imported data remains intact.
+            }
         }
     }
 
@@ -1027,7 +1118,7 @@ class Import extends ImportExport
 
         // Record relations
         $schema = $this->tcaSchemaFactory->get($table);
-        foreach ($this->dat['records'][$table . ':' . $uid]['rels'] as $field => &$relation) {
+        foreach ($this->dat['records'][$table . ':' . $uid]['rels'] ?? [] as $field => &$relation) {
             switch ($relation['type'] ?? '') {
                 case 'db':
                 case 'file':
@@ -1170,10 +1261,10 @@ class Import extends ImportExport
             if (isset($this->importMapId[$table][$uid])) {
                 if (!$this->tcaSchemaFactory->has($table)) {
                     $this->addError(sprintf('Error: This record does not have a TCA schema! (%s:%s)', $table, $uid));
-                } elseif (is_array($this->dat['records'][$table . ':' . $uid]['rels'] ?? null)) {
+                } else {
                     $schema = $this->tcaSchemaFactory->get($table);
                     $actualUid = BackendUtility::wsMapId($table, $this->importMapId[$table][$uid]);
-                    foreach ($this->dat['records'][$table . ':' . $uid]['rels'] as $field => $relation) {
+                    foreach ($this->dat['records'][$table . ':' . $uid]['rels'] ?? [] as $field => $relation) {
                         // Field "uid_local" of sys_file_reference needs no update because the correct reference uid was already written.
                         // @see ImportExport::fixUidLocalInSysFileReferenceRecords()
                         if (isset($relation['type']) && !($table === 'sys_file_reference' && $field === 'uid_local') && $relation['type'] === 'db') {
@@ -1186,8 +1277,6 @@ class Import extends ImportExport
                             }
                         }
                     }
-                } else {
-                    $this->addError(sprintf('Error: This record does not appear to have a relation array! (%s:%s)', $table, $uid));
                 }
             } else {
                 $this->addError(sprintf('Error: This record does not appear to have been created! (%s:%s)', $table, $uid));
@@ -1277,10 +1366,10 @@ class Import extends ImportExport
             if (isset($this->importMapId[$table][$uid])) {
                 if (!$this->tcaSchemaFactory->has($table)) {
                     $this->addError(sprintf('Error: This record does not appear to have a TCA schema! (%s:%s)', $table, $uid));
-                } elseif (is_array($this->dat['records'][$table . ':' . $uid]['rels'] ?? null)) {
+                } else {
                     $schema = $this->tcaSchemaFactory->get($table);
                     $actualUid = BackendUtility::wsMapId($table, $this->importMapId[$table][$uid]);
-                    foreach ($this->dat['records'][$table . ':' . $uid]['rels'] as $field => $relation) {
+                    foreach ($this->dat['records'][$table . ':' . $uid]['rels'] ?? [] as $field => $relation) {
                         // Field "configuration" of sys_file_storage needs no update because it has not been removed
                         // and has no relations.
                         // @see Import::addSingle()
@@ -1328,8 +1417,6 @@ class Import extends ImportExport
                             }
                         }
                     }
-                } else {
-                    $this->addError(sprintf('Error: This record does not appear to have a relation array! (%s:%s)', $table, $uid));
                 }
             } else {
                 $this->addError(sprintf('Error: This record does not appear to have been created! (%s:%s)', $table, $uid));

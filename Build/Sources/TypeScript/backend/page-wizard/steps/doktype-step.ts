@@ -32,6 +32,11 @@ export type Doktype = {
   icon: string;
 };
 
+export type DoktypeGroup = {
+  label: string;
+  items: Doktype[];
+};
+
 export class DoktypeStep implements WizardStepInterface, WizardStepValueInterface, WizardStepSummaryInterface {
   readonly key = 'doktype';
   readonly title = corePagesLabels.get('doktype');
@@ -64,11 +69,12 @@ export class DoktypeStep implements WizardStepInterface, WizardStepValueInterfac
         if (this.getValue() === null) {
           const storedValue = this.context.getStoreData(this.key);
           const predefinedDoktype = this.context?.configuration?.doktype ?? null;
+          const selectableDoktypes = doktypes.filter(doktype => doktype.value !== '--div--');
           if (storedValue != null) {
             this.setValue(storedValue);
           } else if (predefinedDoktype !== null) {
             // select predefined doktype; auto-advance
-            if (doktypes.some(doktype => doktype.value === (predefinedDoktype))) {
+            if (selectableDoktypes.some(doktype => doktype.value === (predefinedDoktype))) {
               this.setValue(predefinedDoktype);
               shouldAutoAdvance = true;
             } else {
@@ -81,11 +87,11 @@ export class DoktypeStep implements WizardStepInterface, WizardStepValueInterfac
                   show-icon
                 ></typo3-backend-alert>`;
             }
-          } else if (doktypes.length > 0) {
+          } else if (selectableDoktypes.length > 0) {
             // Preselect first doktype; auto-advance if it's the only one
-            const [firstDoktype] = doktypes;
+            const [firstDoktype] = selectableDoktypes;
             this.setValue(firstDoktype.value);
-            shouldAutoAdvance = doktypes.length === 1;
+            shouldAutoAdvance = selectableDoktypes.length === 1;
           }
         }
 
@@ -96,7 +102,28 @@ export class DoktypeStep implements WizardStepInterface, WizardStepValueInterfac
         }
 
         const filteredDoktypes = doktypes
-          .filter((doktype: Doktype) => doktype.label.toLowerCase().includes(this.searchTerm.toLowerCase()));
+          .filter((doktype: Doktype) => doktype.value === '--div--' || doktype.label.toLowerCase().includes(this.searchTerm.toLowerCase()));
+
+        const groups: DoktypeGroup[] = [];
+        let currentGroup: DoktypeGroup = { label: '', items: [] };
+
+        filteredDoktypes.forEach((doktype: Doktype) => {
+          if (doktype.value === '--div--') {
+            if (currentGroup.items.length > 0) {
+              groups.push(currentGroup);
+            }
+            currentGroup = { label: doktype.label, items: [] };
+          } else {
+            currentGroup.items.push(doktype);
+          }
+        });
+
+        if (currentGroup.items.length > 0) {
+          groups.push(currentGroup);
+        }
+
+        // Filter out empty groups
+        const finalGroups = groups.filter(group => group.items.length > 0);
 
         return html`
           ${warning}
@@ -118,31 +145,35 @@ export class DoktypeStep implements WizardStepInterface, WizardStepValueInterfac
                 >
               </div>
             </div>
+            ${finalGroups.length == 0 ? html`<div role="alert" class="alert alert-info">${labels.get('step.doktype.filter.noResults')}</div>` : nothing}
             <div class="form-check-card-container">
-              ${filteredDoktypes.map((doktype: Doktype) => html`
-                <div class="form-check form-check-type-card">
-                  <input
-                    class="form-check-input"
-                    type="radio"
-                    name="doktype"
-                    id="mode-${doktype.value}"
-                    value=${doktype.value}
-                    .checked=${live(this.getValue() === doktype.value)}
-                    @change=${() => this.setValue(doktype.value)}
-                  >
-                  <label class="form-check-label" for="mode-${doktype.value}">
-                    <span class="form-check-label-header form-check-label-header-inherit">
-                      <typo3-backend-icon identifier="${doktype.icon}" size="small"></typo3-backend-icon>
-                      ${doktype.label}
-                    </span>
-                  </label>
-                </div>
+              ${finalGroups.map((group: DoktypeGroup) => html`
+                ${group.label ? html`<h3 class="form-check-card-container-headline">${group.label}</h3>` : nothing}
+                ${group.items.map((doktype: Doktype) => html`
+                  <div class="form-check form-check-type-card">
+                    <input
+                      class="form-check-input"
+                      type="radio"
+                      name="doktype"
+                      id="mode-${doktype.value}"
+                      value=${doktype.value}
+                      .checked=${live(this.getValue() === doktype.value)}
+                      @change=${() => this.setValue(doktype.value)}
+                    >
+                    <label class="form-check-label" for="mode-${doktype.value}">
+                      <span class="form-check-label-header form-check-label-header-inherit">
+                        <typo3-backend-icon identifier="${doktype.icon}" size="small"></typo3-backend-icon>
+                        ${doktype.label}
+                      </span>
+                    </label>
+                  </div>
+                `)}
               `)}
             </div>
           </div>
         `;
       },
-      error: (error: unknown) => this.context.wizard.renderError('something went wrong...', error),
+      error: (error: unknown) => this.context.wizard.renderError(labels.get('step.doktype.load_error'), error),
       pending: () => this.context.wizard.renderLoader()
     });
   }
@@ -194,16 +225,11 @@ export class DoktypeStep implements WizardStepInterface, WizardStepValueInterfac
   private initDoktypesTask(): void {
     this.task = new Task(this.context.wizard, {
       task: async (): Promise<Doktype[]> => {
-        try {
-          const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.wizard_page_get_doktypes)
-            .withQueryArguments({ data: this.context.getDataStore() })
-            .get();
+        const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.wizard_page_get_doktypes)
+          .withQueryArguments({ data: this.context.getDataStore() })
+          .get();
 
-          return await response.resolve();
-        } catch (error) {
-          console.warn('Failed to fetch doktypes:', error);
-          return [];
-        }
+        return await response.resolve();
       },
       autoRun: false
     });

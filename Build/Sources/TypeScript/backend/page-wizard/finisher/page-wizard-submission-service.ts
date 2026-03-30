@@ -22,10 +22,21 @@ export class PageWizardSubmissionService implements SubmissionServiceInterface {
   }
 
   async execute(): Promise<FinisherResult> {
+    const { fields, ...storeData } = this.context.getDataStore();
+    const payload = Object.assign(
+      {},
+      storeData,
+      // flatten fields
+      ...Object.values(fields || {}),
+    );
+
     const response = await new AjaxRequest(TYPO3.settings.ajaxUrls.wizard_submit)
       .withQueryArguments({ mode: 'page_wizard' })
-      .post(this.context.getDataStore());
+      .post(payload);
 
-    return await response.resolve();
+    const result: FinisherResult = await response.resolve();
+    document.dispatchEvent(new CustomEvent('typo3:pagetree:refresh'));
+
+    return result;
   }
 }

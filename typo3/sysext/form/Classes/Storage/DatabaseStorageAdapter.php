@@ -92,6 +92,8 @@ final readonly class DatabaseStorageAdapter implements StorageAdapterInterface
             );
         }
 
+        $this->permissionChecker->assertReadAccessForRecord($uid, $record);
+
         try {
             $formDefinitionArray = json_decode($record['configuration'] ?? '', true, flags: JSON_THROW_ON_ERROR);
         } catch (\JsonException $e) {
@@ -108,6 +110,8 @@ final readonly class DatabaseStorageAdapter implements StorageAdapterInterface
                 1767199444
             );
         }
+
+        $formDefinitionArray['identifier'] = $record['identifier'];
 
         return FormData::fromArray($formDefinitionArray);
     }
@@ -296,13 +300,18 @@ final readonly class DatabaseStorageAdapter implements StorageAdapterInterface
             return true;
         }
 
-        if (MathUtility::canBeInterpretedAsInteger($persistenceIdentifier)) {
-            $uid = (int)$persistenceIdentifier;
-            $record = $this->repository->findByUid($uid);
-            return $record !== null;
+        if (!MathUtility::canBeInterpretedAsInteger($persistenceIdentifier)) {
+            return false;
         }
 
-        return false;
+        if (!$this->isAccessible()) {
+            return false;
+        }
+
+        $uid = (int)$persistenceIdentifier;
+        $record = $this->repository->findByUid($uid);
+
+        return $record !== null;
     }
 
     /**

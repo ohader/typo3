@@ -8,8 +8,8 @@
   "private": true,
   "license": "GPL-2.0+",
   "engines": {
-    "node": ">=22.18.0 <23.0.0",
-    "npm": ">=11.5.2"
+    "node": ">=24.14.0 <25.0.0",
+    "npm": ">=11.9.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.9.0",
@@ -153,7 +153,7 @@
     "@lit/reactive-element": "^2.0.4",
     "@lit/task": "^1.0.1",
     "@popperjs/core": "^2.11.6",
-    "@typo3/icons": "github:TYPO3/TYPO3.Icons",
+    "@typo3/icons": "^5.0.3",
     "alwan": "^2.3.0",
     "autosize": "^6.0.1",
     "bootstrap": "^5.3.2",
