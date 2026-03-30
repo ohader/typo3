@@ -3238,6 +3238,61 @@ typo3-backend-wizard .wizard-actions{border-top:var(--wizard-border-width) solid
 .pagelayout-cell-content{background-color:var(--pagelayout-cell-bg);border:1px solid var(--pagelayout-cell-border-color);border-radius:var(--pagelayout-cell-border-radius);box-shadow:var(--pagelayout-cell-shadow);color:var(--pagelayout-cell-color);padding:var(--pagelayout-cell-spacing)}
 .pagelayout-cell-content>:last-child{margin-bottom:0}
 :root{--typo3-debugger-color:var(--typo3-component-color);--typo3-debugger-bg:var(--typo3-component-bg);--typo3-debugger-bg-variant:color-mix(in srgb,var(--typo3-debugger-bg),var(--typo3-debugger-color) 3%);--typo3-debugger-outline:#101010;--typo3-debugger-border-color:var(--typo3-component-border-color);--typo3-debugger-border-radius:var(--typo3-component-border-radius);--typo3-debugger-box-shadow:var(--typo3-component-box-shadow);--typo3-debugger-top-bg:var(--typo3-surface-container-default);--typo3-debugger-top-color:var(--typo3-surface-container-default-text);--typo3-debugger-color-variant:var(--typo3-text-color-variant);--typo3-debugger-unregistered-bg:light-dark(var(--token-color-warning-60),var(--token-color-blue-60));--typo3-debugger-scope-bg:light-dark(var(--token-color-teal-60),var(--token-color-teal-80));--typo3-debugger-ptype-bg:light-dark(var(--token-color-green-60),var(--token-color-green-70));--typo3-debugger-visibility-bg:light-dark(var(--token-color-magenta-55),var(--token-color-magenta-75));--typo3-debugger-unitialized-bg:light-dark(var(--token-color-orange-60),var(--token-color-orange-75));--typo3-debugger-dirty-bg:light-dark(var(--token-color-yellow-70),var(--token-color-yellow-80));--typo3-debugger-filtered-bg:light-dark(var(--token-color-yellow-70),var(--token-color-yellow-80));--typo3-debugger-string-color:light-dark(var(--token-color-orange-60),var(--token-color-orange-40));--typo3-debugger-type-color:light-dark(var(--token-color-blue-60),var(--token-color-blue-25));--typo3-debugger-closure-color:light-dark(var(--token-color-yellow-70),var(--token-color-yellow-50));--typo3-debugger-property-color:var(--typo3-component-color)}
+.assist-chat-modal{--typo3-modal-padding:0}
+.assist-chat-modal .t3js-modal-body{overflow:hidden}
+typo3-assist-quick-actions-element{display:flex;flex-direction:column;gap:var(--typo3-spacing)}
+typo3-assist-quick-actions-element .assist-chat__quick-actions{margin:0;padding-left:var(--typo3-spacing)}
+typo3-assist-quick-actions-element .assist-chat__quick-action{color:inherit;text-decoration:underline}
+typo3-assist-options-element,typo3-assist-options-element .assist-chat__options{display:flex;flex-direction:column;gap:var(--typo3-spacing)}
+typo3-assist-options-element .assist-chat__option,typo3-assist-options-element .assist-chat__option-text,typo3-assist-options-element .assist-chat__option-title{margin:0}
+typo3-assist-options-element .assist-chat__option-text{display:flex;gap:var(--typo3-spacing)}
+@media (max-width:767px){
+typo3-assist-options-element .assist-chat__option-text{flex-direction:column}}
+typo3-assist-options-element .assist-chat__option-actions{padding-top:0}
+typo3-assist-options-element .assist-chat__media-row .panel{height:100%}
+typo3-assist-options-element .assist-chat__media-row .panel-body{flex-grow:1}
+typo3-assist-options-element .assist-chat__media-frame{align-items:center;background:var(--typo3-surface-container-low);border-radius:4px;display:flex;height:255px;justify-content:center;max-height:255px;overflow:hidden;width:100%}
+typo3-assist-options-element .assist-chat__media-frame--video{background:transparent;height:auto;max-height:none}
+typo3-assist-options-element .assist-chat__media-thumbnail,typo3-assist-options-element .assist-chat__media-video{display:block;max-height:100%;max-width:100%;width:auto}
+typo3-assist-options-element .assist-chat__media-thumbnail{-o-object-fit:contain;object-fit:contain}
+typo3-assist-options-element .assist-chat__media-video{height:auto;-o-object-fit:contain;object-fit:contain;width:100%}
+typo3-assist-chat-element{--typo3-spacing:1.25rem;display:block;height:100%}
+typo3-assist-chat-element .assist-chat-container{display:flex;flex-direction:column;height:100%;max-height:100%;min-height:0}
+typo3-assist-chat-element .assist-chat-header{background:var(--typo3-surface-bright);box-shadow:var(--typo3-component-box-shadow-flyout);display:flex;flex:0 0 auto;flex-wrap:wrap;gap:var(--typo3-spacing);justify-content:space-between;padding:var(--typo3-spacing);z-index:1}
+typo3-assist-chat-element .assist-chat-header__progress{flex:0 0 100%;width:100%}
+typo3-assist-chat-element .assist-chat-header__progress typo3-backend-progress-tracker{--progress-tracker-margin:0}
+typo3-assist-chat-element .assist-chat-header__title{align-items:center;display:flex;gap:4px;margin:0}
+typo3-assist-chat-element .assist-chat-header__title svg{height:16px;width:16px}
+typo3-assist-chat-element .assist-chat-header__context{margin:0}
+typo3-assist-chat-element .assist-chat{display:flex;flex:1 1 auto;flex-direction:column;gap:var(--typo3-spacing);min-height:0;overflow-y:auto;padding:var(--typo3-spacing)}
+typo3-assist-chat-element .assist-chat__user-input{display:flex;justify-content:flex-end}
+typo3-assist-chat-element .assist-chat__user-input-bubble{background:var(--typo3-surface-container-high);border-radius:10px;margin:0;padding:8px}
+typo3-assist-chat-element .assist-chat__response{display:flex;flex-direction:column;gap:var(--typo3-spacing)}
+typo3-assist-chat-element .assist-chat__response table{--typo3-table-font-size:var(--typo3-font-size);--typo3-table-color:var(--typo3-component-color);--typo3-table-bg:var(--typo3-component-bg);--typo3-table-border-width:var(--typo3-component-border-width);--typo3-table-border-color:var(--typo3-component-border-color);--typo3-table-padding-y:.75rem;--typo3-table-padding-x:1rem;border-collapse:collapse;border-color:var(--typo3-table-border-color);font-size:var(--typo3-table-font-size);margin-bottom:var(--typo3-spacing);width:100%}
+typo3-assist-chat-element .assist-chat__response table>:not(caption)>*>*{background-color:var(--typo3-table-bg);border-bottom:var(--typo3-table-border-width) solid var(--typo3-table-border-color);color:var(--typo3-table-color);padding:var(--typo3-table-padding-y) calc(var(--typo3-table-padding-x)/2);vertical-align:middle}
+typo3-assist-chat-element .assist-chat__response table>:not(caption)>*>:first-child{-webkit-padding-start:var(--typo3-table-padding-x);padding-inline-start:var(--typo3-table-padding-x)}
+typo3-assist-chat-element .assist-chat__response table>:not(caption)>*>:last-child{-webkit-padding-end:var(--typo3-table-padding-x);padding-inline-end:var(--typo3-table-padding-x)}
+typo3-assist-chat-element .assist-chat__response table th{font-weight:700;white-space:nowrap}
+typo3-assist-chat-element .assist-chat__response table thead>tr>*{border-bottom-width:calc(var(--typo3-table-border-width)*2)}
+typo3-assist-chat-element .assist-chat__text{margin:0}
+typo3-assist-chat-element .assist-chat__response--error{background:var(--typo3-state-danger-bg);border-left:3px solid var(--typo3-state-danger-border-color);border-radius:4px;padding:calc(var(--typo3-spacing)/2) var(--typo3-spacing)}
+typo3-assist-chat-element .assist-chat__text--error{color:var(--typo3-state-danger-color)}
+typo3-assist-chat-element .assist-chat__thinking{align-items:center;display:flex;gap:calc(var(--typo3-spacing)/2)}
+typo3-assist-chat-element .assist-chat__thinking-spinner{flex:0 0 auto;height:16px;width:16px}
+typo3-assist-chat-element .assist-chat__thinking-dot{animation:assist-chat-thinking-ripple 1.2s cubic-bezier(.52,.6,.25,.99) infinite;fill:currentColor;opacity:0;transform:scale(0);transform-box:fill-box;transform-origin:center}
+typo3-assist-chat-element .assist-chat__thinking-dot--2{animation-delay:.2s}
+typo3-assist-chat-element .assist-chat__thinking-dot--3{animation-delay:.4s}
+typo3-assist-chat-element .assist-chat__thinking-text{margin:0}
+typo3-assist-chat-element .assist-chat__input{display:flex;gap:calc(var(--typo3-spacing)/2)}
+.assist-chat__tool-approval{border:1px solid var(--typo3-surface-container-high,#ddd);border-radius:var(--typo3-border-radius,4px);overflow:hidden}
+.assist-chat__tool-approval-header{background-color:var(--typo3-surface-container-high,#f5f5f5);font-weight:700;padding:.5rem .75rem}
+.assist-chat__tool-parameters{margin:0;padding:.5rem .75rem}
+.assist-chat__tool-parameters dt{color:var(--typo3-text-color-muted,#666);font-size:.875em;font-weight:700}
+.assist-chat__tool-parameters dd{margin-bottom:.25rem;margin-left:0}
+.assist-chat__tool-parameters dd code{word-break:break-all}
+@keyframes assist-chat-thinking-ripple{
+0%{opacity:1;transform:scale(0)}
+to{opacity:0;transform:scale(1)}}
 typo3-backend-color-scheme-switch{display:block;-webkit-margin-start:var(--typo3-list-item-padding-x);margin-inline-start:var(--typo3-list-item-padding-x);-webkit-margin-end:var(--typo3-list-item-padding-x);margin-inline-end:var(--typo3-list-item-padding-x);padding-top:var(--typo3-list-item-padding-y)}
 typo3-backend-color-scheme-switch .btn-group,typo3-backend-color-scheme-switch .dropdown-list{padding-bottom:var(--typo3-list-item-padding-y);width:100%}
 typo3-backend-color-scheme-switch .btn-group .btn{-webkit-padding-start:.75rem;padding-inline-start:.75rem;-webkit-padding-end:.75rem;padding-inline-end:.75rem}

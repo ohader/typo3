@@ -1,0 +1,119 @@
+<html
+    xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers"
+    xmlns:sg="http://typo3.org/ns/TYPO3/CMS/Styleguide/ViewHelpers"
+    data-namespace-typo3-fluid="true"
+>
+
+<f:layout name="Module" />
+
+<f:section name="Before">
+    <f:asset.module identifier="@typo3/assist/element/chat-element.js"/>
+</f:section>
+
+<f:section name="Content">
+
+    <f:render
+        partial="Backend/Navigation"
+        arguments="{
+            currentAction: currentAction,
+            actions: actions,
+            route: routeIdentifier
+        }"
+    />
+
+    <div class="styleguide-content">
+        <h1><f:translate key="component.aiAssist.headline" domain="styleguide.messages" /></h1>
+        <p>
+            <f:translate key="component.aiAssist.introtext" domain="styleguide.messages" />
+        </p>
+
+        <h2><f:translate key="component.aiAssist.section.quickActions.headline" domain="styleguide.messages" /></h2>
+        <f:variable name="codeSnippetQuickActions">
+            <typo3-assist-quick-actions-element
+                items='[{"identifier":"improve","text":"Improve readability"},{"identifier":"shorten","text":"Shorten text"},{"identifier":"translate","text":"Translate to English"}]'>
+            </typo3-assist-quick-actions-element>
+        </f:variable>
+        <sg:example codePreview="true" codeLanguage="html" customCode="{codeSnippetQuickActions}" decodeEntities="true">
+            {codeSnippetQuickActions}
+        </sg:example>
+
+        <h2><f:translate key="component.aiAssist.section.list.headline" domain="styleguide.messages" /></h2>
+        <f:variable name="codeSnippetList">
+            <typo3-assist-list-element
+                items='["Analyze the content structure","Suggest improvements","Apply changes automatically"]'>
+            </typo3-assist-list-element>
+        </f:variable>
+        <sg:example codePreview="true" codeLanguage="html" customCode="{codeSnippetList}" decodeEntities="true">
+            {codeSnippetList}
+        </sg:example>
+
+        <h2><f:translate key="component.aiAssist.section.optionsList.headline" domain="styleguide.messages" /></h2>
+        <f:variable name="codeSnippetOptionsList">
+            <typo3-assist-options-element
+                type="list"
+                text="Which approach would you prefer?"
+                items='[{"identifier":"shorten","text":"Shorten sentences","details":"Splits long sentences into shorter, clearer ones."},{"identifier":"active","text":"Use active voice","details":"Converts passive constructions to active voice."},{"identifier":"rewrite","text":"Full rewrite","details":"Rewrites the paragraph from scratch."}]'>
+            </typo3-assist-options-element>
+        </f:variable>
+        <sg:example codePreview="true" codeLanguage="html" customCode="{codeSnippetOptionsList}" decodeEntities="true">
+            {codeSnippetOptionsList}
+        </sg:example>
+
+        <h2><f:translate key="component.aiAssist.section.optionsPanel.headline" domain="styleguide.messages" /></h2>
+        <f:variable name="codeSnippetOptionsPanel">
+            <typo3-assist-options-element
+                type="panel"
+                text="Select a writing style:"
+                items='[{"identifier":"formal","text":"Formal","details":"Professional and structured language."},{"identifier":"casual","text":"Casual","details":"Friendly and conversational tone."},{"identifier":"technical","text":"Technical","details":"Precise terminology for expert audiences."}]'>
+            </typo3-assist-options-element>
+        </f:variable>
+        <sg:example codePreview="true" codeLanguage="html" customCode="{codeSnippetOptionsPanel}" decodeEntities="true">
+            {codeSnippetOptionsPanel}
+        </sg:example>
+
+        <h2><f:translate key="component.aiAssist.section.chatElement.headline" domain="styleguide.messages" /></h2>
+        <div style="height: 400px; border: 1px solid var(--typo3-component-border-color); border-radius: var(--typo3-border-radius); overflow: hidden;">
+            <typo3-assist-chat-element id="assistChatEmpty" assistant="demo"></typo3-assist-chat-element>
+        </div>
+        <f:asset.script identifier="assistChatEmpty" useNonce="true">
+            customElements.whenDefined('typo3-assist-chat-element').then(() => {
+                const el = document.querySelector('#assistChatEmpty');
+                el.labels = { get: (key) => ({ 'chat.title': 'AI Assist' })[key] ?? key };
+                el.subject = 'tt_content:42 — bodytext';
+                el.assistant = 'demo';
+            });
+        </f:asset.script>
+
+        <h2><f:translate key="component.aiAssist.section.demoConversation.headline" domain="styleguide.messages" /></h2>
+        <div style="height: 500px; border: 1px solid var(--typo3-component-border-color); border-radius: var(--typo3-border-radius); overflow: hidden;">
+            <typo3-assist-chat-element id="assistChatDemo" assistant="demo"></typo3-assist-chat-element>
+        </div>
+        <f:asset.script identifier="assistChatDemo" useNonce="true">
+            customElements.whenDefined('typo3-assist-chat-element').then(() => {
+                const el = document.querySelector('#assistChatDemo');
+                el.labels = { get: (key) => ({ 'chat.title': 'AI Assist' })[key] ?? key };
+                el.subject = 'tt_content:42 — bodytext';
+                el.assistant = 'demo';
+                el.messages = [
+                    { kind: 'user', text: 'Improve readability of this paragraph' },
+                    { kind: 'assistant', item: { type: 'text', text: 'I\'ll analyze the text and suggest improvements.' } },
+                    { kind: 'assistant', item: {
+                        type: 'options', key: 'approach',
+                        text: 'Which approach would you prefer?',
+                        options: [
+                            { identifier: 'shorten', text: 'Shorten sentences', details: 'Splits long sentences into shorter, clearer ones.' },
+                            { identifier: 'active',  text: 'Use active voice',  details: 'Converts passive constructions to active voice.' },
+                            { identifier: 'rewrite', text: 'Full rewrite',      details: 'Rewrites the paragraph from scratch.' },
+                        ]
+                    }},
+                    { kind: 'user', text: 'Use active voice' },
+                    { kind: 'assistant', item: { type: 'markdown', text: '**Here is the improved version:**\n\nThe editor publishes content directly in the backend. The system processes the changes immediately. Users see the updated page within seconds.' } },
+                    { kind: 'assistant', item: { type: 'confirmation', text: 'Would you like to apply these changes?', acceptLabel: 'Apply', declineLabel: 'Cancel' } },
+                ];
+            });
+        </f:asset.script>
+    </div>
+
+</f:section>
+
+</html>

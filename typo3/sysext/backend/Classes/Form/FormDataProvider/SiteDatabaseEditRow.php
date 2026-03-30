@@ -17,8 +17,10 @@ declare(strict_types=1);
 
 namespace TYPO3\CMS\Backend\Form\FormDataProvider;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
 use TYPO3\CMS\Backend\Configuration\SiteTcaConfiguration;
 use TYPO3\CMS\Backend\Form\FormDataProviderInterface;
+use TYPO3\CMS\Core\Configuration\Event\SiteConfigurationLoadedEvent;
 use TYPO3\CMS\Core\Configuration\Processor\Placeholder\EnvPlaceholderProcessor;
 use TYPO3\CMS\Core\Configuration\SiteConfiguration;
 use TYPO3\CMS\Core\Exception\SiteNotFoundException;
@@ -36,6 +38,7 @@ readonly class SiteDatabaseEditRow implements FormDataProviderInterface
         private SiteFinder $siteFinder,
         private SiteTcaConfiguration $siteTcaConfiguration,
         private EnvPlaceholderProcessor $envPlaceholderProcessor,
+        private EventDispatcherInterface $eventDispatcher,
     ) {}
 
     /**
@@ -55,13 +58,12 @@ readonly class SiteDatabaseEditRow implements FormDataProviderInterface
             $rowData = $this->getRawConfigurationForSiteWithRootPageId($rootPageId);
             $result['databaseRow']['uid'] = $rowData['rootPageId'];
             $result['databaseRow']['identifier'] = $result['customData']['siteIdentifier'];
-        } elseif (in_array($tableName, ['site_errorhandling', 'site_language', 'site_route', 'site_base_variant'], true)) {
+        } elseif (in_array($tableName, ['site_errorhandling', 'site_language', 'site_route', 'site_base_variant', 'site_assist_platform'], true)) {
             $unprocessedRootPageId = $result['inlineTopMostParentUid'] ?? $result['inlineParentUid'];
 
             $processedRootPageId = $this->envPlaceholderProcessor->canProcess($unprocessedRootPageId)
                 ? (int)$this->envPlaceholderProcessor->process($unprocessedRootPageId)
                 : (int)$unprocessedRootPageId;
-
             try {
                 $rowData = $this->getRawConfigurationForSiteWithRootPageId($processedRootPageId);
                 $parentFieldName = $result['inlineParentFieldName'];
@@ -95,6 +97,8 @@ readonly class SiteDatabaseEditRow implements FormDataProviderInterface
         $siteTca = $this->siteTcaConfiguration->getTca();
 
         $configuration = GeneralUtility::makeInstance(SiteConfiguration::class)->load($site->getIdentifier());
+        $event = $this->eventDispatcher->dispatch(new SiteConfigurationLoadedEvent($site->getIdentifier(), $configuration));
+        $configuration = $event->getConfiguration();
 
         foreach ($configuration as $fieldName => $fieldValue) {
             if (is_array($fieldValue) && ($siteTca['site']['columns'][$fieldName]['config']['type'] ?? '') === 'select' && ($siteTca['site']['columns'][$fieldName]['config']['renderType'] ?? '') === 'selectMultipleSideBySide') {

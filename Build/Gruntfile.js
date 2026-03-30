@@ -80,6 +80,7 @@ module.exports = function (grunt) {
       dashboard: '<%= paths.sysext %>dashboard/Resources/',
       frontend: '<%= paths.sysext %>frontend/Resources/',
       adminpanel: '<%= paths.sysext %>adminpanel/Resources/',
+      assist: '<%= paths.sysext %>assist/Resources/',
       install: '<%= paths.sysext %>install/Resources/',
       linkvalidator: '<%= paths.sysext %>linkvalidator/Resources/',
       backend: '<%= paths.sysext %>backend/Resources/',
@@ -531,6 +532,9 @@ module.exports = function (grunt) {
       dashboard: [
         { name: 'chart.js', bundle: true },
       ],
+      assist: [
+        { name: '@mlc-ai/web-llm', bundle: false },
+      ],
     }).flatMap(
       ([extension, modules]) => modules.map(
         module => [
@@ -638,6 +642,12 @@ module.exports = function (grunt) {
   grunt.registerTask('clear-built-js', function () {
     if (grunt.file.isDir('JavaScript')) {
       grunt.file.delete('JavaScript');
+    }
+
+    // tsbuildinfo must be removed whenever outputs are cleared; otherwise tsc's
+    // incremental mode considers outputs up-to-date and skips re-emission.
+    if (grunt.file.exists('.cache/tsconfig.tsbuildinfo')) {
+      grunt.file.delete('.cache/tsconfig.tsbuildinfo');
     }
 
     grunt.file.expand('types/labels/*.d.ts').map(file => grunt.file.delete(file));
@@ -751,6 +761,13 @@ module.exports = function (grunt) {
         'backend/Resources/Public/JavaScript/Contrib/bootstrap.js',
       ];
 
+      // Worker must be self-contained: module workers don't reliably inherit the page's importmap,
+      // so bare-specifier imports (like @mlc-ai/web-llm) silently fail and the worker never starts.
+      // Uses platform:'browser' so esbuild doesn't try to resolve Node built-ins referenced by web-llm.
+      const filesToBundleForBrowser = [
+        'assist/Resources/Public/JavaScript/browser-llm/worker.js',
+      ];
+
       for (const file of output) {
         const { code, fileName } = file;
         const target = dest + fileName;
@@ -767,6 +784,25 @@ module.exports = function (grunt) {
             outfile: target,
             minify: true,
             bundle: true,
+            sourcemap: generateSourcemaps ? 'inline' : false,
+          });
+        } else if (filesToBundleForBrowser.includes(fileName)) {
+          await build({
+            stdin: {
+              contents: code,
+              resolveDir: __dirname,
+              sourcefile: file.moduleIds[0],
+              loader: 'js'
+            },
+            // 'url' is referenced via require('u'+'rl') in web-llm only when both document
+            // and location are undefined (pure Node.js) — that path is never reached in a worker.
+            // (see compiled file at `node_modules/@mlc-ai/web-llm/lib/index.js`)
+            external: ['@typo3', 'url'],
+            format: 'esm',
+            outfile: target,
+            minify: true,
+            bundle: true,
+            platform: 'browser',
             sourcemap: generateSourcemaps ? 'inline' : false,
           });
         } else {

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2">
+  <file source-language="en" datatype="plaintext" original="EXT:assist/Resources/Private/Language/locallang_extconf.xlf" date="2026-02-16T00:00:00Z" product-name="assist">
+    <header/>
+    <body>
+      <trans-unit id="modelCacheLifetime">
+        <source>Lifetime in seconds for caching discovered platform models (0 = disabled).</source>
+      </trans-unit>
+      <trans-unit id="debugHttpTraffic">
+        <source>Whether to debug/log HTTP traffic to AI platforms (0 = disabled).</source>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

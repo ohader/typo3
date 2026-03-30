@@ -228,6 +228,12 @@
       <trans-unit id="validation.duplicateLanguageId.message">
         <source>Two language configurations for language "%1s" found. This would be an invalid configuration, the dangling one has been removed.</source>
       </trans-unit>
+      <trans-unit id="validation.uniqueField.title">
+        <source>Site configuration not saved</source>
+      </trans-unit>
+      <trans-unit id="validation.uniqueField.message">
+        <source>The field "%1$s" must be unique across all sites. Site "%2$s" already has this value set.</source>
+      </trans-unit>
       <trans-unit id="labels.detail">
         <source>View Site Configuration "%s"</source>
       </trans-unit>

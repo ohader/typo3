@@ -1,0 +1,53 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
+namespace TYPO3\CMS\Assist\Domain\Model;
+
+use Symfony\Component\Uid\Uuid;
+use TYPO3\CMS\Assist\Domain\Enum\ProgressItemType;
+
+/**
+ * @internal
+ */
+final readonly class ProgressItem
+{
+    public \DateTimeImmutable $timestamp;
+    public Uuid $uuid;
+
+    public function __construct(
+        public ProgressItemType $type,
+        public mixed $payload,
+        ?\DateTimeImmutable $timestamp = null,
+        ?Uuid $uuid = null,
+    ) {
+        $this->timestamp = $timestamp ?? new \DateTimeImmutable();
+        $this->uuid = $uuid ?? Uuid::v4();
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    public static function fromRow(array $row): self
+    {
+        return new self(
+            type: ProgressItemType::from($row['type']),
+            payload: $row['payload'],
+            timestamp: new \DateTimeImmutable($row['timestamp']),
+            uuid: Uuid::fromString($row['uuid']),
+        );
+    }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "typo3/symfony-ai-numb-platform",
+  "description": "A numb Symfony AI Platform bridge that simulates AI model responses locally without remote API calls.",
+  "license": "GPL-2.0-or-later",
+  "type": "symfony-ai-platform",
+  "autoload": {
+    "psr-4": {
+      "TYPO3\\Symfony\\AI\\NumbPlatform\\Bridge\\": ""
+    }
+  },
+  "require": {
+    "php": ">=8.2",
+    "symfony/ai-platform": "^0.6"
+  },
+  "minimum-stability": "dev"
+}

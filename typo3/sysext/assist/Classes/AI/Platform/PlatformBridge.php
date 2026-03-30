@@ -1,0 +1,84 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the TYPO3 CMS project.
+ *
+ * It is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License, either version 2
+ * of the License, or any later version.
+ *
+ * For the full copyright and license information, please read the
+ * LICENSE.txt file that was distributed with this source code.
+ *
+ * The TYPO3 project - inspiring people to share!
+ */
+
+namespace TYPO3\CMS\Assist\AI\Platform;
+
+use Symfony\AI\Platform\ModelCatalog\ModelCatalogInterface;
+use Symfony\AI\Platform\PlatformInterface;
+use TYPO3\CMS\Assist\Domain\Enum\Availability;
+use TYPO3\CMS\Assist\Domain\Model\Platform;
+use TYPO3\CMS\Assist\Exception\PlatformNotAvailableException;
+
+/**
+ * @internal create instances via PackageService
+ */
+final readonly class PlatformBridge
+{
+    public function __construct(
+        private Platform $platform,
+        private PlatformReflector $reflector,
+        private bool $effective,
+        private array $options = [],
+        private bool $liveResolved = false,
+    ) {
+        if ($this->effective && $this->platform->availability !== Availability::enabled) {
+            throw new PlatformNotAvailableException(
+                'Platform ' . $this->platform->name . ' is not available.',
+                1771009690
+            );
+        }
+    }
+
+    public function isLiveResolved(): bool
+    {
+        return $this->liveResolved;
+    }
+
+    public function getPlatformFactory(): PlatformInterface
+    {
+        $class = $this->reflector->getPlatformFactoryClassName();
+        return call_user_func(
+            $class . '::create',
+            ...$this->reflector->getPlatformFactoryOptions($this->options['platformFactory'] ?? [])
+        );
+    }
+
+    public function getModelCatalog(): ModelCatalogInterface
+    {
+        $options = $this->options['modelCatalog'] ?? [];
+        if ($options instanceof ModelCatalogInterface) {
+            $modelCatalog = $options;
+        } else {
+            $class = $this->reflector->getModelCatalogClassName();
+            $modelCatalog = new $class(
+                ...$this->reflector->getModelCatalogOptions($options)
+            );
+        }
+        return $this->effective && $this->platform->models !== []
+            ? new FilteredModelCatalog($this->platform, $modelCatalog)
+            : $modelCatalog;
+    }
+
+    /**
+     * Gets the Symfony AI built-in model catalog (without applying additional options).
+     */
+    public function getStaticModelCatalog(): ModelCatalogInterface
+    {
+        $class = $this->reflector->getModelCatalogClassName();
+        return new $class();
+    }
+}

@@ -1,0 +1,327 @@
+//
+// CSS for custom element:
+// typo3-assist-chat-element
+//
+
+.assist-chat-modal {
+    --typo3-modal-padding: 0;
+
+    .t3js-modal-body {
+        overflow: hidden;
+    }
+}
+
+typo3-assist-quick-actions-element {
+    display: flex;
+    flex-direction: column;
+    gap: var(--typo3-spacing);
+
+    .assist-chat__quick-actions {
+        margin: 0;
+        padding-left: var(--typo3-spacing);
+    }
+
+    .assist-chat__quick-action {
+        color: inherit;
+        text-decoration: underline;
+    }
+}
+
+typo3-assist-options-element {
+    display: flex;
+    flex-direction: column;
+    gap: var(--typo3-spacing);
+
+    .assist-chat__options {
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+    }
+
+    .assist-chat__options {
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+    }
+
+    .assist-chat__option,
+    .assist-chat__option-title,
+    .assist-chat__option-text {
+        margin: 0;
+    }
+
+    .assist-chat__option-text {
+        display: flex;
+        gap: var(--typo3-spacing);
+
+        @media (max-width: 767px) {
+            flex-direction: column;
+        }
+    }
+
+    .assist-chat__option-actions {
+        padding-top: 0;
+    }
+
+    .assist-chat__media-row {
+        .panel {
+            height: 100%;
+        }
+
+        .panel-body {
+            flex-grow: 1;
+        }
+    }
+
+    .assist-chat__media-frame {
+        align-items: center;
+        background: var(--typo3-surface-container-low);
+        border-radius: 4px;
+        display: flex;
+        height: 255px;
+        justify-content: center;
+        max-height: 255px;
+        overflow: hidden;
+        width: 100%;
+    }
+
+    .assist-chat__media-frame--video {
+        background: transparent;
+        height: auto;
+        max-height: none;
+    }
+
+    .assist-chat__media-thumbnail,
+    .assist-chat__media-video {
+        display: block;
+        max-height: 100%;
+        max-width: 100%;
+        width: auto;
+    }
+
+    .assist-chat__media-thumbnail {
+        object-fit: contain;
+    }
+
+    .assist-chat__media-video {
+        height: auto;
+        object-fit: contain;
+        width: 100%;
+    }
+}
+
+typo3-assist-chat-element {
+    --typo3-spacing: 1.25rem;
+    display: block;
+    height: 100%;
+
+    .assist-chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        max-height: 100%;
+        min-height: 0;
+    }
+
+    .assist-chat-header {
+        flex: 0 0 auto;
+        display: flex;
+        flex-wrap: wrap;
+        z-index: 1;
+        justify-content: space-between;
+        gap: var(--typo3-spacing);
+        background: var(--typo3-surface-bright);
+        padding: var(--typo3-spacing);
+        box-shadow: var(--typo3-component-box-shadow-flyout);
+    }
+
+    .assist-chat-header__progress {
+        flex: 0 0 100%;
+        width: 100%;
+
+        typo3-backend-progress-tracker {
+            --progress-tracker-margin: 0;
+        }
+    }
+
+    .assist-chat-header__title {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+
+        svg {
+            width: 16px;
+            height: 16px;
+        }
+    }
+
+    .assist-chat-header__context {
+        margin: 0;
+    }
+
+    .assist-chat {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+        min-height: 0;
+        overflow-y: auto;
+        padding: var(--typo3-spacing);
+    }
+
+    .assist-chat__user-input {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .assist-chat__user-input-bubble {
+        background: var(--typo3-surface-container-high);
+        border-radius: 10px;
+        margin: 0;
+        padding: 8px;
+    }
+
+    .assist-chat__response {
+        display: flex;
+        flex-direction: column;
+        gap: var(--typo3-spacing);
+
+        table {
+            --typo3-table-font-size: var(--typo3-font-size);
+            --typo3-table-color: var(--typo3-component-color);
+            --typo3-table-bg: var(--typo3-component-bg);
+            --typo3-table-border-width: var(--typo3-component-border-width);
+            --typo3-table-border-color: var(--typo3-component-border-color);
+            --typo3-table-padding-y: .75rem;
+            --typo3-table-padding-x: 1rem;
+            border-collapse: collapse;
+            border-color: var(--typo3-table-border-color);
+            font-size: var(--typo3-table-font-size);
+            margin-bottom: var(--typo3-spacing);
+            width: 100%;
+
+            > :not(caption) > * > * {
+                background-color: var(--typo3-table-bg);
+                border-bottom: var(--typo3-table-border-width) solid var(--typo3-table-border-color);
+                color: var(--typo3-table-color);
+                padding: var(--typo3-table-padding-y) calc(var(--typo3-table-padding-x) / 2);
+                vertical-align: middle;
+
+                &:first-child {
+                    padding-inline-start: var(--typo3-table-padding-x);
+                }
+
+                &:last-child {
+                    padding-inline-end: var(--typo3-table-padding-x);
+                }
+            }
+
+            th {
+                font-weight: bold;
+                white-space: nowrap;
+            }
+
+            thead > tr > * {
+                border-bottom-width: calc(var(--typo3-table-border-width) * 2);
+            }
+        }
+    }
+
+    .assist-chat__text {
+        margin: 0;
+    }
+
+    .assist-chat__response--error {
+        background: var(--typo3-state-danger-bg);
+        border-left: 3px solid var(--typo3-state-danger-border-color);
+        border-radius: 4px;
+        padding: calc(var(--typo3-spacing) / 2) var(--typo3-spacing);
+    }
+
+    .assist-chat__text--error {
+        color: var(--typo3-state-danger-color);
+    }
+
+    .assist-chat__thinking {
+        align-items: center;
+        display: flex;
+        gap: calc(var(--typo3-spacing) / 2);
+    }
+
+    .assist-chat__thinking-spinner {
+        flex: 0 0 auto;
+        height: 16px;
+        width: 16px;
+    }
+
+    .assist-chat__thinking-dot {
+        animation: assist-chat-thinking-ripple 1.2s cubic-bezier(.52, .6, .25, .99) infinite;
+        fill: currentColor;
+        opacity: 0;
+        transform: scale(0);
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+
+    .assist-chat__thinking-dot--2 {
+        animation-delay: .2s;
+    }
+
+    .assist-chat__thinking-dot--3 {
+        animation-delay: .4s;
+    }
+
+    .assist-chat__thinking-text {
+        margin: 0;
+    }
+
+    .assist-chat__input {
+        display: flex;
+        gap: calc(var(--typo3-spacing) / 2);
+    }
+}
+
+.assist-chat__tool-approval {
+    border: 1px solid var(--typo3-surface-container-high, #ddd);
+    border-radius: var(--typo3-border-radius, 4px);
+    overflow: hidden;
+
+    &-header {
+        background-color: var(--typo3-surface-container-high, #f5f5f5);
+        padding: .5rem .75rem;
+        font-weight: bold;
+    }
+}
+
+.assist-chat__tool-parameters {
+    margin: 0;
+    padding: .5rem .75rem;
+
+    dt {
+        font-weight: bold;
+        font-size: .875em;
+        color: var(--typo3-text-color-muted, #666);
+    }
+
+    dd {
+        margin-left: 0;
+        margin-bottom: .25rem;
+
+        code {
+            word-break: break-all;
+        }
+    }
+}
+
+@keyframes assist-chat-thinking-ripple {
+    0% {
+        opacity: 1;
+        transform: scale(0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1);
+    }
+}

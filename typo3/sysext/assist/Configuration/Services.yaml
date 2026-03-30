@@ -1,0 +1,13 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  TYPO3\CMS\Assist\:
+    resource: '../Classes/*'
+
+  Symfony\Component\Config\Resource\ComposerResource: ~
+
+  TYPO3\Symfony\AI\BrowserPlatform\Bridge\ModelCatalog: ~
+  TYPO3\Symfony\AI\BrowserPlatform\Bridge\EventListener\LocalPlatformMarker: ~

@@ -1,0 +1,17 @@
+{
+  "name": "typo3/symfony-ai-browser-platform",
+  "description": "Browser-side LLM platform for EXT:assist. Delegates inference to @mlc-ai/web-llm running in the user's browser via WebGPU.",
+  "license": "GPL-2.0-or-later",
+  "type": "symfony-ai-platform",
+  "autoload": {
+    "psr-4": {
+      "TYPO3\\Symfony\\AI\\BrowserPlatform\\Bridge\\": "src/"
+    }
+  },
+  "require": {
+    "php": ">=8.2",
+    "symfony/ai-platform": "^0.6",
+    "typo3/cms-assist": "*"
+  },
+  "minimum-stability": "dev"
+}

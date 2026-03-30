@@ -1,0 +1,4 @@
+# cat=cache; type=int+; label=assist.extconf:modelCacheLifetime
+modelCacheLifetime = 10800
+# cat=debug; type=boolean; label=assist.extconf:debugHttpTraffic
+debugHttpTraffic = 0

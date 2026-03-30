@@ -1,0 +1,67 @@
+{
+	"name": "typo3/cms-assist",
+	"type": "typo3-cms-framework",
+	"description": "TYPO3 CMS AI Assistant Capabilities.",
+	"homepage": "https://typo3.community/",
+	"funding": [
+		{
+			"type": "membership",
+			"url": "https://typo3.org/membership"
+		}
+	],
+	"license": [
+		"GPL-2.0-or-later"
+	],
+	"authors": [
+		{
+			"name": "TYPO3 Core Team",
+			"email": "typo3cms@typo3.org",
+			"role": "Developer"
+		}
+	],
+	"support": {
+		"issues": "https://forge.typo3.org/issues/",
+		"forum": "https://talk.typo3.org/",
+		"source": "https://github.com/TYPO3/typo3/",
+		"docs": "https://docs.typo3.org/c/typo3/cms-assist/main/en-us/",
+		"rss": "https://news.typo3.com/rss/",
+		"chat": "https://typo3.community/meet/slack/",
+		"security": "https://typo3.org/security/"
+	},
+	"config": {
+		"sort-packages": true
+	},
+	"require": {
+		"eliashaeussler/sse": "^2.0",
+		"mittwald/symfony-ai-platform": "dev-main",
+		"php-http/discovery": "^1.20",
+		"symfony/ai-agent": "^0.6.0",
+		"symfony/ai-anthropic-platform": "^0.6",
+		"symfony/ai-lm-studio-platform": "^0.6",
+		"symfony/ai-ollama-platform": "^0.6",
+		"symfony/ai-open-ai-platform": "^0.6",
+		"symfony/mcp-sdk": "dev-main",
+		"typo3/cms-backend": "14.2.*@dev",
+		"typo3/cms-core": "14.2.*@dev",
+		"typo3/cms-fluid": "14.2.*@dev"
+	},
+	"conflict": {
+		"typo3/cms": "*"
+	},
+	"extra": {
+		"branch-alias": {
+			"dev-main": "14.2.x-dev"
+		},
+		"typo3/cms": {
+			"Package": {
+				"serviceProvider": "TYPO3\\CMS\\Assist\\ServiceProvider"
+			},
+			"extension-key": "assist"
+		}
+	},
+	"autoload": {
+		"psr-4": {
+			"TYPO3\\CMS\\Assist\\": "Classes/"
+		}
+	}
+}

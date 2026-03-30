@@ -44,8 +44,15 @@
 		},
 		"sort-packages": true,
 		"allow-plugins": {
+			"php-http/discovery": true,
 			"typo3/class-alias-loader": true,
 			"typo3/cms-composer-installers": true
+		}
+	},
+	"repositories": {
+		"packages": {
+			"type": "path",
+			"url": "packages/*"
 		}
 	},
 	"require": {
@@ -78,7 +85,9 @@
 		"guzzlehttp/psr7": "^2.7.0",
 		"lolli42/finediff": "^1.1.1",
 		"masterminds/html5": "^2.10.0",
+		"mittwald/symfony-ai-platform": "dev-main",
 		"nikic/php-parser": "^5.4.0",
+		"php-http/discovery": "^1.20",
 		"phpdocumentor/reflection-docblock": "^5.6.5 || ^6.0",
 		"phpdocumentor/type-resolver": "^1.8.2 || ^2.0",
 		"phpstan/phpdoc-parser": "^2.1",
@@ -90,6 +99,11 @@
 		"psr/http-server-handler": "^1.0",
 		"psr/http-server-middleware": "^1.0",
 		"psr/log": "^3.0.1",
+		"symfony/ai-agent": "^0.6",
+		"symfony/ai-anthropic-platform": "^0.6",
+		"symfony/ai-lm-studio-platform": "^0.6",
+		"symfony/ai-ollama-platform": "^0.6",
+		"symfony/ai-open-ai-platform": "^0.6",
 		"symfony/config": "^7.4",
 		"symfony/console": "^7.4",
 		"symfony/dependency-injection": "^7.4",
@@ -100,6 +114,7 @@
 		"symfony/finder": "^7.4",
 		"symfony/http-foundation": "^7.4",
 		"symfony/mailer": "^7.4",
+		"symfony/mcp-sdk": "dev-main",
 		"symfony/messenger": "^7.4",
 		"symfony/mime": "^7.4",
 		"symfony/options-resolver": "^7.4",
@@ -117,6 +132,7 @@
 		"typo3/cms-cli": "^3.1.3",
 		"typo3/cms-composer-installers": "^5.0.2",
 		"typo3/html-sanitizer": "^2.2.0",
+		"typo3/symfony-ai-browser-platform": "@dev",
 		"typo3fluid/fluid": "^5.2.0"
 	},
 	"require-dev": {
@@ -135,6 +151,7 @@
 		"phpunit/phpunit": "^11.5.50",
 		"sebastian/recursion-context": "^6.0.3",
 		"sokil/php-isocodes-db-i18n": "^4.0.28",
+		"typo3/symfony-ai-numb-platform": "@dev",
 		"typo3/testing-framework": "dev-main",
 		"webmozart/assert": "^1.11.0"
 	},
@@ -200,6 +217,7 @@
 		"symfony/polyfill-php80": "*",
 		"symfony/polyfill-php81": "*",
 		"typo3/cms-adminpanel": "self.version",
+		"typo3/cms-assist": "self.version",
 		"typo3/cms-backend": "self.version",
 		"typo3/cms-belog": "self.version",
 		"typo3/cms-beuser": "self.version",
@@ -241,6 +259,7 @@
 	"autoload": {
 		"psr-4": {
 			"TYPO3\\CMS\\Adminpanel\\": "typo3/sysext/adminpanel/Classes/",
+			"TYPO3\\CMS\\Assist\\": "typo3/sysext/assist/Classes/",
 			"TYPO3\\CMS\\Backend\\": "typo3/sysext/backend/Classes/",
 			"TYPO3\\CMS\\Belog\\": "typo3/sysext/belog/Classes/",
 			"TYPO3\\CMS\\Beuser\\": "typo3/sysext/beuser/Classes/",
@@ -287,6 +306,7 @@
 	"autoload-dev": {
 		"psr-4": {
 			"TYPO3\\CMS\\Adminpanel\\Tests\\": "typo3/sysext/adminpanel/Tests/",
+			"TYPO3\\CMS\\Assist\\Tests\\": "typo3/sysext/assist/Tests/",
 			"TYPO3\\CMS\\Backend\\Tests\\": "typo3/sysext/backend/Tests/",
 			"TYPO3\\CMS\\Belog\\Tests\\": "typo3/sysext/belog/Tests/",
 			"TYPO3\\CMS\\Beuser\\Tests\\": "typo3/sysext/beuser/Tests/",
